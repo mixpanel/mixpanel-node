@@ -11,18 +11,18 @@ npm install mixpanel
 Usage
 -----
 
-var mixpanel = require('mixpanel');
+	var mixpanel = require('mixpanel');
 
-var mp_client = new mixpanel.Client('YOUR MIXPANEL TOKEN');
+	var mp_client = new mixpanel.Client('YOUR MIXPANEL TOKEN');
 
-mp_client.track("my event", {
-	distinct_id: "some unique client id",
-	as: "many",
-	properties: "as",
-	you: "want"
-}, function(err) {
-	if(err) throw err;
-});
+	mp_client.track("my event", {
+		distinct_id: "some unique client id",
+		as: "many",
+		properties: "as",
+		you: "want"
+	}, function(err) {
+		if(err) throw err;
+	});
 
 Attribution/Credits
 -------------------
