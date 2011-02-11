@@ -1,6 +1,6 @@
 var mixpanel = require('../lib/mixpanel-node');
 
-var mp_client = new mixpanel.Client('d09b8c65788b191705f8e46fee8dd244');
+var mp_client = new mixpanel.Client('89b1c8a872f8a41c0730b6e44fc90da9');
 
 mp_client.set_config({
     test: false,
@@ -13,7 +13,7 @@ var client_id;
 var funnel_counter = {};
 
 function funnel_test(funnel_name, goals) {
-    function e(err) {
+  function e(err) {
         if(err) { console.log("error: "+err); }
     }
     
