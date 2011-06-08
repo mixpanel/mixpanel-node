@@ -1,6 +1,6 @@
 var mixpanel = require('mixpanel');
 
-var mp_client = new mixpanel.Client('89b1c8a872f8a41c0730b6e44fc90da9');
+var mp_client = new mixpanel.Client('89c4df475859a3323fd9f72237ed7260');
 
 mp_client.track("my event", {
 	distinct_id: "1111",
