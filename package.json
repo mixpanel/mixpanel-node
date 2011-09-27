@@ -2,7 +2,7 @@
   "name": "mixpanel",
   "description": "A simple API for mixpanel",
   "keywords": ["mixpanel", "analytics", "api", "stats"],
-  "version": "0.0.4",
+  "version": "0.0.5",
   "homepage": "https://github.com/carlsverre/mixpanel-node",
   "author": "Carl Sverre (http://carlsverre.com)",
   "main": "lib/mixpanel-node",
