@@ -14,9 +14,10 @@ Usage
 	var mixpanel = require('mixpanel');
 
 	var mp_client = new mixpanel.Client('YOUR MIXPANEL TOKEN');
+	mp_client.identify("some unique client id");
+	mp_client.name_tag("client username");
 
 	mp_client.track("my event", {
-		distinct_id: "some unique client id",
 		as: "many",
 		properties: "as",
 		you: "want"
