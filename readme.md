@@ -6,7 +6,7 @@ This library provides many of the features in the official javascript mixpanel l
 Installation
 ------------
 
-npm install mixpanel
+	npm install mixpanel
 
 Usage
 -----
