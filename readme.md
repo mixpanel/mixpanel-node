@@ -23,18 +23,6 @@ Usage
 	}, function(err) {
 		if(err) throw err;
 	});
-	
-	// manual funnel tracking is supported, but not recommended
-	mp_client.track_funnel("my funnel", 1, "first goal", {
-		distinct_id: "unique identifier"
-	}, function(err) {
-		if(err) throw err;
-	});
-	mp_client.track_funnel("my funnel", 2, "second goal", {
-		distinct_id: "unique identifier"
-	}, function(err) {
-		if(err) throw err;
-	});
 
 Attribution/Credits
 -------------------
