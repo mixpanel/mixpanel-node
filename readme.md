@@ -42,4 +42,10 @@ Attribution/Credits
 Heavily inspired by the original js library copyright Mixpanel, Inc.
 (http://mixpanel.com/)
 
-Modifications by Carl Sverre
+Copyright (c) 2012 Carl Sverre
+
+License
+-------------------
+
+Released under the MIT license.  See file called LICENSE for more
+details.
