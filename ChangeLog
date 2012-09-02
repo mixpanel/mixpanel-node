@@ -1,0 +1,10 @@
+2012.01.01, Version 0.0.6
+
+* added engage support
+	* people.set()
+	* people.increment()
+	* people.delete_user()
+
+* deprecated old constructor: require("mixpanel").Client(token)
+
+* added new constructor: require("mixpanel").init(token)
