@@ -8,12 +8,6 @@ Installation
 
     npm install mixpanel
 
-Tests
------
-
-    npm install
-    npm test
-
 Quick Start
 -----------
 
@@ -60,6 +54,13 @@ Quick Start
     // all functions that send data to mixpanel take an optional
     // callback as the last argument
     mixpanel.track("test", function(err) { if (err) throw err; });
+
+Tests
+-----
+
+    # in the mixpanel-node directory
+    npm install
+    npm test
 
 Attribution/Credits
 -------------------
