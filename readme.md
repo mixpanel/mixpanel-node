@@ -8,8 +8,14 @@ Installation
 
     npm install mixpanel
 
-Quick Start
+Tests
 -----
+
+    npm install
+    npm test
+
+Quick Start
+-----------
 
     // grab the Mixpanel factory
     var Mixpanel = require('../lib/mixpanel-node');
