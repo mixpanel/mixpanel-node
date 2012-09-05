@@ -50,6 +50,7 @@ exports.send_request = {
     },
 
     "handles mixpanel errors": function(test) {
+        test.expect(1);
         this.mixpanel.send_request("/track", { event: "test" }, function(e) {
             test.equal(e.message, 'Mixpanel Server Error: 0', "error did not get passed back to callback");
             test.done();
@@ -60,6 +61,7 @@ exports.send_request = {
     },
 
     "handles http.get errors": function(test) {
+        test.expect(1);
         this.mixpanel.send_request("/track", { event: "test" }, function(e) {
             test.equal(e, 'error', "error did not get passed back to callback");
             test.done();
