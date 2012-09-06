@@ -46,8 +46,7 @@ Quick Start
     mixpanel.people.increment("billybob", "points", 15);
 
     // increment multiple properties
-    mixpanel.people.increment("billybob", {"points": 10, "games_played":
-                            1});
+    mixpanel.people.increment("billybob", {"points": 10, "games_played": 1});
 
     // delete a user
     mixpanel.people.delete_user("billybob");
