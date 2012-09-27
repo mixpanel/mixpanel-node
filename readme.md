@@ -13,7 +13,7 @@ Quick Start
 -----------
 
     // grab the Mixpanel factory
-    var Mixpanel = require('../lib/mixpanel-node');
+    var Mixpanel = require('mixpanel');
 
     // create an instance of the mixpanel client
     var mixpanel = Mixpanel.init('6fd9434dba686db2d1ab66b4462a3a67');
@@ -58,7 +58,7 @@ Quick Start
 Tests
 -----
 
-    # in the mixpanel-node directory
+    # in the mixpanel directory
     npm install
     npm test
 
