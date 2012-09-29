@@ -70,6 +70,11 @@ Heavily inspired by the original js library copyright Mixpanel, Inc.
 
 Copyright (c) 2012 Carl Sverre
 
+Contributions from:
+ - [Andres Gottlieb](https://github.com/andresgottlieb)
+ - [Ken Perkins](https://github.com/kenperkins)
+ - [Nathan Rajlich](https://github.com/TooTallNate)
+
 License
 -------------------
 
