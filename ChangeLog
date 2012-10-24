@@ -1,3 +1,7 @@
+2012.01.05, Version 0.0.8
+
+* added mp_lib property, so people can segment by library
+
 2012.01.05, Version 0.0.7
 
 * added unit tests
