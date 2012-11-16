@@ -1,4 +1,10 @@
-2012.01.05, Version 0.0.8
+2012.11.15, Version 0.0.9
+
+* removed time from properties sent to server.  This is to ensure that
+UTC is always used.  Mixpanel will set the correct time as soon as they
+receive the event.
+
+2012.10.24, Version 0.0.8
 
 * added mp_lib property, so people can segment by library
 
