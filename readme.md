@@ -27,6 +27,11 @@ Quick Start
     });
     mixpanel.track("played_game");
 
+    // import old event
+    mixpanel.track("my event", {
+        time: new Date(2012, 4, 20, 12, 34, 56)
+    });
+
     // create or update a user in Mixpanel Engage
     mixpanel.people.set("billybob", {
         $first_name: "Billy",
