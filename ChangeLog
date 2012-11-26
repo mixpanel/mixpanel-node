@@ -1,3 +1,8 @@
+2012.11.26, Version 0.0.10
+
+* added import() method which provides the ability to import events
+older than 5 days.  Contributions from Thomas Watson Steen.
+
 2012.11.15, Version 0.0.9
 
 * removed time from properties sent to server.  This is to ensure that
