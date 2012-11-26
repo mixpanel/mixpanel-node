@@ -14,11 +14,6 @@ mixpanel.track("my event", {
 });
 mixpanel.track("played_game");
 
-// import old event
-mixpanel.track("my event", {
-    time: new Date(2012, 4, 20, 12, 34, 56)
-});
-
 // create or update a user in Mixpanel Engage
 mixpanel.people.set("billybob", {
     $first_name: "Billy",
@@ -46,3 +41,17 @@ mixpanel.people.delete_user("billybob");
 // all functions that send data to mixpanel take an optional
 // callback as the last argument
 mixpanel.track("test", function(err) { if (err) throw err; });
+
+// import an old event
+var mixpanel_importer = Mixpanel.init('valid mixpanel token', {
+    key: "valid api key for project"
+});
+mixpanel_importer.set_config({ debug: true });
+
+// needs to be in the system once for it to show up in the interface
+mixpanel_importer.track('old event', { gender: '' });
+
+mixpanel_importer.import("old event", new Date(2012, 4, 20, 12, 34, 56), {
+    distinct_id: 'billybob',
+    gender: 'male'
+});

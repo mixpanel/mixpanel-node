@@ -27,11 +27,6 @@ Quick Start
     });
     mixpanel.track("played_game");
 
-    // import old event
-    mixpanel.track("my event", {
-        time: new Date(2012, 4, 20, 12, 34, 56)
-    });
-
     // create or update a user in Mixpanel Engage
     mixpanel.people.set("billybob", {
         $first_name: "Billy",
@@ -60,6 +55,19 @@ Quick Start
     // callback as the last argument
     mixpanel.track("test", function(err) { if (err) throw err; });
 
+    // import an old event
+    var mixpanel_importer = Mixpanel.init('valid mixpanel token', {
+        key: "valid api key for project"
+    });
+
+    // needs to be in the system once for it to show up in the interface
+    mixpanel_importer.track('old event', { gender: '' });
+
+    mixpanel_importer.import("old event", new Date(2012, 4, 20, 12, 34, 56), {
+        distinct_id: 'billybob',
+        gender: 'male'
+    });
+
 Tests
 -----
 
@@ -79,6 +87,7 @@ Contributions from:
  - [Andres Gottlieb](https://github.com/andresgottlieb)
  - [Ken Perkins](https://github.com/kenperkins)
  - [Nathan Rajlich](https://github.com/TooTallNate)
+ - [Thomas Watson Steen](https://github.com/watson)
 
 License
 -------------------

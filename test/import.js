@@ -1,7 +1,7 @@
 var Mixpanel    = require('../lib/mixpanel-node'),
     Sinon       = require('sinon');
 
-exports.track = {
+exports.import = {
     setUp: function(next) {
         this.mixpanel = Mixpanel.init('token', { key: 'key' });
         this.clock = Sinon.useFakeTimers();
@@ -20,7 +20,32 @@ exports.track = {
 
     "calls send_request with correct endpoint and data": function(test) {
         var event = "test",
-            props = { key1: 'val1', time: '0' },
+            time = 500,
+            props = { key1: 'val1' },
+            expected_endpoint = "/import",
+            expected_data = {
+                event: 'test',
+                properties: {
+                    key1: 'val1',
+                    token: 'token',
+                    time: 500
+                }
+            };
+
+        this.mixpanel.import(event, time, props);
+
+        test.ok(
+            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            "import didn't call send_request with correct arguments"
+        );
+
+        test.done();
+    },
+
+    "supports a Date instance": function(test) {
+        var event = "test",
+            time = new Date,
+            props = { key1: 'val1' },
             expected_endpoint = "/import",
             expected_data = {
                 event: 'test',
@@ -31,11 +56,21 @@ exports.track = {
                 }
             };
 
-        this.mixpanel.track(event, props);
+        this.mixpanel.import(event, time, props);
 
         test.ok(
             this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
-            "track didn't call send_request with correct arguments"
+            "import didn't call send_request with correct arguments"
+        );
+
+        test.done();
+    },
+
+    "requires the time argument": function(test) {
+        test.throws(
+            function() { this.mixpanel.import('test'); },
+            "The import method requires you to specify the time of the event",
+            "import didn't throw an error when time wasn't specified"
         );
 
         test.done();
