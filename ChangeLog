@@ -1,3 +1,11 @@
+2013.01.11, Version 0.0.11
+
+* added track_charge() method which provides the ability to record user
+transactions for revenue analytics.
+* added clear_charges() method which provides the ability to remove a
+users transactions from Mixpanel
+* added tests for delete_user()
+
 2012.11.26, Version 0.0.10
 
 * added import() method which provides the ability to import events
