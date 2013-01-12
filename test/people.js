@@ -128,4 +128,82 @@ exports.people = {
             test.done();
         }
     },
+
+    track_charge: {
+        "calls send_request with correct endpoint and data": function(test) {
+            var expected_data = {
+                    $append: { $transactions: { $amount: 50 } },
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                };
+
+            this.mixpanel.people.track_charge(this.distinct_id, 50);
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.track_charge didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        },
+
+        "supports being called with a property object": function(test) {
+            var time = new Date('feb 1 2012'),
+                prop = { $time: time, isk: 'isk' },
+                charge = { $amount: 50, $time: Math.floor(time.getTime() / 1000), isk: 'isk' },
+                expected_data = {
+                    $append: { $transactions: charge },
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                };
+
+            this.mixpanel.people.track_charge(this.distinct_id, 50, prop);
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.track_charge didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        }
+    },
+
+    clear_charges: {
+        "calls send_request with correct endpoint and data": function(test) {
+            var expected_data = {
+                    $set: { $transactions: [] },
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                };
+
+            this.mixpanel.people.clear_charges(this.distinct_id);
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.clear_charges didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        }
+    },
+
+    delete_user: {
+        "calls send_request with correct endpoint and data": function(test) {
+            var expected_data = {
+                    $delete: this.distinct_id,
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                };
+
+            this.mixpanel.people.delete_user(this.distinct_id);
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.delete_user didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        }
+    },
+
 };

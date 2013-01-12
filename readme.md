@@ -48,6 +48,12 @@ Quick Start
     // increment multiple properties
     mixpanel.people.increment("billybob", {"points": 10, "games_played": 1});
 
+    // record a transaction for revenue analytics
+    mixpanel.people.track_charge("billybob", 39.99);
+
+    // clear a users transaction history
+    mixpanel.people.clear_charges("billybob");
+
     // delete a user
     mixpanel.people.delete_user("billybob");
 
