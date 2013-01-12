@@ -31,6 +31,7 @@ Quick Start
     mixpanel.people.set("billybob", {
         $first_name: "Billy",
         $last_name: "Bob",
+        $created: (new Date('jan 1 2013')).toISOString(),
         plan: "premium",
         games_played: 1,
         points: 0
