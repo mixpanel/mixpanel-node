@@ -150,7 +150,7 @@ exports.people = {
         "supports being called with a property object": function(test) {
             var time = new Date('feb 1 2012'),
                 prop = { $time: time, isk: 'isk' },
-                charge = { $amount: 50, $time: Math.floor(time.getTime() / 1000), isk: 'isk' },
+                charge = { $amount: 50, $time: time.toISOString(), isk: 'isk' },
                 expected_data = {
                     $append: { $transactions: charge },
                     $token: this.token,
