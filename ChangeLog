@@ -1,3 +1,9 @@
+2013.01.24, Version 0.0.12
+* track_charge() no longer includes $time by default, rather it lets
+Mixpanel's servers set the time when they receive the transaction.  This
+doesn't modify the ability for the user to pass in their own $time (for
+importing transactions).
+
 2013.01.11, Version 0.0.11
 
 * added track_charge() method which provides the ability to record user
