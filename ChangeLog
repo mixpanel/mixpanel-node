@@ -1,3 +1,6 @@
+2013.03.25, Version 0.0.13
+* force requests to go over http. Thanks Randal Truong
+
 2013.01.24, Version 0.0.12
 * track_charge() no longer includes $time by default, rather it lets
 Mixpanel's servers set the time when they receive the transaction.  This
