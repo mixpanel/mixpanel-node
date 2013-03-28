@@ -1,5 +1,9 @@
+2013.03.28, Version 0.0.14
+* revert Randal's http only patch since Mixpanel indeed supports https.
+* handles the ip property in a property object properly for people calls
+
 2013.03.25, Version 0.0.13
-* force requests to go over http. Thanks Randal Truong
+* force requests to go over http [reverted in 0.0.14]
 
 2013.01.24, Version 0.0.12
 * track_charge() no longer includes $time by default, rather it lets

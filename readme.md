@@ -95,7 +95,7 @@ Contributions from:
  - [Ken Perkins](https://github.com/kenperkins)
  - [Nathan Rajlich](https://github.com/TooTallNate)
  - [Thomas Watson Steen](https://github.com/watson)
- - [Randal Truong](https://github.com/ishbu)
+ - [Gabor Ratky](https://github.com/rgabo)
 
 License
 -------------------
