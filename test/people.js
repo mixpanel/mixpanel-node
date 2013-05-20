@@ -21,6 +21,23 @@ exports.people = {
     },
 
     set: {
+        "handles set_once correctly": function(test){
+            var expected_data = {
+                $set_once: {key1: 'val1'},
+                $token: this.token,
+                $distinct_id: this.distinct_id
+            };
+
+            this.mixpanel.people.set_once(this.distinct_id, 'key1', 'val1');
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.set given the set_once flag, didn't call send request with correct arguments"
+            );
+
+            test.done();
+        },
+
         "calls send_request with correct endpoint and data": function(test) {
             var expected_data = {
                     $set: { key1: 'val1' },
