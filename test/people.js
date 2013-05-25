@@ -90,6 +90,25 @@ exports.people = {
             );
 
             test.done();
+        },
+
+        "handles the $ignore_time property in a property object properly": function(test) {
+            var prop = { $ignore_time: true, key1: 'val1', key2: 'val2' },
+                expected_data = {
+                    $set: { key1: 'val1', key2: 'val2' },
+                    $token: this.token,
+                    $distinct_id: this.distinct_id,
+                    $ignore_time: true
+                };
+
+            this.mixpanel.people.set(this.distinct_id, prop);
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.set didn't call send_request with correct arguments"
+            );
+
+            test.done();
         }
     },
 
