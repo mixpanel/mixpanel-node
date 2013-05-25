@@ -20,10 +20,10 @@ exports.people = {
         next();
     },
 
-    set: {
+    _set: {
         "handles set_once correctly": function(test){
             var expected_data = {
-                $set_once: {key1: 'val1'},
+                $set_once: { key1: 'val1' },
                 $token: this.token,
                 $distinct_id: this.distinct_id
             };
@@ -32,7 +32,7 @@ exports.people = {
 
             test.ok(
                 this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set given the set_once flag, didn't call send request with correct arguments"
+                "people.set_once calls send request with correct arguments"
             );
 
             test.done();
@@ -106,6 +106,32 @@ exports.people = {
             test.ok(
                 this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
                 "people.set didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        },
+
+        "supports a callback function": function(test) {
+            var prop = { a: 'b' }, callback = function() { };
+
+            this.mixpanel.people.set(this.distinct_id, prop, callback);
+
+            test.ok(
+                this.mixpanel.send_request.args[0][2] === callback,
+                "people.set didn't call send_request with a callback"
+            );
+
+            test.done();
+        },
+
+        "supports a callback function (set_once)": function(test) {
+            var prop = { a: 'b' }, callback = function() { };
+
+            this.mixpanel.people.set_once(this.distinct_id, prop, callback);
+
+            test.ok(
+                this.mixpanel.send_request.args[0][2] === callback,
+                "people.set_once didn't call send_request with a callback"
             );
 
             test.done();
