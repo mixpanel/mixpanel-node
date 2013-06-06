@@ -79,7 +79,8 @@ Quick Start
 Data Export API
 -----
 Funnels are the only data export endpoint implemented at the moment
-[Data Export API Documentation](https://mixpanel.com/docs/api-documentation/data-export-api#funnels-default)
+
+View usage here: [Data Export API Documentation](https://mixpanel.com/docs/api-documentation/data-export-api#funnels-default)
 
 ### Funnels
     var exporter = Mixpanel.init('valid mixpanel token', {
