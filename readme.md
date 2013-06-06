@@ -86,7 +86,7 @@ View usage here: [Data Export API Documentation](https://mixpanel.com/docs/api-d
     var exporter = Mixpanel.init('valid mixpanel token', {
         key: "valid api key for project",
         secret: "valid secret key for project"
-    });
+    }).data_export;
 
     // List all funnels
     exporter.funnels.list(function (err, data) {
