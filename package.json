@@ -19,6 +19,9 @@
   "scripts": {
     "test": "bin/run_tests"
   },
+    "dependencies": {
+        "MD5": "1.0.3"
+  },
   "devDependencies": {
     "nodeunit": "0.7",
     "sinon": "1.4"
