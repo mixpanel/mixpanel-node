@@ -75,6 +75,27 @@ Quick Start
         gender: 'male'
     });
 
+
+Data Export API
+-----
+[Data Export API Documentation](https://mixpanel.com/docs/api-documentation/data-export-api)
+
+### Funnels
+    var exporter = Mixpanel.init('valid mixpanel token', {
+        key: "valid api key for project",
+        secret: "valid api key for project"
+    });
+
+    // List all funnels
+    exporter.funnels.list(function (err, data) {
+
+    });
+
+    // Get data for a funnel for the past week
+    exporter.funnels.get("valid funnel id", {unit:'week'}, function (err, funnel) {
+
+    });
+
 Tests
 -----
 
@@ -96,6 +117,7 @@ Contributions from:
  - [Nathan Rajlich](https://github.com/TooTallNate)
  - [Thomas Watson Steen](https://github.com/watson)
  - [Gabor Ratky](https://github.com/rgabo)
+ - [Cory Smith](https://github.com/corymsmith)
 
 License
 -------------------
