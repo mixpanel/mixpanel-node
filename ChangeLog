@@ -1,3 +1,6 @@
+2013.06.29, Version 0.0.16
+* allow special key "ip" to be 0 in people.set (thanks to wwlinx)
+
 2013.05.24, Version 0.0.15
 * adds set once functionality to people (thanks to avoid3d)
 * $ignore_time in people.set (thanks to Rick Cotter)

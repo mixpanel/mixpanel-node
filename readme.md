@@ -96,6 +96,7 @@ Contributions from:
  - [Nathan Rajlich](https://github.com/TooTallNate)
  - [Thomas Watson Steen](https://github.com/watson)
  - [Gabor Ratky](https://github.com/rgabo)
+ - [wwlinx](https://github.com/wwlinx)
 
 License
 -------------------
