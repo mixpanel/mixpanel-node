@@ -97,6 +97,7 @@ Contributions from:
  - [Thomas Watson Steen](https://github.com/watson)
  - [Gabor Ratky](https://github.com/rgabo)
  - [wwlinx](https://github.com/wwlinx)
+ - [PierrickP](https://github.com/PierrickP)
 
 License
 -------------------
