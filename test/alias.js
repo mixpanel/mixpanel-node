@@ -4,7 +4,6 @@ var Mixpanel    = require('../lib/mixpanel-node'),
 exports.alias = {
     setUp: function(next) {
         this.mixpanel = Mixpanel.init('token', { key: 'key' });
-        this.clock = Sinon.useFakeTimers();
 
         Sinon.stub(this.mixpanel, 'send_request');
 
@@ -13,7 +12,6 @@ exports.alias = {
 
     tearDown: function(next) {
         this.mixpanel.send_request.restore();
-        this.clock.restore();
 
         next();
     },
