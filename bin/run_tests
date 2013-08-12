@@ -12,4 +12,6 @@ try {
 }
 
 process.chdir(__dirname + "/..");
-reporter.run(['test']);
+reporter.run(['test'], undefined, function(err) {
+    if (err) { process.exit(1); }
+});
