@@ -287,4 +287,61 @@ exports.people = {
         }
     },
 
+    unset: {
+        "calls send_request with correct endpoint and data": function(test) {
+
+            var expected_data = {
+                $unset: ['key1'],
+                $token: this.token,
+                $distinct_id: this.distinct_id
+            };
+
+            this.mixpanel.people.unset(this.distinct_id, 'key1');
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.unset didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        },
+        "supports being called with a property array": function(test) {
+
+            var prop = ['key1', 'key2'],
+                expected_data = {
+                    $unset: prop,
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                };
+
+            this.mixpanel.people.unset(this.distinct_id, prop);
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.unset didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        },
+        "supports being called with a property object": function(test) {
+
+            var prop = {key1:'val1', key2:'val2'},
+                expected_data = {
+                    $unset: prop,
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                };
+
+            this.mixpanel.people.unset(this.distinct_id, prop);
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.unset didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        }
+    }
+
+
 };
