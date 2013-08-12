@@ -29,11 +29,11 @@ exports.alias = {
                 }
             };
 
-        this.mixpanel.alias(alias, distinct_id);
+        this.mixpanel.alias(distinct_id, alias);
 
         test.ok(
             this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
-            "import didn't call send_request with correct arguments"
+            "alias didn't call send_request with correct arguments"
         );
 
         test.done();

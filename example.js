@@ -50,7 +50,7 @@ mixpanel.people.delete_user("billybob");
 
 // all functions that send data to mixpanel take an optional
 // callback as the last argument
-mixpanel.track("test", function(err) { if (err) throw err; });
+mixpanel.track("test", function(err) { if (err) { throw err; } });
 
 // import an old event
 var mixpanel_importer = Mixpanel.init('valid mixpanel token', {
