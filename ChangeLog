@@ -1,3 +1,8 @@
+2013.08.23, Version 0.0.18
+* added callback to alias (thanks to sandinmyjoints)
+* added verbose config option (thanks to sandinmyjoints)
+* added unset method (thanks to lukapril)
+
 2013.08.12, Version 0.0.17
 * added alias method (thanks to PierrickP)
 

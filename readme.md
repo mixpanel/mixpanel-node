@@ -98,6 +98,8 @@ Contributions from:
  - [Gabor Ratky](https://github.com/rgabo)
  - [wwlinx](https://github.com/wwlinx)
  - [PierrickP](https://github.com/PierrickP)
+ - [lukapril](https://github.com/lukapril)
+ - [sandinmyjoints](https://github.com/sandinmyjoints)
 
 License
 -------------------
