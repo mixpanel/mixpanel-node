@@ -323,20 +323,13 @@ exports.people = {
 
             test.done();
         },
-        "supports being called with a property object": function(test) {
-
-            var prop = {key1:'val1', key2:'val2'},
-                expected_data = {
-                    $unset: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.unset(this.distinct_id, prop);
+        "errors on other argument types": function(test) {
+            this.mixpanel.people.unset(this.distinct_id, { key1:'val1', key2:'val2' });
+            this.mixpanel.people.unset(this.distinct_id, 1231241.123);
 
             test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.unset didn't call send_request with correct arguments"
+                !this.mixpanel.send_request.called,
+                "people.unset shouldn't call send_request on invalid arguments"
             );
 
             test.done();
