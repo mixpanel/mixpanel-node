@@ -37,7 +37,6 @@ exports.send_request = {
 
         var expected_http_get = {
             host: 'api.mixpanel.com',
-            port: 80,
             headers: {},
             path: '/track?data=eyJldmVudCI6InRlc3QiLCJwcm9wZXJ0aWVzIjp7ImtleTEiOiJ2YWwxIiwidG9rZW4iOiJ0b2tlbiIsInRpbWUiOjEzNDY4NzY2MjF9fQ%3D%3D&ip=0&verbose=0'
         };
