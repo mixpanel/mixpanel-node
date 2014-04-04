@@ -106,6 +106,7 @@ Contributions from:
  - [PierrickP](https://github.com/PierrickP)
  - [lukapril](https://github.com/lukapril)
  - [sandinmyjoints](https://github.com/sandinmyjoints)
+ - [Jyrki Laurila](https://github.com/jylauril)
 
 License
 -------------------

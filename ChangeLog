@@ -1,3 +1,6 @@
+2014.04.03, Version 0.0.19
+* added people.append (thanks jylauril)
+
 2013.08.23, Version 0.0.18
 * added callback to alias (thanks to sandinmyjoints)
 * added verbose config option (thanks to sandinmyjoints)
