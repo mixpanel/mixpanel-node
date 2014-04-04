@@ -210,6 +210,44 @@ exports.people = {
         }
     },
 
+    append: {
+        "calls send_request with correct endpoint and data": function(test) {
+            var expected_data = {
+                    $append: { key1: 'value' },
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                };
+
+            this.mixpanel.people.append(this.distinct_id, 'key1', 'value');
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.append didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        },
+
+        "supports appending multiple keys with values": function(test) {
+            var prop = { key1: 'value1', key2: 'value2' },
+                expected_data = {
+                    $append: prop,
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                };
+
+            this.mixpanel.people.append(this.distinct_id, prop);
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.append didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        }
+    },
+
+
     track_charge: {
         "calls send_request with correct endpoint and data": function(test) {
             var expected_data = {

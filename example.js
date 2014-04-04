@@ -39,6 +39,12 @@ mixpanel.people.increment("billybob", "points", 15);
 // increment multiple properties
 mixpanel.people.increment("billybob", {"points": 10, "games_played": 1});
 
+// append value to a list
+mixpanel.people.append("billybob", "awards", "Great Player");
+
+// append multiple values to a list
+mixpanel.people.append("billybob", {"awards": "Great Player", "levels_finished": "Level 4"});
+
 // record a transaction for revenue analytics
 mixpanel.people.track_charge("billybob", 39.99);
 
