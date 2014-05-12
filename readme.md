@@ -107,6 +107,7 @@ Contributions from:
  - [lukapril](https://github.com/lukapril)
  - [sandinmyjoints](https://github.com/sandinmyjoints)
  - [Jyrki Laurila](https://github.com/jylauril)
+ - [Zeevl](https://github.com/zeevl)
 
 License
 -------------------

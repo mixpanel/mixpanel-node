@@ -1,3 +1,6 @@
+2014.05.11, Version 0.0.20
+* removed hardcoded port 80 for more flexibility (thanks zeevl)
+
 2014.04.03, Version 0.0.19
 * added people.append (thanks jylauril)
 
