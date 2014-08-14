@@ -3,12 +3,13 @@ var Mixpanel    = require('../lib/mixpanel-node'),
     http        = require('http'),
     events      = require('events');
 
+    var clock;
 exports.send_request_v2 = {
     setUp: function(next) {
         this.mixpanel = Mixpanel.init('token', {key: 'pretty', secret: 'really'});
 
         Sinon.stub(http, 'get');
-        Sinon.useFakeTimers();
+        clock = Sinon.useFakeTimers();
 
         this.http_emitter = new events.EventEmitter();
         this.res = new events.EventEmitter();
@@ -21,6 +22,7 @@ exports.send_request_v2 = {
 
     tearDown: function(next) {
         http.get.restore();
+        clock.restore();
 
         next();
     },
@@ -28,19 +30,19 @@ exports.send_request_v2 = {
     "sends correct data": function(test) {
         var endpoint = "/export",
             data = {
-                from_date: new Date('2014-01-01'),
-                to_date: new Date('2015-01-01')
+                one: 'two',
+                three: 'four'
             };
 
         var expected_http_get = {
             host: 'data.mixpanel.com',
             headers: {},
-            path: '/api/2.0/export?from_date=&to_date=&api_key=pretty&expire=60&sig=e091dda5473cf796dc35f77efe603330'
+            path: '/api/2.0/export?one=two&three=four&api_key=pretty&expire=60&sig=25ce6fe76d7d1250165f58b0e30432ce'
         };
 
         this.mixpanel.send_request_v2(endpoint, data);
 
-        test.ok(http.get.calledWithMatch(expected_http_get), "send_request_v2 didn't call http.get with correct arguments");
+        test.ok(http.get.calledWithMatch(expected_http_get), "send_request_v2 didn't call http.get with correct arguments, got:" + JSON.stringify(http.get.getCall(0).args[0]));
 
         test.done();
     }
