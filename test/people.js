@@ -20,6 +20,37 @@ exports.people = {
         next();
     },
 
+    update: {
+        "calls send_request with correct endpoint and data": function(test) {
+            var expected_data = {
+                    $set: { key1: 'val1' },
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                };
+
+            this.mixpanel.people.update(this.distinct_id, {$set: {'key1': 'val1'}});
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.update didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        },
+        "supports a callback function": function(test) {
+            var data = { $set: {a: 'b'} }, callback = function() { };
+
+            this.mixpanel.people.update(this.distinct_id, data, callback);
+
+            test.ok(
+                this.mixpanel.send_request.args[0][2] === callback,
+                "people.update didn't call send_request with a callback"
+            );
+
+            test.done();
+        }
+    },
+
     _set: {
         "handles set_once correctly": function(test){
             var expected_data = {
