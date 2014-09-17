@@ -48,6 +48,16 @@ exports.send_request = {
         test.done();
     },
 
+    "includes configured request data": function(test) {
+      this.mixpanel.set_config({ track_ip: true });
+
+      this.mixpanel.send_request("/track", { event: "test" });
+
+      test.ok(http.get.calledWithMatch({ path: Sinon.match('ip=1') }), "send_request didn't call http.get with correct request data");
+
+      test.done();
+    },
+
     "handles mixpanel errors": function(test) {
         test.expect(1);
         this.mixpanel.send_request("/track", { event: "test" }, function(e) {
