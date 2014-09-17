@@ -67,6 +67,9 @@ Quick Start
     // all functions that send data to mixpanel take an optional
     // callback as the last argument
     mixpanel.track("test", function(err) { if (err) throw err; });
+    
+    // alias users
+    mixpanel.alias("distinct_id", "your_alias", callback);
 
     // import an old event
     var mixpanel_importer = Mixpanel.init('valid mixpanel token', {
@@ -80,7 +83,8 @@ Quick Start
         distinct_id: 'billybob',
         gender: 'male'
     });
-
+    
+    
 Tests
 -----
 
