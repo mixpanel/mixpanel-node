@@ -228,6 +228,31 @@ exports.people = {
             test.done();
         },
 
+        "supports singe key, value and extra options with callback": function(test) {
+            var prop = { key1: 'value1' },
+                expected_data = {
+                    $append: prop,
+                    $token: this.token,
+                    $distinct_id: this.distinct_id,
+                    $ignore_time: true
+                },
+                callback = function() {};
+
+            this.mixpanel.people.append(this.distinct_id, 'key1', 'value1', callback, {"$ignore_time": true});
+
+            test.ok(
+                this.mixpanel.send_request.args[0][2] === callback,
+                "people.set_once didn't call send_request with a callback"
+            );
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.append didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        },
+
         "supports appending multiple keys with values": function(test) {
             var prop = { key1: 'value1', key2: 'value2' },
                 expected_data = {
@@ -237,6 +262,50 @@ exports.people = {
                 };
 
             this.mixpanel.people.append(this.distinct_id, prop);
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.append didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        },
+
+        "supports extra options": function(test) {
+            var prop = { key1: 'value1', key2: 'value2' },
+                expected_data = {
+                    $append: prop,
+                    $token: this.token,
+                    $distinct_id: this.distinct_id,
+                    $ignore_time: true
+                };
+
+            this.mixpanel.people.append(this.distinct_id, prop, {"$ignore_time": true});
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.append didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        },
+
+        "supports extra options with callback": function(test) {
+            var prop = { key1: 'value1', key2: 'value2' },
+                expected_data = {
+                    $append: prop,
+                    $token: this.token,
+                    $distinct_id: this.distinct_id,
+                    $ignore_time: true
+                },
+                callback = function() {};
+
+            this.mixpanel.people.append(this.distinct_id, prop, callback, {"$ignore_time": true});
+
+            test.ok(
+                this.mixpanel.send_request.args[0][2] === callback,
+                "people.set_once didn't call send_request with a callback"
+            );
 
             test.ok(
                 this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),

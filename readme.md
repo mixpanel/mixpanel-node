@@ -56,6 +56,16 @@ mixpanel.people.append("billybob", "awards", "Great Player");
 // append multiple values to a list
 mixpanel.people.append("billybob", {"awards": "Great Player", "levels_finished": "Level 4"});
 
+// append multiple values to a list with callback
+var callback = function(err) { if (err) { throw err; }
+mixpanel.people.append("billybob", {"awards": "Great Player", "levels_finished": "Level 4"}, callback);
+
+// append multiple values to a list with options
+mixpanel.people.append("billybob", {"awards": "Great Player", "levels_finished": "Level 4"}, {"$ignore_time": true});
+
+// record a transaction for revenue analytics
+mixpanel.people.track_charge("billybob", 39.99);
+
 // record a transaction for revenue analytics
 mixpanel.people.track_charge("billybob", 39.99);
 
