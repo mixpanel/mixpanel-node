@@ -1,6 +1,6 @@
 Mixpanel-node
 =============
-[![Build Status](https://secure.travis-ci.org/carlsverre/mixpanel-node.png)](http://travis-ci.org/carlsverre/mixpanel-node)
+[![Build Status](https://travis-ci.org/mixpanel/mixpanel-node.svg?branch=master)](https://travis-ci.org/mixpanel/mixpanel-node)
 
 This library provides many of the features in the official javascript mixpanel library.  It is easy to use, and fully async.
 
