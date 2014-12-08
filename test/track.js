@@ -38,6 +38,54 @@ exports.track = {
         test.done();
     },
 
+    "calls send_request with /track endpoint and data (time=now)": function(test) {
+        var time = Date.now() / 1000;
+        var event = "test",
+            props = { key1: 'val1', time: time },
+            expected_endpoint = "/track",
+            expected_data = {
+                event: 'test',
+                properties: {
+                    key1: 'val1',
+                    token: 'token',
+                    time: time
+                }
+            };
+
+        this.mixpanel.track(event, props);
+
+        test.ok(
+            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            "track didn't call send_request with correct arguments"
+        );
+
+        test.done();
+    },
+
+    "calls send_request with /import endpoint and data (time=past)": function(test) {
+        var time = Date.now() / 1000 - 5 * 24 * 60 * 60;
+        var event = "test",
+            props = { key1: 'val1', time: time },
+            expected_endpoint = "/import",
+            expected_data = {
+                event: 'test',
+                properties: {
+                    key1: 'val1',
+                    token: 'token',
+                    time: time
+                }
+            };
+
+        this.mixpanel.track(event, props);
+
+        test.ok(
+            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            "track didn't call send_request with correct arguments"
+        );
+
+        test.done();
+    },
+
     "can be called with optional properties": function(test) {
         var expected_endpoint = "/track",
             expected_data = {
