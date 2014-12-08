@@ -64,6 +64,9 @@ mixpanel.people.clear_charges("billybob");
 
 // delete a user
 mixpanel.people.delete_user("billybob");
+ 
+// Create an alias for an existing distinct id
+mixpanel.alias("distinct_id", "your_alias");
 
 // all functions that send data to mixpanel take an optional
 // callback as the last argument
