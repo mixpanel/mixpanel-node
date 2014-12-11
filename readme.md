@@ -86,6 +86,16 @@ mixpanel_importer.import("old event", new Date(2012, 4, 20, 12, 34, 56), {
 });
 ```
 
+    // export events
+    var mixpanel_exporter = Mixpanel.init('valid mixpanel token', {
+        key: "valid api key for project"
+        secret: "api secret for project"
+    });
+
+    mixpanel_exporter.export(new Date(2012, 4, 20), new Date(2012, 4, 23), {
+        event: 'thing'
+    }, callback);
+
 Tests
 -----
 
