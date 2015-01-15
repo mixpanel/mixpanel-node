@@ -38,8 +38,8 @@ mixpanel.people.set("billybob", {
     points: 0
 });
 
-// unset properties and ignore the ‘last seen’ time update
-mixpanel.people.unset(“billybob”, [“key1”, “key2”, “$ignore_time”]);
+// unset properties and ignore the "last seen" time update
+mixpanel.people.unset("billybob", ["key1", "key2", "$ignore_time"]);
 
 // set a single property on a user
 mixpanel.people.set("billybob", "plan", "free");
@@ -67,7 +67,7 @@ mixpanel.people.clear_charges("billybob");
 
 // delete a user
 mixpanel.people.delete_user("billybob");
- 
+
 // Create an alias for an existing distinct id
 mixpanel.alias("distinct_id", "your_alias");
 
