@@ -371,7 +371,26 @@ exports.people = {
             );
 
             test.done();
-        }
+        },
+
+        "handles the $ignore_time property in a property object properly": function(test) {
+            var prop = ['$ignore_time', 'key1', 'key2'],
+                expected_data = {
+                    $unset: ['key1', 'key2'],
+                    $token: this.token,
+                    $distinct_id: this.distinct_id,
+                    $ignore_time: true
+                };
+
+            this.mixpanel.people.unset(this.distinct_id, prop);
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.unset didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        },
     }
 
 
