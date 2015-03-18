@@ -3,7 +3,7 @@
   "description": "A simple API for mixpanel",
   "keywords": ["mixpanel", "analytics", "api", "stats"],
   "version": "0.0.20",
-  "homepage": "https://github.com/carlsverre/mixpanel-node",
+  "homepage": "https://github.com/mixpanel/mixpanel-node",
   "author": "Carl Sverre",
   "main": "lib/mixpanel-node",
   "directories": {
@@ -11,7 +11,7 @@
   },
   "repository": {
       "type": "git",
-      "url": "http://github.com/carlsverre/mixpanel-node.git"
+      "url": "http://github.com/mixpanel/mixpanel-node.git"
   },
   "engines": {
     "node": ">=0.6.0"
