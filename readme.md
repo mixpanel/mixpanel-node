@@ -64,7 +64,7 @@ mixpanel.people.clear_charges("billybob");
 
 // delete a user
 mixpanel.people.delete_user("billybob");
- 
+
 // Create an alias for an existing distinct id
 mixpanel.alias("distinct_id", "your_alias");
 
@@ -113,6 +113,7 @@ Contributions from:
  - [sandinmyjoints](https://github.com/sandinmyjoints)
  - [Jyrki Laurila](https://github.com/jylauril)
  - [Zeevl](https://github.com/zeevl)
+ - [Tobias Baunbæk](https://github.com/freeall)
 
 License
 -------------------
