@@ -1,3 +1,7 @@
+2015.03.27, Version 0.1.1
+* fixed callback behavior in track_charges when no properties supplied
+(thanks sorribas)
+
 2015.03.20, Version 0.1.0
 * updated URL metadata (thanks freeall)
 * updated dev dependencies

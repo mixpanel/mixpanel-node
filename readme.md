@@ -114,6 +114,7 @@ Contributions from:
  - [Jyrki Laurila](https://github.com/jylauril)
  - [Zeevl](https://github.com/zeevl)
  - [Tobias Baunbæk](https://github.com/freeall)
+ - [Eduardo Sorribas](https://github.com/sorribas)
 
 License
 -------------------
