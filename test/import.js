@@ -203,5 +203,17 @@ exports.import_batch_integration = {
         });
         this.res.emit('data', '0');
         this.res.emit('end');
+    },
+
+    "behaves well without a callback": function(test) {
+        test.expect(1);
+        this.mixpanel.import_batch(this.event_list);
+        this.res.emit('data', '0');
+        this.res.emit('end');
+        test.equals(
+            3, http.get.callCount,
+            "import_batch didn't call send_request correct number of times"
+        );
+        test.done();
     }
 };
