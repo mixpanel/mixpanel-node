@@ -1,5 +1,7 @@
 var Mixpanel = require('../lib/mixpanel-node'),
-    Sinon    = require('sinon');
+    Sinon    = require('sinon'),
+    http     = require('http'),
+    events   = require('events');
 
 exports.import = {
     setUp: function(next) {
@@ -135,7 +137,7 @@ exports.import_batch = {
     "batches 50 events at a time": function(test) {
         var event_list = [];
         for (var ei = 0; ei < 130; ei++) { // 3 batches: 50 + 50 + 30
-            event_list.push({event: 'test',  properties: {key1: 'val1', time: 500 }});
+            event_list.push({event: 'test',  properties: {key1: 'val1', time: 500 + ei }});
         }
 
         this.mixpanel.import_batch(event_list);
@@ -146,5 +148,60 @@ exports.import_batch = {
         );
 
         test.done();
+    }
+};
+
+exports.import_batch_integration = {
+    setUp: function(next) {
+        this.mixpanel = Mixpanel.init('token', { key: 'key' });
+        this.clock = Sinon.useFakeTimers();
+
+        Sinon.stub(http, 'get');
+
+        this.http_emitter = new events.EventEmitter;
+        this.res = new events.EventEmitter;
+
+        http.get.returns(this.http_emitter);
+        http.get.callsArgWith(1, this.res);
+
+        this.event_list = [];
+        for (var ei = 0; ei < 130; ei++) { // 3 batches: 50 + 50 + 30
+            this.event_list.push({event: 'test',  properties: {key1: 'val1', time: 500 + ei }});
+        }
+
+        next();
+    },
+
+    tearDown: function(next) {
+        http.get.restore();
+        this.clock.restore();
+
+        next();
+    },
+
+    "calls provided callback after all requests finish": function(test) {
+        test.expect(1);
+        this.mixpanel.import_batch(this.event_list, function() {
+            test.equals(
+                3, http.get.callCount,
+                "import_batch didn't call send_request correct number of times before callback"
+            );
+            test.done();
+        });
+        this.res.emit('data', '0');
+        this.res.emit('end');
+    },
+
+    "passes error list to callback": function(test) {
+        test.expect(1);
+        this.mixpanel.import_batch(this.event_list, function(error_list) {
+            test.equals(
+                3, error_list.length,
+                "import_batch didn't return errors in callback"
+            );
+            test.done();
+        });
+        this.res.emit('data', '0');
+        this.res.emit('end');
     }
 };
