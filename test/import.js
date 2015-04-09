@@ -1,5 +1,5 @@
-var Mixpanel    = require('../lib/mixpanel-node'),
-    Sinon       = require('sinon');
+var Mixpanel = require('../lib/mixpanel-node'),
+    Sinon    = require('sinon');
 
 exports.import = {
     setUp: function(next) {
@@ -127,6 +127,22 @@ exports.import_batch = {
             function() { this.mixpanel.import_batch(event_list); },
             "The import method requires you to specify the time of the event",
             "import didn't throw an error when time wasn't specified"
+        );
+
+        test.done();
+    },
+
+    "batches 50 events at a time": function(test) {
+        var event_list = [];
+        for (var ei = 0; ei < 130; ei++) { // 3 batches: 50 + 50 + 30
+            event_list.push({event: 'test',  properties: {key1: 'val1', time: 500 }});
+        }
+
+        this.mixpanel.import_batch(event_list);
+
+        test.equals(
+            3, this.mixpanel.send_request.callCount,
+            "import_batch didn't call send_request correct number of times"
         );
 
         test.done();
