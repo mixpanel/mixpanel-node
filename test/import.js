@@ -76,3 +76,44 @@ exports.import = {
         test.done();
     }
 };
+
+exports.import_batch = {
+    setUp: function(next) {
+        this.mixpanel = Mixpanel.init('token', { key: 'key' });
+        this.clock = Sinon.useFakeTimers();
+
+        Sinon.stub(this.mixpanel, 'send_request');
+
+        next();
+    },
+
+    tearDown: function(next) {
+        this.mixpanel.send_request.restore();
+        this.clock.restore();
+
+        next();
+    },
+
+    "calls send_request with correct endpoint and data": function(test) {
+        var expected_endpoint = "/import",
+            event_list = [
+                {event: 'test',  properties: {key1: 'val1', time: 500 }},
+                {event: 'test',  properties: {key2: 'val2', time: 1000}},
+                {event: 'test2', properties: {key2: 'val2', time: 1500}}
+            ],
+            expected_data = [
+                {event: 'test',  properties: {key1: 'val1', time: 500,  mp_lib: 'node', token: 'token'}},
+                {event: 'test',  properties: {key2: 'val2', time: 1000, mp_lib: 'node', token: 'token'}},
+                {event: 'test2', properties: {key2: 'val2', time: 1500, mp_lib: 'node', token: 'token'}}
+            ];
+
+        this.mixpanel.import_batch(event_list);
+
+        test.ok(
+            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            "import_batch didn't call send_request with correct arguments"
+        );
+
+        test.done();
+    }
+};
