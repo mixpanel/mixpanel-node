@@ -210,10 +210,15 @@ exports.import_batch_integration = {
     },
 
     "behaves well without a callback": function(test) {
-        test.expect(1);
+        test.expect(2);
         this.mixpanel.import_batch(this.event_list);
         test.equals(
             3, http.get.callCount,
+            "import_batch didn't call send_request correct number of times"
+        );
+        this.mixpanel.import_batch(this.event_list, {max_batch_size: 100});
+        test.equals(
+            5, http.get.callCount, // 3 + 100 / 50; last request starts async
             "import_batch didn't call send_request correct number of times"
         );
         test.done();
