@@ -180,15 +180,19 @@ exports.import_batch_integration = {
     },
 
     "calls provided callback after all requests finish": function(test) {
-        test.expect(1);
-        this.mixpanel.import_batch(this.event_list, function() {
+        test.expect(2);
+        this.mixpanel.import_batch(this.event_list, function(error_list) {
             test.equals(
                 3, http.get.callCount,
                 "import_batch didn't call send_request correct number of times before callback"
             );
+            test.equals(
+                0, error_list.length,
+                "import_batch returned errors in callback unexpectedly"
+            );
             test.done();
         });
-        this.res.emit('data', '0');
+        this.res.emit('data', '1');
         this.res.emit('end');
     },
 
@@ -208,8 +212,6 @@ exports.import_batch_integration = {
     "behaves well without a callback": function(test) {
         test.expect(1);
         this.mixpanel.import_batch(this.event_list);
-        this.res.emit('data', '0');
-        this.res.emit('end');
         test.equals(
             3, http.get.callCount,
             "import_batch didn't call send_request correct number of times"
