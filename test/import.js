@@ -115,5 +115,20 @@ exports.import_batch = {
         );
 
         test.done();
+    },
+
+    "requires the time argument for every event": function(test) {
+        var event_list = [
+                {event: 'test',  properties: {key1: 'val1', time: 500 }},
+                {event: 'test',  properties: {key2: 'val2', time: 1000}},
+                {event: 'test2', properties: {key2: 'val2'            }}
+            ];
+        test.throws(
+            function() { this.mixpanel.import_batch(event_list); },
+            "The import method requires you to specify the time of the event",
+            "import didn't throw an error when time wasn't specified"
+        );
+
+        test.done();
     }
 };
