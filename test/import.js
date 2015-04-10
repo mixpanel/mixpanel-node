@@ -71,7 +71,7 @@ exports.import = {
     "requires the time argument": function(test) {
         test.throws(
             function() { this.mixpanel.import('test'); },
-            "The import method requires you to specify the time of the event",
+            "Import methods require you to specify the time of the event",
             "import didn't throw an error when time wasn't specified"
         );
 
@@ -127,7 +127,7 @@ exports.import_batch = {
             ];
         test.throws(
             function() { this.mixpanel.import_batch(event_list); },
-            "The import method requires you to specify the time of the event",
+            "Import methods require you to specify the time of the event",
             "import didn't throw an error when time wasn't specified"
         );
 
