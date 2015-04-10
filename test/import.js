@@ -209,6 +209,24 @@ exports.import_batch_integration = {
         this.res.emit('end');
     },
 
+    "calls provided callback when options are passed": function(test) {
+        test.expect(2);
+        this.mixpanel.import_batch(this.event_list, {max_batch_size: 100}, function(error_list) {
+            test.equals(
+                3, http.get.callCount,
+                "import_batch didn't call send_request correct number of times before callback"
+            );
+            test.equals(
+                0, error_list.length,
+                "import_batch returned errors in callback unexpectedly"
+            );
+            test.done();
+        });
+        this.res.emit('data', '1');
+        this.res.emit('end');
+        this.res.emit('end');
+    },
+
     "behaves well without a callback": function(test) {
         test.expect(2);
         this.mixpanel.import_batch(this.event_list);
