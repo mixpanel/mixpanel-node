@@ -104,9 +104,9 @@ exports.import_batch = {
                 {event: 'test2', properties: {key2: 'val2', time: 1500}}
             ],
             expected_data = [
-                {event: 'test',  properties: {key1: 'val1', time: 500,  mp_lib: 'node', token: 'token'}},
-                {event: 'test',  properties: {key2: 'val2', time: 1000, mp_lib: 'node', token: 'token'}},
-                {event: 'test2', properties: {key2: 'val2', time: 1500, mp_lib: 'node', token: 'token'}}
+                {event: 'test',  properties: {key1: 'val1', time: 500,  token: 'token'}},
+                {event: 'test',  properties: {key2: 'val2', time: 1000, token: 'token'}},
+                {event: 'test2', properties: {key2: 'val2', time: 1500, token: 'token'}}
             ];
 
         this.mixpanel.import_batch(event_list);
