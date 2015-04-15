@@ -164,7 +164,10 @@ exports.import_batch_integration = {
         this.res = [];
         for (var ri = 0; ri < 5; ri++) {
             this.res.push(new events.EventEmitter());
-            http.get.onCall(ri).callsArgWith(1, this.res[ri]).returns(this.http_emitter);
+            http.get
+                .onCall(ri)
+                .callsArgWith(1, this.res[ri])
+                .returns(this.http_emitter);
         }
 
         this.event_list = [];
