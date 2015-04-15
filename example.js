@@ -71,3 +71,23 @@ mixpanel_importer.import("old event", new Date(2012, 4, 20, 12, 34, 56), {
     distinct_id: 'billybob',
     gender: 'male'
 });
+
+// import multiple events at once
+mixpanel_importer.import_batch([
+    {
+        event: 'old event',
+        properties: {
+            time: new Date(2012, 4, 20, 12, 34, 56),
+            distinct_id: 'billybob',
+            gender: 'male'
+        }
+    },
+    {
+        event: 'another old event',
+        properties: {
+            time: new Date(2012, 4, 21, 11, 33, 55),
+            distinct_id: 'billybob',
+            color: 'red'
+        }
+    }
+]);
