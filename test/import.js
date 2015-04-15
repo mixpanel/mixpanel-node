@@ -158,11 +158,14 @@ exports.import_batch_integration = {
 
         Sinon.stub(http, 'get');
 
-        this.http_emitter = new events.EventEmitter;
-        this.res = new events.EventEmitter;
+        this.http_emitter = new events.EventEmitter();
 
-        http.get.returns(this.http_emitter);
-        http.get.callsArgWith(1, this.res);
+        // stub sequence of http responses
+        this.res = [];
+        for (var ri = 0; ri < 5; ri++) {
+            this.res.push(new events.EventEmitter());
+            http.get.onCall(ri).callsArgWith(1, this.res[ri]).returns(this.http_emitter);
+        }
 
         this.event_list = [];
         for (var ei = 0; ei < 130; ei++) { // 3 batches: 50 + 50 + 30
@@ -192,8 +195,10 @@ exports.import_batch_integration = {
             );
             test.done();
         });
-        this.res.emit('data', '1');
-        this.res.emit('end');
+        for (var ri = 0; ri < 3; ri++) {
+            this.res[ri].emit('data', '1');
+            this.res[ri].emit('end');
+        }
     },
 
     "passes error list to callback": function(test) {
@@ -205,8 +210,10 @@ exports.import_batch_integration = {
             );
             test.done();
         });
-        this.res.emit('data', '0');
-        this.res.emit('end');
+        for (var ri = 0; ri < 3; ri++) {
+            this.res[ri].emit('data', '0');
+            this.res[ri].emit('end');
+        }
     },
 
     "calls provided callback when options are passed": function(test) {
@@ -222,9 +229,29 @@ exports.import_batch_integration = {
             );
             test.done();
         });
-        this.res.emit('data', '1');
-        this.res.emit('end');
-        this.res.emit('end');
+        for (var ri = 0; ri < 3; ri++) {
+            this.res[ri].emit('data', '1');
+            this.res[ri].emit('end');
+        }
+    },
+
+    "sends more requests when max_batch_size < 50": function(test) {
+        test.expect(2);
+        this.mixpanel.import_batch(this.event_list, {max_batch_size: 30}, function(error_list) {
+            test.equals(
+                5, http.get.callCount, // 30 + 30 + 30 + 30 + 10
+                "import_batch didn't call send_request correct number of times before callback"
+            );
+            test.equals(
+                0, error_list.length,
+                "import_batch returned errors in callback unexpectedly"
+            );
+            test.done();
+        });
+        for (var ri = 0; ri < 5; ri++) {
+            this.res[ri].emit('data', '1');
+            this.res[ri].emit('end');
+        }
     },
 
     "behaves well without a callback": function(test) {
