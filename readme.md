@@ -2,7 +2,8 @@ Mixpanel-node
 =============
 [![Build Status](https://travis-ci.org/mixpanel/mixpanel-node.svg?branch=master)](https://travis-ci.org/mixpanel/mixpanel-node)
 
-This library provides many of the features in the official javascript mixpanel library.  It is easy to use, and fully async. It is intended to be use on the server (it is not a client module).
+This library provides many of the features in the official JavaScript mixpanel library.  It is easy to use, and fully async. It is intended to be used on the server (it is not a client module). The in-browser client library is available
+at [https://github.com/mixpanel/mixpanel-js](https://github.com/mixpanel/mixpanel-js).
 
 Installation
 ------------
