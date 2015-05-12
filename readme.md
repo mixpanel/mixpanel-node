@@ -120,7 +120,8 @@ Attribution/Credits
 Heavily inspired by the original js library copyright Mixpanel, Inc.
 (http://mixpanel.com/)
 
-Copyright (c) 2012 Carl Sverre
+Copyright (c) 2014-15 Mixpanel
+Original Library Copyright (c) 2012-14 Carl Sverre
 
 Contributions from:
  - [Andres Gottlieb](https://github.com/andresgottlieb)
