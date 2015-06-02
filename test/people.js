@@ -353,6 +353,42 @@ exports.people = {
             );
 
             test.done();
+        },
+
+        "supports being called with a callback": function(test) {
+            var expected_data = {
+                    $append: { $transactions: { $amount: 50 } },
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                };
+
+            var callback = function() {};
+            this.mixpanel.people.track_charge(this.distinct_id, 50, callback);
+
+            test.ok(
+                this.mixpanel.send_request.args[0][2] === callback,
+                "people.track_charge didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        },
+
+        "supports being called with properties and a callback": function(test) {
+            var expected_data = {
+                    $append: { $transactions: { $amount: 50 } },
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                };
+
+            var callback = function() {};
+            this.mixpanel.people.track_charge(this.distinct_id, 50, {}, callback);
+
+            test.ok(
+                this.mixpanel.send_request.args[0][2] === callback,
+                "people.track_charge didn't call send_request with correct arguments"
+            );
+
+            test.done();
         }
     },
 
