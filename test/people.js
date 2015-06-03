@@ -278,45 +278,6 @@ exports.people = {
         }
     },
 
-
-    union: {
-        "calls send_request with correct endpoint and data": function(test) {
-            var expected_data = {
-                    $union: { key1: 'value' },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.union(this.distinct_id, 'key1', 'value');
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.union didn't call send_request with correct arguments"
-            );
-
-            test.done();
-        },
-
-        "supports adding multiple keys with values": function(test) {
-            var prop = { key1: 'value1', key2: 'value2' },
-                expected_data = {
-                    $union: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.union(this.distinct_id, prop);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.union didn't call send_request with correct arguments"
-            );
-
-            test.done();
-        }
-    },
-
-
     track_charge: {
         "calls send_request with correct endpoint and data": function(test) {
             var expected_data = {
