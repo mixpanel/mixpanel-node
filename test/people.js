@@ -361,6 +361,66 @@ exports.people = {
         }
     },
 
+    union: {
+        "calls send_request with correct endpoint and data": function(test) {
+
+            var expected_data = {
+                $union: {'key1': ['value1', 'value2']},
+                $token: this.token,
+                $distinct_id: this.distinct_id
+            };
+
+            this.mixpanel.people.union(this.distinct_id, {
+                'key1': ['value1', 'value2']
+            });
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.union didn't call send_request with correct arguments"
+            );
+
+            test.done();
+
+        },
+        "supports being called with a scalar value": function(test) {
+
+            var data = {
+                    'key1': 'value1'
+                },
+                expected_data = {
+                    $union: {
+                        'key1': ['value1']
+                    },
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                };
+
+            this.mixpanel.people.union(this.distinct_id, data);
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.union didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        },
+        "errors on other argument types": function(test) {
+            this.mixpanel.people.union(this.distinct_id, {key1: {key: 'val'}});
+            this.mixpanel.people.union(this.distinct_id, 1231241.123);
+            this.mixpanel.people.union(this.distinct_id, [5]);
+            this.mixpanel.people.union(this.distinct_id, {key1: function() {}});
+            this.mixpanel.people.union(this.distinct_id, {key1: [function() {}]});
+
+            test.ok(
+                !this.mixpanel.send_request.called,
+                "people.union shouldn't call send_request on invalid arguments"
+            );
+
+            test.done();
+        }
+
+    },
+
     unset: {
         "calls send_request with correct endpoint and data": function(test) {
 
