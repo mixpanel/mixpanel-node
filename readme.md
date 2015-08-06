@@ -144,6 +144,7 @@ Contributions from:
  - [Zeevl](https://github.com/zeevl)
  - [Tobias Baunbæk](https://github.com/freeall)
  - [Eduardo Sorribas](https://github.com/sorribas)
+ - [Nick Chang](https://github.com/maeldur)
 
 License
 -------------------
