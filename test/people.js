@@ -376,7 +376,7 @@ exports.people = {
 
             test.ok(
                 this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.unset didn't call send_request with correct arguments"
+                "people.union didn't call send_request with correct arguments"
             );
 
             test.done();
@@ -408,6 +408,8 @@ exports.people = {
             this.mixpanel.people.union(this.distinct_id, {key1: {key: 'val'}});
             this.mixpanel.people.union(this.distinct_id, 1231241.123);
             this.mixpanel.people.union(this.distinct_id, [5]);
+            this.mixpanel.people.union(this.distinct_id, {key1: function() {}});
+            this.mixpanel.people.union(this.distinct_id, {key1: [function() {}]});
 
             test.ok(
                 !this.mixpanel.send_request.called,
