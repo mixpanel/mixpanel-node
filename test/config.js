@@ -7,7 +7,6 @@ exports.config = {
     },
 
     "is set to correct defaults": function(test) {
-        console.log(this.mixpanel.config);
         test.deepEqual(this.mixpanel.config,
                        { test: false, debug: false, verbose: false, host: 'api.mixpanel.com' },
                        "default config is incorrect");
