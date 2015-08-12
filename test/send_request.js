@@ -81,5 +81,20 @@ exports.send_request = {
         test.ok(http.get.calledWithMatch(expected_http_get), "send_request didn't call http.get with correct hostname");
 
         test.done();
+    },
+
+    "uses correct port": function(test) {
+        var host = 'testhost.fakedomain:1337';
+        var customHostnameMixpanel = Mixpanel.init('token', { host: host })
+        var expected_http_get = {
+            host: 'testhost.fakedomain',
+            port: 1337
+        };
+
+        customHostnameMixpanel.send_request('', {});
+
+        test.ok(http.get.calledWithMatch(expected_http_get), "send_request didn't call http.get with correct hostname and port");
+
+        test.done();
     }
 };
