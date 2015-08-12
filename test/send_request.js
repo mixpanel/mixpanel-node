@@ -24,23 +24,6 @@ exports.send_request = {
         next();
     },
 
-    "uses correct hostname": function(test) {
-
-        var host = 'testhost.fakedomain';
-
-        var customHostnameMixpanel = Mixpanel.init('token', { host: host })
-
-        var expected_http_get = {
-            host: host
-        };
-
-        customHostnameMixpanel.send_request('', {});
-
-        test.ok(http.get.calledWithMatch(expected_http_get), "send_request didn't call http.get with correct hostname");
-
-        test.done();
-    },
-
     "sends correct data": function(test) {
         var endpoint = "/track",
             data = {
@@ -84,5 +67,19 @@ exports.send_request = {
         });
 
         this.http_emitter.emit('error', 'error');
+    },
+
+    "uses correct hostname": function(test) {
+        var host = 'testhost.fakedomain';
+        var customHostnameMixpanel = Mixpanel.init('token', { host: host })
+        var expected_http_get = {
+            host: host
+        };
+
+        customHostnameMixpanel.send_request('', {});
+
+        test.ok(http.get.calledWithMatch(expected_http_get), "send_request didn't call http.get with correct hostname");
+
+        test.done();
     }
 };
