@@ -145,6 +145,7 @@ Contributions from:
  - [Tobias Baunbæk](https://github.com/freeall)
  - [Eduardo Sorribas](https://github.com/sorribas)
  - [Nick Chang](https://github.com/maeldur)
+ - [Michael G](https://github.com/gmichael225)
 
 License
 -------------------
