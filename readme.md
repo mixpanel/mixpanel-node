@@ -114,6 +114,26 @@ mixpanel_importer.import_batch([
 ]);
 ```
 
+FAQ
+---
+**Where is `mixpanel.identify()`?**
+
+`mixpanel-node` is a server-side library, optimized for stateless shared usage; e.g.,
+in a web application, the same mixpanel instance is used across requests for all users.
+Rather than setting a `distinct_id` through `identify()` calls like Mixpanel client-side
+libraries (where a single Mixpanel instance is tied to a single user), this library
+requires you to pass the `distinct_id` with every tracking call. See
+https://github.com/mixpanel/mixpanel-node/issues/13.
+
+**How do I get or set superproperties?**
+
+See the previous answer: the library does not maintain user state internally and so has
+no concept of superproperties for individual users. If you wish to preserve properties
+for users between requests, you will need to load these properties from a source specific
+to your app (e.g., your session store or database) and pass them explicitly with each
+tracking call.
+
+
 Tests
 -----
 
