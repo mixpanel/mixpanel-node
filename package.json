@@ -22,7 +22,7 @@
     "node": ">=0.10.0"
   },
   "scripts": {
-    "test": "bin/run_tests"
+    "test": "nodeunit"
   },
   "devDependencies": {
     "nodeunit": "^0.9.1",
