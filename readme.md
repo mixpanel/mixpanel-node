@@ -39,6 +39,14 @@ mixpanel.people.set("billybob", {
     points: 0
 });
 
+// create or update a user in Mixpanel Engage without altering $last_seen
+// - pass option `$ignore_time: true` to prevent the $last_seen property from being updated
+mixpanel.people.set("billybob", {
+    plan: "premium",
+    games_played: 1,
+    $ignore_time: true
+});
+
 // set a single property on a user
 mixpanel.people.set("billybob", "plan", "free");
 
