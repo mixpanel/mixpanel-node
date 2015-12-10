@@ -345,7 +345,7 @@ exports.people = {
     delete_user: {
         "calls send_request with correct endpoint and data": function(test) {
             var expected_data = {
-                    $delete: this.distinct_id,
+                    $delete: '',
                     $token: this.token,
                     $distinct_id: this.distinct_id
                 };
