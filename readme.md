@@ -175,6 +175,7 @@ Contributions from:
  - [Nick Chang](https://github.com/maeldur)
  - [Michael G](https://github.com/gmichael225)
  - [Tejas Manohar](https://github.com/tejasmanohar)
+ - [Eelke Boezeman](https://github.com/godspeedelbow)
 
 License
 -------------------
