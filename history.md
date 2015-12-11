@@ -1,6 +1,6 @@
 0.3.2 / 2015-12-10
 ===================
-* correct `distinct_id` field in `people.delete_user` request (thanks godspeedelbow)
+* correct `$delete` field in `people.delete_user` request (thanks godspeedelbow)
 
 0.3.1 / 2015-08-06
 ===================
