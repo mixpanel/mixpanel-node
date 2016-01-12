@@ -156,6 +156,24 @@ exports.people = {
             test.done();
         },
 
+        "supports a callback function": function(test) {
+            var expected_data = {
+                    $add: { key1: 1 },
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                },
+                callback = function() {};
+
+            this.mixpanel.people.increment(this.distinct_id, 'key1', callback);
+
+            test.ok(
+                this.mixpanel.send_request.args[0][2] === callback,
+                "people.increment didn't call send_request with a callback"
+            );
+
+            test.done();
+        },
+
         "supports incrementing key by value": function(test) {
             var expected_data = {
                     $add: { key1: 2 },
@@ -168,6 +186,24 @@ exports.people = {
             test.ok(
                 this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
                 "people.increment didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        },
+
+        "supports a callback function when incrementing key by value": function(test) {
+            var expected_data = {
+                    $add: { key1: 2 },
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                },
+                callback = function() {};
+
+            this.mixpanel.people.increment(this.distinct_id, "key1", 2, callback);
+
+            test.ok(
+                this.mixpanel.send_request.args[0][2] === callback,
+                "people.increment didn't call send_request with a callback"
             );
 
             test.done();
@@ -186,6 +222,25 @@ exports.people = {
             test.ok(
                 this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
                 "people.increment didn't call send_request with correct arguments"
+            );
+
+            test.done();
+        },
+
+        "supports a callback function when incrementing multiple keys": function(test) {
+            var prop = { key1: 5, key2: -3 },
+                expected_data = {
+                    $add: prop,
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                },
+                callback = function() {};
+
+            this.mixpanel.people.increment(this.distinct_id, prop, callback);
+
+            test.ok(
+                this.mixpanel.send_request.args[0][2] === callback,
+                "people.increment didn't call send_request with a callback"
             );
 
             test.done();
