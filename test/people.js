@@ -274,7 +274,7 @@ exports.people = {
 
             test.ok(
                 this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set didn't call send_request with correctly with callback"
+                "people.set didn't call send_request with correct arguments"
             );
 
             test.ok(
@@ -298,7 +298,7 @@ exports.people = {
 
             test.ok(
                 this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set_once didn't call send_request correctly with callback"
+                "people.set_once didn't call send_request with correct arguments"
             );
 
             test.ok(
@@ -329,7 +329,7 @@ exports.people = {
 
             test.ok(
                 this.mixpanel.send_request.args[0][2] === callback,
-                "people.set didn't call send_request with a callback (with modifiers)"
+                "people.set didn't call send_request with a callback"
             );
 
             test.done();
@@ -500,7 +500,7 @@ exports.people = {
                     $time: 1234567890
                 };
 
-            this.mixpanel.people.increment(this.distinct_id, prop);
+            this.mixpanel.people.increment(this.distinct_id, prop, modifiers);
 
             test.ok(
                 this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
@@ -904,8 +904,13 @@ exports.people = {
             this.mixpanel.people.track_charge(this.distinct_id, 50, callback);
 
             test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
                 "people.track_charge didn't call send_request with correct arguments"
+            );
+
+            test.ok(
+                this.mixpanel.send_request.args[0][2] === callback,
+                "people.track_charge didn't call send_request with a callback"
             );
 
             test.done();
@@ -928,7 +933,7 @@ exports.people = {
 
             test.ok(
                 this.mixpanel.send_request.args[0][2] === callback,
-                "people.track_charge didn't call send_request with correct arguments"
+                "people.track_charge didn't call send_request with a callback"
             );
 
             test.done();
@@ -955,7 +960,7 @@ exports.people = {
 
             test.ok(
                 this.mixpanel.send_request.args[0][2] === callback,
-                "people.track_charge didn't call send_request with correct arguments"
+                "people.track_charge didn't call send_request with a callback"
             );
 
             test.done();
@@ -985,7 +990,7 @@ exports.people = {
 
             test.ok(
                 this.mixpanel.send_request.args[0][2] === callback,
-                "people.track_charge didn't call send_request with correct arguments"
+                "people.track_charge didn't call send_request with a callback"
             );
 
             test.done();
@@ -1033,17 +1038,22 @@ exports.people = {
 
         "supports being called with a callback": function(test) {
             var expected_data = {
-                $set: { $transactions: [] },
-                $token: this.token,
-                $distinct_id: this.distinct_id
-            };
+                    $set: { $transactions: [] },
+                    $token: this.token,
+                    $distinct_id: this.distinct_id
+                },
+                callback = function() {};
 
-            var callback = function() {};
             this.mixpanel.people.clear_charges(this.distinct_id, callback);
 
             test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
                 "people.clear_charges didn't call send_request with correct arguments"
+            );
+
+            test.ok(
+                this.mixpanel.send_request.args[0][2] === callback,
+                "people.clear_charges didn't call send_request with a callback"
             );
 
             test.done();
@@ -1070,7 +1080,7 @@ exports.people = {
 
             test.ok(
                 this.mixpanel.send_request.args[0][2] === callback,
-                "people.clear_charges didn't call send_request with correct arguments"
+                "people.clear_charges didn't call send_request with a callback"
             );
 
             test.done();
@@ -1125,6 +1135,11 @@ exports.people = {
                 callback = function() {};
 
             this.mixpanel.people.delete_user(this.distinct_id, callback);
+
+            test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.delete_user didn't call send_request with correct arguments"
+            );
 
             test.ok(
                 this.mixpanel.send_request.args[0][2] === callback,
@@ -1260,6 +1275,11 @@ exports.people = {
             }, callback);
 
             test.ok(
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+                "people.union didn't call send_request with correct arguments"
+            );
+
+            test.ok(
                 this.mixpanel.send_request.args[0][2] === callback,
                 "people.delete_user didn't call send_request with a callback"
             );
@@ -1381,8 +1401,13 @@ exports.people = {
             this.mixpanel.people.unset(this.distinct_id, 'key1', callback);
 
             test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
+                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
                 "people.unset didn't call send_request with correct arguments"
+            );
+
+            test.ok(
+                this.mixpanel.send_request.args[0][2] === callback,
+                "people.unset didn't call send_request with a callback"
             );
 
             test.done();
@@ -1410,7 +1435,7 @@ exports.people = {
 
             test.ok(
                 this.mixpanel.send_request.args[0][2] === callback,
-                "people.unset didn't call send_request with correct arguments"
+                "people.unset didn't call send_request with a callback"
             );
 
             test.done();
