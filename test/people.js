@@ -207,7 +207,7 @@ exports.people = {
                 use_callback: true,
                 use_modifiers: true,
             });
-        }
+        },
     },
 
     increment: {
@@ -560,40 +560,19 @@ exports.people = {
 
     unset: {
         "calls send_request with correct endpoint and data": function(test) {
-
-            var expected_data = {
-                    $unset: ['key1'],
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.unset(this.distinct_id, 'key1');
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.unset didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'unset', {
+                args: ['key1'],
+                expected: {$unset: ['key1']},
+            });
         },
+
         "supports being called with a property array": function(test) {
-
-            var prop = ['key1', 'key2'],
-                expected_data = {
-                    $unset: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.unset(this.distinct_id, prop);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.unset didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'unset', {
+                args: [['key1', 'key2']],
+                expected: {$unset: ['key1', 'key2']},
+            });
         },
+
         "errors on other argument types": function(test) {
             this.mixpanel.people.unset(this.distinct_id, { key1:'val1', key2:'val2' });
             this.mixpanel.people.unset(this.distinct_id, 1231241.123);
@@ -602,9 +581,9 @@ exports.people = {
                 !this.mixpanel.send_request.called,
                 "people.unset shouldn't call send_request on invalid arguments"
             );
-
             test.done();
         },
+
         "supports being called with a modifiers argument": function(test) {
             this.test_send_request_args(test, 'unset', {
                 args: ['key1'],
@@ -614,55 +593,20 @@ exports.people = {
         },
 
         "supports being called with a callback": function(test) {
-            var expected_data = {
-                    $unset: ['key1'],
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                },
-                callback = function () {};
-
-            this.mixpanel.people.unset(this.distinct_id, 'key1', callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.unset didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.unset didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'unset', {
+                args: ['key1'],
+                expected: {$unset: ['key1']},
+                use_callback: true,
+            });
         },
 
         "supports being called with a modifiers argument and a callback": function(test) {
-
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $unset: ['key1'],
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                },
-                callback = function () {};
-
-            this.mixpanel.people.unset(this.distinct_id, 'key1', modifiers, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.unset didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.unset didn't call send_request with a callback"
-            );
-
-            test.done();
-        }
-    }
-
+            this.test_send_request_args(test, 'unset', {
+                args: ['key1'],
+                expected: {$unset: ['key1']},
+                use_callback: true,
+                use_modifiers: true,
+            });
+        },
+    },
 };
