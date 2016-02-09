@@ -364,40 +364,22 @@ exports.people = {
 
     track_charge: {
         "calls send_request with correct endpoint and data": function(test) {
-            var expected_data = {
-                    $append: { $transactions: { $amount: 50 } },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.track_charge(this.distinct_id, 50);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.track_charge didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'track_charge', {
+                args: [50],
+                expected: {$append: {$transactions: {$amount: 50}}},
+            });
         },
 
         "supports being called with a property object": function(test) {
-            var time = new Date('feb 1 2012'),
-                prop = { $time: time, isk: 'isk' },
-                charge = { $amount: 50, $time: time.toISOString(), isk: 'isk' },
-                expected_data = {
-                    $append: { $transactions: charge },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.track_charge(this.distinct_id, 50, prop);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.track_charge didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            var time = new Date('Feb 1 2012');
+            this.test_send_request_args(test, 'track_charge', {
+                args: [50, {$time: time, isk: 'isk'}],
+                expected: {$append: {$transactions: {
+                    $amount: 50,
+                    $time:   time.toISOString(),
+                    isk:     'isk',
+                }}},
+            });
         },
 
         "supports being called with a modifiers argument": function(test) {
@@ -409,131 +391,56 @@ exports.people = {
         },
 
         "supports being called with a property object and a modifiers argument": function(test) {
-            var time = new Date('feb 1 2012'),
-                prop = { $time: time, isk: 'isk' },
-                charge = { $amount: 50, $time: time.toISOString(), isk: 'isk' },
-                modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $append: { $transactions: charge },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                };
-
-            this.mixpanel.people.track_charge(this.distinct_id, 50, prop, modifiers);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.track_charge didn't call send_request with correct arguments and/or modifiers"
-            );
-
-            test.done();
+            var time = new Date('Feb 1 2012');
+            this.test_send_request_args(test, 'track_charge', {
+                args: [50, {$time: time, isk: 'isk'}],
+                expected: {$append: {$transactions: {
+                    $amount: 50,
+                    $time:   time.toISOString(),
+                    isk:     'isk',
+                }}},
+                use_modifiers: true,
+            });
         },
 
         "supports being called with a callback": function(test) {
-            var expected_data = {
-                    $append: { $transactions: { $amount: 50 } },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                },
-                callback = function() {};
-
-            this.mixpanel.people.track_charge(this.distinct_id, 50, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.track_charge didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.track_charge didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'track_charge', {
+                args: [50],
+                expected: {$append: {$transactions: {$amount: 50}}},
+                use_callback: true,
+            });
         },
 
         "supports being called with properties and a callback": function(test) {
-            var expected_data = {
-                    $append: { $transactions: { $amount: 50 } },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                },
-                callback = function() {};
-
-            this.mixpanel.people.track_charge(this.distinct_id, 50, {}, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.track_charge didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.track_charge didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'track_charge', {
+                args: [50, {}],
+                expected: {$append: {$transactions: {$amount: 50}}},
+                use_callback: true,
+            });
         },
 
         "supports being called with modifiers and a callback": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $append: { $transactions: { $amount: 50 } },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                },
-                callback = function() {};
-
-            this.mixpanel.people.track_charge(this.distinct_id, 50, modifiers, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.track_charge didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.track_charge didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'track_charge', {
+                args: [50],
+                expected: {$append: {$transactions: {$amount: 50}}},
+                use_callback: true,
+                use_modifiers: true,
+            });
         },
 
         "supports being called with properties, modifiers and a callback": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                time = new Date('feb 1 2012'),
-                prop = { $time: time, isk: 'isk' },
-                charge = { $amount: 50, $time: time.toISOString(), isk: 'isk' },
-                expected_data = {
-                    $append: { $transactions: charge },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                },
-                callback = function() {};
-
-            this.mixpanel.people.track_charge(this.distinct_id, 50, prop, modifiers, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.track_charge didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.track_charge didn't call send_request with a callback"
-            );
-
-            test.done();
-        }
+            var time = new Date('Feb 1 2012');
+            this.test_send_request_args(test, 'track_charge', {
+                args: [50, {$time: time, isk: 'isk'}],
+                expected: {$append: {$transactions: {
+                    $amount: 50,
+                    $time:   time.toISOString(),
+                    isk:     'isk',
+                }}},
+                use_callback: true,
+                use_modifiers: true,
+            });
+        },
     },
 
     clear_charges: {
