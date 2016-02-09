@@ -212,240 +212,97 @@ exports.people = {
 
     increment: {
         "calls send_request with correct endpoint and data": function(test) {
-            var expected_data = {
-                    $add: { key1: 1 },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.increment(this.distinct_id, 'key1');
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.increment didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'increment', {
+                args: ['key1'],
+                expected: {$add: {'key1': 1}},
+            });
         },
 
         "supports incrementing key by value": function(test) {
-            var expected_data = {
-                    $add: { key1: 2 },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.increment(this.distinct_id, "key1", 2);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.increment didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'increment', {
+                args: ['key1', 2],
+                expected: {$add: {'key1': 2}},
+            });
         },
 
         "supports incrementing key by value and a modifiers argument": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $add: { key1: 2 },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                };
-
-            this.mixpanel.people.increment(this.distinct_id, "key1", 2, modifiers);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.increment didn't call send_request correctly with modifiers"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'increment', {
+                args: ['key1', 2],
+                expected: {$add: {'key1': 2}},
+                use_modifiers: true,
+            });
         },
 
         "supports incrementing multiple keys": function(test) {
-            var prop = { key1: 5, key2: -3 },
-                expected_data = {
-                    $add: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.increment(this.distinct_id, prop);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.increment didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'increment', {
+                args: [{'key1': 5, 'key2': -3}],
+                expected: {$add: {'key1': 5, 'key2': -3}},
+            });
         },
 
         "supports incrementing multiple keys and a modifiers argument": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                prop = { key1: 5, key2: -3 },
-                expected_data = {
-                    $add: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                };
-
-            this.mixpanel.people.increment(this.distinct_id, prop, modifiers);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.increment didn't call send_request correctly with multiple keys and modifiers"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'increment', {
+                args: [{'key1': 5, 'key2': -3}],
+                expected: {$add: {'key1': 5, 'key2': -3}},
+                use_modifiers: true,
+            });
         },
 
         "ignores invalid values": function(test) {
-            var prop = { key1: "bad", key2: 3, key3: undefined, key4: "5", key5: new Date(), key6: function(){} },
-                expected_data = {
-                    $add: { key2: 3, key4: '5' },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.increment(this.distinct_id, prop);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.increment didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'increment', {
+                args: [{
+                    'key1': 'bad',
+                    'key2': 3,
+                    'key3': undefined,
+                    'key4': '5',
+                    'key5': new Date(),
+                    'key6': function() {},
+                }],
+                expected: {$add: {'key2': 3, 'key4': '5'}},
+            });
         },
 
         "supports being called with a callback": function(test) {
-            var expected_data = {
-                    $add: { key1: 1 },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                },
-                callback = function () {};
-
-            this.mixpanel.people.increment(this.distinct_id, 'key1', callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.increment didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.increment didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'increment', {
+                args: ['key1'],
+                expected: {$add: {'key1': 1}},
+                use_callback: true,
+            });
         },
 
         "supports incrementing key by value with a callback": function(test) {
-            var expected_data = {
-                    $add: { key1: 2 },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                },
-                callback = function () {};
-
-            this.mixpanel.people.increment(this.distinct_id, "key1", 2, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.increment didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.increment didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'increment', {
+                args: ['key1', 2],
+                expected: {$add: {'key1': 2}},
+                use_callback: true,
+            });
         },
 
         "supports incrementing key by value with a modifiers argument and callback": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $add: { key1: 2 },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                },
-                callback = function () {};
-
-            this.mixpanel.people.increment(this.distinct_id, "key1", 2, modifiers, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.increment didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.increment didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'increment', {
+                args: ['key1', 2],
+                expected: {$add: {'key1': 2}},
+                use_callback: true,
+                use_modifiers: true,
+            });
         },
 
         "supports incrementing multiple keys with a callback": function(test) {
-            var prop = { key1: 5, key2: -3 },
-                expected_data = {
-                    $add: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                },
-                callback = function () {};
-
-            this.mixpanel.people.increment(this.distinct_id, prop, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.increment didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.increment didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'increment', {
+                args: [{'key1': 5, 'key2': -3}],
+                expected: {$add: {'key1': 5, 'key2': -3}},
+                use_callback: true,
+            });
         },
 
         "supports incrementing multiple keys with a modifiers argument and callback": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                prop = { key1: 5, key2: -3 },
-                expected_data = {
-                    $add: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                },
-                callback = function () {};
-
-            this.mixpanel.people.increment(this.distinct_id, prop, modifiers, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.increment didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.increment didn't call send_request with a callback"
-            );
-
-            test.done();
-        }
+            this.test_send_request_args(test, 'increment', {
+                args: [{'key1': 5, 'key2': -3}],
+                expected: {$add: {'key1': 5, 'key2': -3}},
+                use_callback: true,
+                use_modifiers: true,
+            });
+        },
     },
 
     append: {
