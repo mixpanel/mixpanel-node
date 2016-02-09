@@ -307,160 +307,60 @@ exports.people = {
 
     append: {
         "calls send_request with correct endpoint and data": function(test) {
-            var expected_data = {
-                    $append: { key1: 'value' },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.append(this.distinct_id, 'key1', 'value');
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.append didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'append', {
+                args: ['key1', 'value'],
+                expected: {$append: {'key1': 'value'}},
+            });
         },
 
         "supports being called with modifiers": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $append: { key1: 'value' },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                };
-
-            this.mixpanel.people.append(this.distinct_id, 'key1', 'value', modifiers);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.append didn't call send_request with correct arguments and/or modifiers"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'append', {
+                args: ['key1', 'value'],
+                expected: {$append: {'key1': 'value'}},
+                use_modifiers: true,
+            });
         },
 
         "supports being called with a callback": function(test) {
-            var expected_data = {
-                    $append: { key1: 'value' },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                },
-                callback = function () {};
-
-            this.mixpanel.people.append(this.distinct_id, 'key1', 'value', callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.append didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.append didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'append', {
+                args: ['key1', 'value'],
+                expected: {$append: {'key1': 'value'}},
+                use_callback: true,
+            });
         },
 
-
         "supports appending multiple keys with values": function(test) {
-            var prop = { key1: 'value1', key2: 'value2' },
-                expected_data = {
-                    $append: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.append(this.distinct_id, prop);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.append didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'append', {
+                args: [{'key1': 'value1', 'key2': 'value2'}],
+                expected: {$append: {'key1': 'value1', 'key2': 'value2'}},
+            });
         },
 
         "supports appending multiple keys with values and a modifiers argument": function(test) {
-            var prop = { key1: 'value1', key2: 'value2' },
-                modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $append: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                };
-
-            this.mixpanel.people.append(this.distinct_id, prop, modifiers);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.append didn't call send_request with correct arguments and/or modifiers"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'append', {
+                args: [{'key1': 'value1', 'key2': 'value2'}],
+                expected: {$append: {'key1': 'value1', 'key2': 'value2'}},
+                use_modifiers: true,
+            });
         },
 
         "supports appending multiple keys with values and a callback": function(test) {
-            var prop = { key1: 'value1', key2: 'value2' },
-                expected_data = {
-                    $append: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                },
-                callback = function () {};
-
-            this.mixpanel.people.append(this.distinct_id, prop, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.append didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.append didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'append', {
+                args: [{'key1': 'value1', 'key2': 'value2'}],
+                expected: {$append: {'key1': 'value1', 'key2': 'value2'}},
+                use_callback: true,
+            });
         },
 
         "supports appending multiple keys with values with a modifiers argument and callback": function(test) {
-            var prop = { key1: 'value1', key2: 'value2' },
-                modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $append: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                },
-                callback = function () {};
-
-            this.mixpanel.people.append(this.distinct_id, prop, modifiers, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.append didn't call send_request with correct arguments and/or modifiers"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.append didn't call send_request with a callback"
-            );
-
-            test.done();
-        }
+            this.test_send_request_args(test, 'append', {
+                args: [{'key1': 'value1', 'key2': 'value2'}],
+                expected: {$append: {'key1': 'value1', 'key2': 'value2'}},
+                use_callback: true,
+                use_modifiers: true,
+            });
+        },
     },
-
 
     track_charge: {
         "calls send_request with correct endpoint and data": function(test) {
