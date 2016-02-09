@@ -19,6 +19,10 @@ var test_send_request_args = function(test, func, options) {
         }
         args.push(modifiers);
     }
+    if (options.use_callback) {
+        var callback = function() {};
+        args.push(callback);
+    }
 
     this.mixpanel.people[func].apply(this.mixpanel.people, args);
 
@@ -26,6 +30,12 @@ var test_send_request_args = function(test, func, options) {
         this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
         "people." + func + " didn't call send_request with correct arguments"
     );
+    if (options.use_callback) {
+        test.ok(
+            this.mixpanel.send_request.args[0][2] === callback,
+            "people.set didn't call send_request with a callback"
+        );
+    }
     test.done();
 };
 
@@ -52,73 +62,31 @@ exports.people = {
 
     _set: {
         "handles set_once correctly": function(test){
-            var expected_data = {
-                $set_once: { key1: 'val1' },
-                $token: this.token,
-                $distinct_id: this.distinct_id
-            };
-
-            this.mixpanel.people.set_once(this.distinct_id, 'key1', 'val1');
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set_once calls send request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set_once', {
+                args: ['key1', 'val1'],
+                expected: {$set_once: {'key1': 'val1'}},
+            });
         },
 
         "calls send_request with correct endpoint and data": function(test) {
-            var expected_data = {
-                    $set: { key1: 'val1' },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.set(this.distinct_id, 'key1', 'val1');
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set', {
+                args: ['key1', 'val1'],
+                expected: {$set: {'key1': 'val1'}},
+            });
         },
 
         "supports being called with a property object": function(test) {
-            var prop = { key1: 'val1', key2: 'val2' },
-                expected_data = {
-                    $set: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.set(this.distinct_id, prop);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set: {'key1': 'val1', 'key2': 'val2'}},
+            });
         },
 
         "supports being called with a property object (set_once)": function(test) {
-            var prop = { key1: 'val1', key2: 'val2' },
-                expected_data = {
-                    $set_once: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.set_once(this.distinct_id, prop);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set_once didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set_once', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set_once: {'key1': 'val1', 'key2': 'val2'}},
+            });
         },
 
         "supports being called with a modifiers argument": function(test) {
@@ -154,240 +122,91 @@ exports.people = {
         },
 
         "handles the ip property in a property object properly": function(test) {
-            var prop = { ip: '1.2.3.4', key1: 'val1', key2: 'val2' },
-                expected_data = {
-                    $set: { key1: 'val1', key2: 'val2' },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ip: '1.2.3.4'
-                };
-
-            this.mixpanel.people.set(this.distinct_id, prop);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set', {
+                args: [{'ip': '1.2.3.4', 'key1': 'val1', 'key2': 'val2'}],
+                expected: {
+                    $ip: '1.2.3.4',
+                    $set: {'key1': 'val1', 'key2': 'val2'},
+                },
+            });
         },
 
         "handles the $ignore_time property in a property object properly": function(test) {
-            var prop = { $ignore_time: true, key1: 'val1', key2: 'val2' },
-                expected_data = {
-                    $set: { key1: 'val1', key2: 'val2' },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true
-                };
-
-            this.mixpanel.people.set(this.distinct_id, prop);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set', {
+                args: [{'$ignore_time': true, 'key1': 'val1', 'key2': 'val2'}],
+                expected: {
+                    $ignore_time: true,
+                    $set: {'key1': 'val1', 'key2': 'val2'},
+                },
+            });
         },
 
         "supports being called with a callback": function(test) {
-            var expected_data = {
-                $set: { key1: 'val1' },
-                $token: this.token,
-                $distinct_id: this.distinct_id
-            };
-
-            var callback = function() { };
-            this.mixpanel.people.set(this.distinct_id, "key1", "val1", callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set didn't call send_request with correct arguments with callback"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.set didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set', {
+                args: ['key1', 'val1'],
+                expected: {$set: {'key1': 'val1'}},
+                use_callback: true,
+            });
         },
 
         "supports being called with a callback (set_once)": function(test) {
-            var expected_data = {
-                    $set_once: { key1: 'val1' },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                },
-                callback = function() { };
-
-            this.mixpanel.people.set_once(this.distinct_id, "key1", "val1", callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set_once didn't call send_request with correct arguments with callback"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.set_once didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set_once', {
+                args: ['key1', 'val1'],
+                expected: {$set_once: {'key1': 'val1'}},
+                use_callback: true,
+            });
         },
 
         "supports being called with a properties object and a callback": function(test) {
-            var prop = { key1: 'val1', key2: 'val2' },
-                expected_data = {
-                    $set: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                },
-                callback = function () {};
-
-            this.mixpanel.people.set(this.distinct_id, prop, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.set didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set: {'key1': 'val1', 'key2': 'val2'}},
+                use_callback: true,
+            });
         },
 
         "supports being called with a properties object and a callback (set_once)": function(test) {
-            var prop = { key1: 'val1', key2: 'val2' },
-                expected_data = {
-                    $set_once: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                },
-                callback = function () {};
-
-            this.mixpanel.people.set_once(this.distinct_id, prop, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set_once didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.set_once didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set_once', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set_once: {'key1': 'val1', 'key2': 'val2'}},
+                use_callback: true,
+            });
         },
 
         "supports being called with a modifiers argument and a callback": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $set: { key1: 'val1' },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4'
-                },
-                callback = function () {};
-
-            this.mixpanel.people.set(this.distinct_id, 'key1', 'val1', modifiers, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set didn't call send_request correctly with modifiers and a callback"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.set didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set', {
+                args: ['key1', 'val1'],
+                expected: {$set: {'key1': 'val1'}},
+                use_callback: true,
+                use_modifiers: true,
+            });
         },
 
         "supports being called with a modifiers argument and a callback (set_once)": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $set_once: { key1: 'val1' },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4'
-                },
-                callback = function () {};
-
-            this.mixpanel.people.set_once(this.distinct_id, 'key1', 'val1', modifiers, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set_once didn't call send_request correctly with modifiers and a callback"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.set_once didn't call send_request with a callback (with modifiers)"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set_once', {
+                args: ['key1', 'val1'],
+                expected: {$set_once: {'key1': 'val1'}},
+                use_callback: true,
+                use_modifiers: true,
+            });
         },
 
         "supports being called with a properties object, a modifiers argument and a callback": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $set: { key1: 'val1' },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4'
-                },
-                callback = function () {};
-
-            this.mixpanel.people.set(this.distinct_id, 'key1', 'val1', modifiers, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set didn't call send_request with correctly with props object, modifiers and callback"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.set didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set: {'key1': 'val1', 'key2': 'val2'}},
+                use_callback: true,
+                use_modifiers: true,
+            });
         },
 
         "supports being called with a properties object, a modifiers argument and a callback (set_once)": function(test) {
-            var prop = { a: 'b'},
-                modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $set_once: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4'
-                },
-                callback = function () {};
-
-            this.mixpanel.people.set_once(this.distinct_id, prop, modifiers, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set_once didn't call send_request correctly with props object, modifiers and callback"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.set_once didn't call send_request with a callback (with props and modifiers)"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set_once', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set_once: {'key1': 'val1', 'key2': 'val2'}},
+                use_callback: true,
+                use_modifiers: true,
+            });
         }
     },
 
