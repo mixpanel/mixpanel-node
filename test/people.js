@@ -1,6 +1,31 @@
 var Mixpanel    = require('../lib/mixpanel-node'),
     Sinon       = require('sinon');
 
+// shared test case
+var test_modifiers = function(test, func, options) {
+    var modifiers = {'$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890},
+        expected_data = {
+            $token: this.token,
+            $distinct_id: this.distinct_id,
+            $ignore_time: true,
+            $ip: '1.2.3.4',
+            $time: 1234567890
+        };
+    for (var k in options.expected) {
+        expected_data[k] = options.expected[k];
+    }
+    var args = [this.distinct_id].concat(options.args || []);
+    args.push(modifiers);
+
+    this.mixpanel.people[func].apply(this.mixpanel.people, args);
+
+    test.ok(
+        this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+        "people." + func + " didn't call send_request correctly with modifiers"
+    );
+    test.done();
+};
+
 exports.people = {
     setUp: function(next) {
         this.token = 'token';
@@ -10,6 +35,8 @@ exports.people = {
 
         this.distinct_id = "user1";
         this.endpoint = "engage";
+
+        this.test_modifiers = test_modifiers;
 
         next();
     },
@@ -92,45 +119,17 @@ exports.people = {
         },
 
         "supports being called with a modifiers argument": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $set: { key1: 'val1' },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                };
-
-            this.mixpanel.people.set(this.distinct_id, 'key1', 'val1', modifiers);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set didn't call send_request correctly with modifiers"
-            );
-
-            test.done();
+            this.test_modifiers(test, 'set', {
+                args: ['key1', 'val1'],
+                expected: {$set: {'key1': 'val1'}},
+            });
         },
 
         "supports being called with a modifiers argument (set_once)": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $set_once: { key1: 'val1' },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                };
-
-            this.mixpanel.people.set_once(this.distinct_id, 'key1', 'val1', modifiers);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set_once didn't call send_request correctly with modifiers"
-            );
-
-            test.done();
+            this.test_modifiers(test, 'set_once', {
+                args: ['key1', 'val1'],
+                expected: {$set_once: {'key1': 'val1'}},
+            });
         },
 
         "supports being called with a properties object and a modifiers argument": function(test) {
@@ -849,24 +848,10 @@ exports.people = {
         },
 
         "supports being called with a modifiers argument": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $append: { $transactions: { $amount: 50 } },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                };
-
-            this.mixpanel.people.track_charge(this.distinct_id, 50, modifiers);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.track_charge didn't call send_request with correct arguments and/or modifiers"
-            );
-
-            test.done();
+            this.test_modifiers(test, 'track_charge', {
+                args: [50],
+                expected: {$append: {$transactions: {$amount: 50}}},
+            });
         },
 
         "supports being called with a property object and a modifiers argument": function(test) {
@@ -1016,24 +1001,9 @@ exports.people = {
         },
 
         "supports being called with a modifiers argument": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                $set: { $transactions: [] },
-                $token: this.token,
-                $distinct_id: this.distinct_id,
-                $ignore_time: true,
-                $ip: '1.2.3.4',
-                $time: 1234567890
-            };
-
-            this.mixpanel.people.clear_charges(this.distinct_id, modifiers);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.clear_charges didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_modifiers(test, 'clear_charges', {
+                expected: {$set: {$transactions: []}},
+            });
         },
 
         "supports being called with a callback": function(test) {
@@ -1106,24 +1076,9 @@ exports.people = {
         },
 
         "supports being called with a modifiers argument": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                $delete: '',
-                $token: this.token,
-                $distinct_id: this.distinct_id,
-                $ignore_time: true,
-                $ip: '1.2.3.4',
-                $time: 1234567890
-            };
-
-            this.mixpanel.people.delete_user(this.distinct_id, modifiers);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.delete_user didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_modifiers(test, 'delete_user', {
+                expected: {$delete: ''},
+            });
         },
 
         "supports being called with a callback": function(test) {
@@ -1238,27 +1193,10 @@ exports.people = {
         },
 
         "supports being called with a modifiers argument": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $union: {'key1': ['value1', 'value2']},
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                };
-
-            this.mixpanel.people.union(this.distinct_id, {
-                'key1': ['value1', 'value2']
-            }, modifiers);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.union didn't call send_request with correct arguments"
-            );
-
-            test.done();
-
+            this.test_modifiers(test, 'union', {
+                args: [{'key1': ['value1', 'value2']}],
+                expected: {$union: {'key1': ['value1', 'value2']}},
+            });
         },
 
         "supports being called with a callback": function(test) {
@@ -1368,29 +1306,13 @@ exports.people = {
             test.done();
         },
         "supports being called with a modifiers argument": function(test) {
-
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $unset: ['key1'],
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                };
-
-            this.mixpanel.people.unset(this.distinct_id, 'key1', modifiers);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.unset didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_modifiers(test, 'unset', {
+                args: ['key1'],
+                expected: {$unset: ['key1']},
+            });
         },
 
         "supports being called with a callback": function(test) {
-
             var expected_data = {
                     $unset: ['key1'],
                     $token: this.token,
