@@ -505,47 +505,17 @@ exports.people = {
 
     union: {
         "calls send_request with correct endpoint and data": function(test) {
-
-            var expected_data = {
-                    $union: {'key1': ['value1', 'value2']},
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.union(this.distinct_id, {
-                'key1': ['value1', 'value2']
+            this.test_send_request_args(test, 'union', {
+                args: [{'key1': ['value1', 'value2']}],
+                expected: {$union: {'key1': ['value1', 'value2']}},
             });
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.union didn't call send_request with correct arguments"
-            );
-
-            test.done();
-
         },
 
         "supports being called with a scalar value": function(test) {
-
-            var data = {
-                    'key1': 'value1'
-                },
-                expected_data = {
-                    $union: {
-                        'key1': ['value1']
-                    },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.union(this.distinct_id, data);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.union didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'union', {
+                args: [{'key1': 'value1'}],
+                expected: {$union: {'key1': ['value1']}},
+            });
         },
 
         "errors on other argument types": function(test) {
@@ -559,7 +529,6 @@ exports.people = {
                 !this.mixpanel.send_request.called,
                 "people.union shouldn't call send_request on invalid arguments"
             );
-
             test.done();
         },
 
@@ -572,62 +541,21 @@ exports.people = {
         },
 
         "supports being called with a callback": function(test) {
-
-            var expected_data = {
-                    $union: {'key1': ['value1', 'value2']},
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                },
-                callback = function () {};
-
-            this.mixpanel.people.union(this.distinct_id, {
-                'key1': ['value1', 'value2']
-            }, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.union didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.delete_user didn't call send_request with a callback"
-            );
-
-            test.done();
-
+            this.test_send_request_args(test, 'union', {
+                args: [{'key1': ['value1', 'value2']}],
+                expected: {$union: {'key1': ['value1', 'value2']}},
+                use_callback: true,
+            });
         },
 
         "supports being called with a modifiers argument and a callback": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $union: {'key1': ['value1', 'value2']},
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                },
-                callback = function () {};
-
-            this.mixpanel.people.union(this.distinct_id, {
-                'key1': ['value1', 'value2']
-            }, modifiers, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.union didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.delete_user didn't call send_request with a callback"
-            );
-
-            test.done();
-
-        }
-
+            this.test_send_request_args(test, 'union', {
+                args: [{'key1': ['value1', 'value2']}],
+                expected: {$union: {'key1': ['value1', 'value2']}},
+                use_callback: true,
+                use_modifiers: true,
+            });
+        },
     },
 
     unset: {
