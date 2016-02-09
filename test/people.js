@@ -470,25 +470,14 @@ exports.people = {
                 use_callback: true,
                 use_modifiers: true,
             });
-        }
+        },
     },
 
     delete_user: {
         "calls send_request with correct endpoint and data": function(test) {
-            var expected_data = {
-                $delete: '',
-                $token: this.token,
-                $distinct_id: this.distinct_id
-            };
-
-            this.mixpanel.people.delete_user(this.distinct_id);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.delete_user didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'delete_user', {
+                expected: {$delete: ''},
+            });
         },
 
         "supports being called with a modifiers argument": function(test) {
@@ -499,54 +488,19 @@ exports.people = {
         },
 
         "supports being called with a callback": function(test) {
-            var expected_data = {
-                    $delete: '',
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                },
-                callback = function() {};
-
-            this.mixpanel.people.delete_user(this.distinct_id, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.delete_user didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.delete_user didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'delete_user', {
+                expected: {$delete: ''},
+                use_callback: true,
+            });
         },
 
         "supports being called with a modifiers argument and a callback": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $delete: '',
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                },
-                callback = function() {};
-
-            this.mixpanel.people.delete_user(this.distinct_id, modifiers, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.delete_user didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.delete_user didn't call send_request with a callback"
-            );
-
-            test.done();
-        }
+            this.test_send_request_args(test, 'delete_user', {
+                expected: {$delete: ''},
+                use_callback: true,
+                use_modifiers: true,
+            });
+        },
     },
 
     union: {
