@@ -445,20 +445,9 @@ exports.people = {
 
     clear_charges: {
         "calls send_request with correct endpoint and data": function(test) {
-            var expected_data = {
-                    $set: { $transactions: [] },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                };
-
-            this.mixpanel.people.clear_charges(this.distinct_id);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.clear_charges didn't call send_request with correct arguments"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'clear_charges', {
+                expected: {$set: {$transactions: []}},
+            });
         },
 
         "supports being called with a modifiers argument": function(test) {
@@ -469,53 +458,18 @@ exports.people = {
         },
 
         "supports being called with a callback": function(test) {
-            var expected_data = {
-                    $set: { $transactions: [] },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id
-                },
-                callback = function() {};
-
-            this.mixpanel.people.clear_charges(this.distinct_id, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.clear_charges didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.clear_charges didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'clear_charges', {
+                expected: {$set: {$transactions: []}},
+                use_callback: true,
+            });
         },
 
         "supports being called with a modifiers argument and a callback": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                expected_data = {
-                    $set: { $transactions: [] },
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                },
-                callback = function() {};
-
-            this.mixpanel.people.clear_charges(this.distinct_id, modifiers, callback);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.clear_charges didn't call send_request with correct arguments"
-            );
-
-            test.ok(
-                this.mixpanel.send_request.args[0][2] === callback,
-                "people.clear_charges didn't call send_request with a callback"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'clear_charges', {
+                expected: {$set: {$transactions: []}},
+                use_callback: true,
+                use_modifiers: true,
+            });
         }
     },
 
