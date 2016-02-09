@@ -1,3 +1,8 @@
+0.4.0 / 2016-02-09
+===================
+* allow optional `modifiers` in all `people` calls for `$ignore_time`, `$ip`,
+  and `$time` fields
+
 0.3.2 / 2015-12-10
 ===================
 * correct `$delete` field in `people.delete_user` request (thanks godspeedelbow)

@@ -43,7 +43,8 @@ mixpanel.people.set("billybob", {
 // - pass option `$ignore_time: true` to prevent the $last_seen property from being updated
 mixpanel.people.set("billybob", {
     plan: "premium",
-    games_played: 1,
+    games_played: 1
+}, {
     $ignore_time: true
 });
 
