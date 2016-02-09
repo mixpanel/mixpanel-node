@@ -2,26 +2,29 @@ var Mixpanel    = require('../lib/mixpanel-node'),
     Sinon       = require('sinon');
 
 // shared test case
-var test_modifiers = function(test, func, options) {
-    var modifiers = {'$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890},
-        expected_data = {
+var test_send_request_args = function(test, func, options) {
+    var expected_data = {
             $token: this.token,
             $distinct_id: this.distinct_id,
-            $ignore_time: true,
-            $ip: '1.2.3.4',
-            $time: 1234567890
         };
     for (var k in options.expected) {
         expected_data[k] = options.expected[k];
     }
     var args = [this.distinct_id].concat(options.args || []);
-    args.push(modifiers);
+
+    if (options.use_modifiers) {
+        var modifiers = {'$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890};
+        for (k in modifiers) {
+            expected_data[k] = modifiers[k];
+        }
+        args.push(modifiers);
+    }
 
     this.mixpanel.people[func].apply(this.mixpanel.people, args);
 
     test.ok(
         this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-        "people." + func + " didn't call send_request correctly with modifiers"
+        "people." + func + " didn't call send_request with correct arguments"
     );
     test.done();
 };
@@ -36,7 +39,7 @@ exports.people = {
         this.distinct_id = "user1";
         this.endpoint = "engage";
 
-        this.test_modifiers = test_modifiers;
+        this.test_send_request_args = test_send_request_args;
 
         next();
     },
@@ -119,61 +122,35 @@ exports.people = {
         },
 
         "supports being called with a modifiers argument": function(test) {
-            this.test_modifiers(test, 'set', {
+            this.test_send_request_args(test, 'set', {
                 args: ['key1', 'val1'],
                 expected: {$set: {'key1': 'val1'}},
+                use_modifiers: true,
             });
         },
 
         "supports being called with a modifiers argument (set_once)": function(test) {
-            this.test_modifiers(test, 'set_once', {
+            this.test_send_request_args(test, 'set_once', {
                 args: ['key1', 'val1'],
                 expected: {$set_once: {'key1': 'val1'}},
+                use_modifiers: true,
             });
         },
 
         "supports being called with a properties object and a modifiers argument": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                prop = { key1: 'val1', key2: 'val2'},
-                expected_data = {
-                    $set: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                };
-
-            this.mixpanel.people.set(this.distinct_id, prop, modifiers);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set didn't call send_request correctly with props object and modifiers"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set: {'key1': 'val1', 'key2': 'val2'}},
+                use_modifiers: true,
+            });
         },
 
         "supports being called with a properties object and a modifiers argument (set_once)": function(test) {
-            var modifiers = { '$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890 },
-                prop = { key1: 'val1', key2: 'val2'},
-                expected_data = {
-                    $set_once: prop,
-                    $token: this.token,
-                    $distinct_id: this.distinct_id,
-                    $ignore_time: true,
-                    $ip: '1.2.3.4',
-                    $time: 1234567890
-                };
-
-            this.mixpanel.people.set_once(this.distinct_id, prop, modifiers);
-
-            test.ok(
-                this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
-                "people.set_once didn't call send_request correctly with props object and modifiers"
-            );
-
-            test.done();
+            this.test_send_request_args(test, 'set_once', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set_once: {'key1': 'val1', 'key2': 'val2'}},
+                use_modifiers: true,
+            });
         },
 
         "handles the ip property in a property object properly": function(test) {
@@ -848,9 +825,10 @@ exports.people = {
         },
 
         "supports being called with a modifiers argument": function(test) {
-            this.test_modifiers(test, 'track_charge', {
+            this.test_send_request_args(test, 'track_charge', {
                 args: [50],
                 expected: {$append: {$transactions: {$amount: 50}}},
+                use_modifiers: true,
             });
         },
 
@@ -1001,8 +979,9 @@ exports.people = {
         },
 
         "supports being called with a modifiers argument": function(test) {
-            this.test_modifiers(test, 'clear_charges', {
+            this.test_send_request_args(test, 'clear_charges', {
                 expected: {$set: {$transactions: []}},
+                use_modifiers: true,
             });
         },
 
@@ -1076,8 +1055,9 @@ exports.people = {
         },
 
         "supports being called with a modifiers argument": function(test) {
-            this.test_modifiers(test, 'delete_user', {
+            this.test_send_request_args(test, 'delete_user', {
                 expected: {$delete: ''},
+                use_modifiers: true,
             });
         },
 
@@ -1193,9 +1173,10 @@ exports.people = {
         },
 
         "supports being called with a modifiers argument": function(test) {
-            this.test_modifiers(test, 'union', {
+            this.test_send_request_args(test, 'union', {
                 args: [{'key1': ['value1', 'value2']}],
                 expected: {$union: {'key1': ['value1', 'value2']}},
+                use_modifiers: true,
             });
         },
 
@@ -1306,9 +1287,10 @@ exports.people = {
             test.done();
         },
         "supports being called with a modifiers argument": function(test) {
-            this.test_modifiers(test, 'unset', {
+            this.test_send_request_args(test, 'unset', {
                 args: ['key1'],
                 expected: {$unset: ['key1']},
+                use_modifiers: true,
             });
         },
 
