@@ -97,6 +97,7 @@ var mixpanel_importer = Mixpanel.init('valid mixpanel token', {
 // needs to be in the system once for it to show up in the interface
 mixpanel_importer.track('old event', { gender: '' });
 
+// mixpanel expects time to be in UTC
 mixpanel_importer.import("old event", new Date(2012, 4, 20, 12, 34, 56), {
     distinct_id: 'billybob',
     gender: 'male'
