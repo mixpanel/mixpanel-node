@@ -59,6 +59,35 @@ exports.send_request = {
         this.res.emit('end');
     },
 
+    "handles mixpanel verbose errors": function(test) {
+        test.expect(1);
+        this.mixpanel.config.verbose = true;
+        this.mixpanel.send_request("/track", { event: "test" }, function(e) {
+            test.equal(e.message, 'Mixpanel Server Error: Foobar');
+            test.done();
+        });
+
+        this.res.emit('data', JSON.stringify({
+            status: 0,
+            error: 'Foobar'
+        }));
+        this.res.emit('end');
+        this.mixpanel.config.verbose = false;
+    },
+
+    "handles mixpanel verbose errors with non-verbose response": function(test) {
+        test.expect(1);
+        this.mixpanel.config.verbose = true;
+        this.mixpanel.send_request("/track", { event: "test" }, function(e) {
+            test.equal(e.message, 'Could not parse response from Mixpanel: ""');
+            test.done();
+        });
+
+        this.res.emit('data', '');
+        this.res.emit('end');
+        this.mixpanel.config.verbose = false;
+    },
+
     "handles http.get errors": function(test) {
         test.expect(1);
         this.mixpanel.send_request("/track", { event: "test" }, function(e) {
