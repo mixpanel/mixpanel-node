@@ -82,6 +82,20 @@ mixpanel.people.clear_charges('billybob');
 // delete a user
 mixpanel.people.delete_user('billybob');
 
+// perform batch operations on people:
+mixpanel.people.batch([
+    {
+        $distinct_id: 'billybob',
+        $delete: ''
+    },
+    {
+        $distinct_id: 'fred',
+        $set: {
+            'points': 10
+        }
+    }
+]);
+
 // Create an alias for an existing distinct id
 mixpanel.alias('distinct_id', 'your_alias');
 
