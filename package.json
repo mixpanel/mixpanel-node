@@ -7,9 +7,10 @@
     "api",
     "stats"
   ],
-  "version": "0.2.1",
+  "version": "0.4.0",
   "homepage": "https://github.com/mixpanel/mixpanel-node",
   "author": "Carl Sverre",
+  "license": "MIT",
   "main": "lib/mixpanel-node",
   "directories": {
     "lib": "lib"
@@ -22,7 +23,7 @@
     "node": ">=0.10.0"
   },
   "scripts": {
-    "test": "bin/run_tests"
+    "test": "nodeunit"
   },
   "devDependencies": {
     "nodeunit": "^0.9.1",
