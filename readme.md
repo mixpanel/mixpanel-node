@@ -82,6 +82,10 @@ mixpanel.people.clear_charges('billybob');
 // delete a user
 mixpanel.people.delete_user('billybob');
 
+// delete a user in Mixpanel Engage without altering $last_seen
+// - pass option `$ignore_time: true` to prevent the $last_seen property from being updated
+mixpanel.people.delete_user('billybob', {$ignore_time: true});
+
 // Create an alias for an existing distinct id
 mixpanel.alias('distinct_id', 'your_alias');
 
