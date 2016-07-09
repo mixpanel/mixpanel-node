@@ -84,6 +84,7 @@ mixpanel.people.delete_user('billybob');
 
 // delete a user in Mixpanel Engage without altering $last_seen
 // - pass option `$ignore_time: true` to prevent the $last_seen property from being updated
+// (useful if you subsequently re-import data for the same distinct ID)
 mixpanel.people.delete_user('billybob', {$ignore_time: true});
 
 // Create an alias for an existing distinct id
