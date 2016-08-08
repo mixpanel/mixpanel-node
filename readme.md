@@ -51,6 +51,9 @@ mixpanel.people.set('billybob', {
 // set a single property on a user
 mixpanel.people.set('billybob', 'plan', 'free');
 
+// set a single property on a user, don't override
+mixpanel.people.set_once('billybob', 'first_game_play', (new Date('jan 1 2013')).toISOString());
+
 // increment a numeric property
 mixpanel.people.increment('billybob', 'games_played');
 
