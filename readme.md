@@ -40,7 +40,7 @@ mixpanel.people.set('billybob', {
 });
 
 // create or update a user in Mixpanel Engage without altering $last_seen
-// - pass option `$ignore_time: true` to prevent the $last_seen property from being updated
+// - pass option $ignore_time: true to prevent the $last_seen property from being updated
 mixpanel.people.set('billybob', {
     plan: 'premium',
     games_played: 1
@@ -85,10 +85,10 @@ mixpanel.people.clear_charges('billybob');
 // delete a user
 mixpanel.people.delete_user('billybob');
 
-// delete a user in Mixpanel Engage without altering $last_seen
-// - pass option `$ignore_time: true` to prevent the $last_seen property from being updated
+// delete a user in Mixpanel Engage without altering $last_seen or resolving aliases
+// - pass option $ignore_time: true to prevent the $last_seen property from being updated
 // (useful if you subsequently re-import data for the same distinct ID)
-mixpanel.people.delete_user('billybob', {$ignore_time: true});
+mixpanel.people.delete_user('billybob', {$ignore_time: true, $ignore_alias: true});
 
 // Create an alias for an existing distinct id
 mixpanel.alias('distinct_id', 'your_alias');
@@ -185,6 +185,7 @@ Contributions from:
  - [Michael G](https://github.com/gmichael225)
  - [Tejas Manohar](https://github.com/tejasmanohar)
  - [Eelke Boezeman](https://github.com/godspeedelbow)
+ - [Jim Thomas](https://github.com/Left47)
 
 License
 -------------------

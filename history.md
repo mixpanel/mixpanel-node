@@ -1,3 +1,7 @@
+0.4.1 / 2016-09-09
+===================
+* include `$ignore_alias` in permitted `people` modifiers (thanks Left47)
+
 0.4.0 / 2016-02-09
 ===================
 * allow optional `modifiers` in all `people` calls for `$ignore_time`, `$ip`,
@@ -20,7 +24,7 @@
 * added batch import support
 
 0.1.1 / 2015-03-27
-==================
+===================
 * fixed callback behavior in track_charges when no properties supplied
 (thanks sorribas)
 
