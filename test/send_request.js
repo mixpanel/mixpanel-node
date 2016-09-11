@@ -96,5 +96,23 @@ exports.send_request = {
         test.ok(http.get.calledWithMatch(expected_http_get), "send_request didn't call http.get with correct hostname and port");
 
         test.done();
+    },
+
+    "uses path prefix": function(test) {
+        var host = 'testhost.proxyserver';
+        var prefix = 'myactualendpoint';
+        var customHostnameMixpanel = Mixpanel.init('token', { host: host, path_prefix: prefix })
+
+        var endpoint = "/track";
+
+        var expected_http_get = {
+            host: host
+        };
+
+        customHostnameMixpanel.send_request(endpoint, {});
+
+        test.ok(http.get.calledWithMatch(expected_http_get), "send_request didn't call http.get with correct arguments");
+
+        test.done();
     }
 };
