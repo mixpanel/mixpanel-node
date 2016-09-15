@@ -1,3 +1,7 @@
+0.5.0 / 2016-09-15
+===================
+* optional https support (thanks chiangf)
+
 0.4.1 / 2016-09-09
 ===================
 * include `$ignore_alias` in permitted `people` modifiers (thanks Left47)

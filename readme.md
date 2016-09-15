@@ -20,6 +20,11 @@ var Mixpanel = require('mixpanel');
 // create an instance of the mixpanel client
 var mixpanel = Mixpanel.init('6fd9434dba686db2d1ab66b4462a3a67');
 
+// initialize mixpanel client configured to communicate over https
+var mixpanel = Mixpanel.init('6fd9434dba686db2d1ab66b4462a3a67', {
+    protocol: 'https'
+});
+
 // track an event with optional properties
 mixpanel.track('my event', {
     distinct_id: 'some unique client id',
@@ -186,6 +191,7 @@ Contributions from:
  - [Tejas Manohar](https://github.com/tejasmanohar)
  - [Eelke Boezeman](https://github.com/godspeedelbow)
  - [Jim Thomas](https://github.com/Left47)
+ - [Frank Chiang](https://github.com/chiangf)
 
 License
 -------------------
