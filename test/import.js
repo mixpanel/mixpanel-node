@@ -1,12 +1,13 @@
 var Mixpanel = require('../lib/mixpanel-node'),
     Sinon    = require('sinon'),
     http     = require('http'),
-    events   = require('events');
+    events   = require('events'),
+    mockNowTime = new Date(2016, 1, 1).getTime();
 
 exports.import = {
     setUp: function(next) {
         this.mixpanel = Mixpanel.init('token', { key: 'key' });
-        this.clock = Sinon.useFakeTimers();
+        this.clock = Sinon.useFakeTimers(mockNowTime);
 
         Sinon.stub(this.mixpanel, 'send_request');
 
@@ -22,7 +23,8 @@ exports.import = {
 
     "calls send_request with correct endpoint and data": function(test) {
         var event = "test",
-            time = 500,
+            sixDaysAgo = mockNowTime - 1000 * 60 * 60 * 24 * 6,
+            time = Math.floor(sixDaysAgo / 1000),
             props = { key1: 'val1' },
             expected_endpoint = "/import",
             expected_data = {
@@ -30,7 +32,7 @@ exports.import = {
                 properties: {
                     key1: 'val1',
                     token: 'token',
-                    time: 500
+                    time: time
                 }
             };
 
@@ -44,9 +46,10 @@ exports.import = {
         test.done();
     },
 
-    "supports a Date instance": function(test) {
+    "supports a Date instance greater than 5 days old": function(test) {
         var event = "test",
-            time = new Date,
+            sixDaysAgo = mockNowTime - 1000 * 60 * 60 * 24 * 6,
+            time = new Date(sixDaysAgo),
             props = { key1: 'val1' },
             expected_endpoint = "/import",
             expected_data = {
@@ -54,7 +57,7 @@ exports.import = {
                 properties: {
                     key1: 'val1',
                     token: 'token',
-                    time: 0
+                    time: sixDaysAgo / 1000
                 }
             };
 

@@ -1,9 +1,11 @@
 var Mixpanel    = require('../lib/mixpanel-node'),
-    Sinon       = require('sinon');
+    Sinon       = require('sinon'),
+    mockNowTime = new Date(2016, 1, 1).getTime();;
 
 exports.track = {
     setUp: function(next) {
         this.mixpanel = Mixpanel.init('token');
+        this.clock = Sinon.useFakeTimers(mockNowTime);
 
         Sinon.stub(this.mixpanel, 'send_request');
 
@@ -12,6 +14,7 @@ exports.track = {
 
     tearDown: function(next) {
         this.mixpanel.send_request.restore();
+        this.clock.restore();
 
         next();
     },
@@ -62,6 +65,44 @@ exports.track = {
                 event: 'test',
                 properties: {
                     token: 'token'
+                }
+            };
+
+        this.mixpanel.send_request.callsArgWith(2, undefined);
+
+        test.expect(1);
+        this.mixpanel.track("test", function(e) {
+            test.equal(e, undefined, "error should be undefined");
+            test.done();
+        });
+    },
+
+    "calls `track` endpoint if within last 5 days": function(test) {
+        var expected_endpoint = "/track",
+            expected_data = {
+                event: 'test',
+                properties: {
+                    token: 'token',
+                    time: mockNowTime / 1000
+                }
+            };
+
+        this.mixpanel.send_request.callsArgWith(2, undefined);
+
+        test.expect(1);
+        this.mixpanel.track("test", function(e) {
+            test.equal(e, undefined, "error should be undefined");
+            test.done();
+        });
+    },
+
+    "calls `import` endpoint if time older than 5 days": function(test) {
+        var expected_endpoint = "/import",
+            expected_data = {
+                event: 'test',
+                properties: {
+                    token: 'token',
+                    time: (mockNowTime - 1000 * 60 * 60 * 24 * 6) / 1000
                 }
             };
 
