@@ -1,11 +1,11 @@
 var Mixpanel    = require('../lib/mixpanel-node'),
     Sinon       = require('sinon'),
-    mockNowTime = new Date(2016, 1, 1).getTime();;
+    mock_now_time = new Date(2016, 1, 1).getTime();;
 
 exports.track = {
     setUp: function(next) {
         this.mixpanel = Mixpanel.init('token');
-        this.clock = Sinon.useFakeTimers(mockNowTime);
+        this.clock = Sinon.useFakeTimers(mock_now_time);
 
         Sinon.stub(this.mixpanel, 'send_request');
 
@@ -78,40 +78,46 @@ exports.track = {
     },
 
     "calls `track` endpoint if within last 5 days": function(test) {
-        var expected_endpoint = "/track",
+        var event = 'test',
+            time = mock_now_time / 1000,
+            props = { time: time },
+            expected_endpoint = "/track",
             expected_data = {
                 event: 'test',
                 properties: {
                     token: 'token',
-                    time: mockNowTime / 1000
+                    time: time, mp_lib: 'node'
                 }
             };
 
-        this.mixpanel.send_request.callsArgWith(2, undefined);
+        this.mixpanel.track(event, props);
 
-        test.expect(1);
-        this.mixpanel.track("test", function(e) {
-            test.equal(e, undefined, "error should be undefined");
-            test.done();
-        });
+        test.ok(
+            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            "track didn't call send_request with correct arguments"
+        );
+        test.done();
     },
 
-    "calls `import` endpoint if time older than 5 days": function(test) {
-        var expected_endpoint = "/import",
+    "calls `import` endpoint if older than 5 days": function(test) {
+        var event = 'test',
+            time = (mock_now_time - 1000 * 60 * 60 * 24 * 6) / 1000,
+            props = { time: time },
+            expected_endpoint = "/import",
             expected_data = {
                 event: 'test',
                 properties: {
                     token: 'token',
-                    time: (mockNowTime - 1000 * 60 * 60 * 24 * 6) / 1000
+                    time: time, mp_lib: 'node'
                 }
             };
 
-        this.mixpanel.send_request.callsArgWith(2, undefined);
+        this.mixpanel.track(event, props);
 
-        test.expect(1);
-        this.mixpanel.track("test", function(e) {
-            test.equal(e, undefined, "error should be undefined");
-            test.done();
-        });
+        test.ok(
+            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            "track didn't call send_request with correct arguments"
+        );
+        test.done();
     }
 };

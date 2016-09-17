@@ -71,6 +71,30 @@ exports.import = {
         test.done();
     },
 
+    "supports a Date instance less than 5 days old": function(test) {
+        var event = "test",
+            time = new Date(mockNowTime),
+            props = { key1: 'val1' },
+            expected_endpoint = "/track",
+            expected_data = {
+                event: 'test',
+                properties: {
+                    key1: 'val1',
+                    token: 'token',
+                    time: mockNowTime / 1000
+                }
+            };
+
+        this.mixpanel.import(event, time, props);
+
+        test.ok(
+            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            "import didn't call send_request with correct arguments"
+        );
+
+        test.done();
+    },
+
     "requires the time argument": function(test) {
         test.throws(
             function() { this.mixpanel.import('test'); },
