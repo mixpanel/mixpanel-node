@@ -2,12 +2,12 @@ var Mixpanel = require('../lib/mixpanel-node'),
     Sinon    = require('sinon'),
     http     = require('http'),
     events   = require('events'),
-    mockNowTime = new Date(2016, 1, 1).getTime();
+    mock_now_time = new Date(2016, 1, 1).getTime();
 
 exports.import = {
     setUp: function(next) {
         this.mixpanel = Mixpanel.init('token', { key: 'key' });
-        this.clock = Sinon.useFakeTimers(mockNowTime);
+        this.clock = Sinon.useFakeTimers(mock_now_time);
 
         Sinon.stub(this.mixpanel, 'send_request');
 
@@ -23,8 +23,8 @@ exports.import = {
 
     "calls send_request with correct endpoint and data": function(test) {
         var event = "test",
-            sixDaysAgo = mockNowTime - 1000 * 60 * 60 * 24 * 6,
-            time = Math.floor(sixDaysAgo / 1000),
+            six_days_ago = mock_now_time - 1000 * 60 * 60 * 24 * 6,
+            time = Math.floor(six_days_ago / 1000),
             props = { key1: 'val1' },
             expected_endpoint = "/import",
             expected_data = {
@@ -48,8 +48,8 @@ exports.import = {
 
     "supports a Date instance greater than 5 days old": function(test) {
         var event = "test",
-            sixDaysAgo = mockNowTime - 1000 * 60 * 60 * 24 * 6,
-            time = new Date(sixDaysAgo),
+            six_days_ago = mock_now_time - 1000 * 60 * 60 * 24 * 6,
+            time = new Date(six_days_ago),
             props = { key1: 'val1' },
             expected_endpoint = "/import",
             expected_data = {
@@ -57,7 +57,7 @@ exports.import = {
                 properties: {
                     key1: 'val1',
                     token: 'token',
-                    time: sixDaysAgo / 1000
+                    time: six_days_ago / 1000
                 }
             };
 
@@ -73,7 +73,7 @@ exports.import = {
 
     "supports a Date instance less than 5 days old": function(test) {
         var event = "test",
-            time = new Date(mockNowTime),
+            time = new Date(mock_now_time),
             props = { key1: 'val1' },
             expected_endpoint = "/track",
             expected_data = {
@@ -81,7 +81,7 @@ exports.import = {
                 properties: {
                     key1: 'val1',
                     token: 'token',
-                    time: mockNowTime / 1000
+                    time: mock_now_time / 1000
                 }
             };
 
