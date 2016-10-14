@@ -13,7 +13,12 @@ var test_send_request_args = function(test, func, options) {
     var args = [this.distinct_id].concat(options.args || []);
 
     if (options.use_modifiers) {
-        var modifiers = {'$ignore_time': true, '$ip': '1.2.3.4', '$time': 1234567890};
+        var modifiers = {
+            '$ignore_alias': true,
+            '$ignore_time': true,
+            '$ip': '1.2.3.4',
+            '$time': 1234567890
+        };
         for (k in modifiers) {
             expected_data[k] = modifiers[k];
         }

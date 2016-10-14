@@ -20,6 +20,11 @@ var Mixpanel = require('mixpanel');
 // create an instance of the mixpanel client
 var mixpanel = Mixpanel.init('6fd9434dba686db2d1ab66b4462a3a67');
 
+// initialize mixpanel client configured to communicate over https
+var mixpanel = Mixpanel.init('6fd9434dba686db2d1ab66b4462a3a67', {
+    protocol: 'https'
+});
+
 // track an event with optional properties
 mixpanel.track('my event', {
     distinct_id: 'some unique client id',
@@ -40,7 +45,7 @@ mixpanel.people.set('billybob', {
 });
 
 // create or update a user in Mixpanel Engage without altering $last_seen
-// - pass option `$ignore_time: true` to prevent the $last_seen property from being updated
+// - pass option $ignore_time: true to prevent the $last_seen property from being updated
 mixpanel.people.set('billybob', {
     plan: 'premium',
     games_played: 1
@@ -50,6 +55,9 @@ mixpanel.people.set('billybob', {
 
 // set a single property on a user
 mixpanel.people.set('billybob', 'plan', 'free');
+
+// set a single property on a user, don't override
+mixpanel.people.set_once('billybob', 'first_game_play', (new Date('jan 1 2013')).toISOString());
 
 // increment a numeric property
 mixpanel.people.increment('billybob', 'games_played');
@@ -81,6 +89,11 @@ mixpanel.people.clear_charges('billybob');
 
 // delete a user
 mixpanel.people.delete_user('billybob');
+
+// delete a user in Mixpanel Engage without altering $last_seen or resolving aliases
+// - pass option $ignore_time: true to prevent the $last_seen property from being updated
+// (useful if you subsequently re-import data for the same distinct ID)
+mixpanel.people.delete_user('billybob', {$ignore_time: true, $ignore_alias: true});
 
 // Create an alias for an existing distinct id
 mixpanel.alias('distinct_id', 'your_alias');
@@ -177,6 +190,8 @@ Contributions from:
  - [Michael G](https://github.com/gmichael225)
  - [Tejas Manohar](https://github.com/tejasmanohar)
  - [Eelke Boezeman](https://github.com/godspeedelbow)
+ - [Jim Thomas](https://github.com/Left47)
+ - [Frank Chiang](https://github.com/chiangf)
 
 License
 -------------------
