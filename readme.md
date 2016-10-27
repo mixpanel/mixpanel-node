@@ -163,10 +163,12 @@ Tests
     npm install
     npm test
 
-Related Tools
--------------
+Alternative Clients and Related Tools
+-------------------------------------
 
-- [Mixpanel-CLI](https://github.com/FGRibreau/mixpanel-cli) - A complete CLI to query Mixpanel API
+- [Mixpanel-CLI](https://github.com/FGRibreau/mixpanel-cli) - CLI for Mixpanel API (currently only supports tracking functions)
+- [Mixpanel Data Export](https://github.com/michaelcarter/mixpanel-data-export-js) - Supports various query and data-management APIs; runs in both Node.js and browser
+- [Mixpanel Data Export (strawbrary)](https://github.com/strawbrary/mixpanel-data-export-js) - Fork of previous library, optimized for Node.js with support for streaming large raw exports
 
 Attribution/Credits
 -------------------
