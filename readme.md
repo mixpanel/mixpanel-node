@@ -163,6 +163,11 @@ Tests
     npm install
     npm test
 
+Related Tools
+-------------------
+
+- [Mixpanel-CLI](github.com/FGRibreau/mixpanel-cli) -  A complete CLI to query Mixpanel API
+
 Attribution/Credits
 -------------------
 
