@@ -1,5 +1,8 @@
 var Mixpanel    = require('../lib/mixpanel-node'),
-    Sinon       = require('sinon');
+    Sinon       = require('sinon'),
+    extend      = require('extend'),
+    nock        = require('nock'),
+    query       = require('querystring');
 
 // shared test case
 var test_send_request_args = function(test, func, options) {
@@ -44,6 +47,63 @@ var test_send_request_args = function(test, func, options) {
     test.done();
 };
 
+var test_streamed_operation = function (test, func, options) {
+    // set up
+    var recorded = [];
+    var expected = options['expected'];
+
+    var nockScopeURL = this.mixpanel.config.protocol + '://';
+    nockScopeURL += this.mixpanel.config.host + ':';
+    nockScopeURL += this.mixpanel.config.port ||
+        (this.mixpanel.config.protocol == 'http' ? 80 : 443);
+
+    nock.disableNetConnect();
+    nock(nockScopeURL)
+        .persist()
+        .filteringRequestBody(function(body) {
+            var b64string = query.parse(body)['data'];
+            var json = Buffer.from(b64string, 'base64').toString('utf8');
+            recorded.push(JSON.parse(json));
+            return body;
+        })
+        .post('/engage')
+        .reply(200, JSON.stringify({
+            'status': 1,
+            'error': ''
+        }));
+
+    // run stream operation
+    var stream = this.mixpanel.people[func]();
+    var items = options.items || [];
+
+    function sendItems(callback) {
+        if (items.length == 0) {
+            return stream.end(callback);
+        }
+        var item = items.shift();
+        stream.write(item, function(err) {
+            if (err) {
+                return callback(err);
+            }
+            sendItems(callback);
+        });
+    }
+
+    sendItems(function(err) {
+        // tear down
+        nock.cleanAll();
+        nock.enableNetConnect();
+
+        if (err) {
+            return test.done(err);
+        }
+
+        // compare results
+        Sinon.assert.match(recorded, expected);
+        test.done();
+    });
+};
+
 exports.people = {
     setUp: function(next) {
         this.token = 'token';
@@ -55,6 +115,7 @@ exports.people = {
         this.endpoint = "engage";
 
         this.test_send_request_args = test_send_request_args;
+        this.test_streamed_operation = test_streamed_operation;
 
         next();
     },
@@ -614,4 +675,115 @@ exports.people = {
             });
         },
     },
+
+    streamed_set: {
+        "can send a single update correctly": function(test) {
+            this.test_streamed_operation(test, 'streamed_set', {
+                items: [
+                    {
+                        '$distinct_id': this.distinct_id,
+                        'field 1': 'value 1',
+                        'field 2': 'value 2'
+                    }
+                ],
+                expected: [
+                    [
+                        {
+                            '$token': this.mixpanel.token,
+                            '$distinct_id': this.distinct_id,
+                            '$ignore_time': false,
+                            '$ip': 0,
+                            '$set': {
+                                'field 1': 'value 1',
+                                'field 2': 'value 2'
+                            }
+                        }
+                    ]
+                ]
+            });
+        },
+
+        "can send exactly one full batch of updates": function(test) {
+            var inputItem = {
+                '$distinct_id': this.distinct_id,
+                'field 1': 'value 1',
+                'field 2': 'value 2'
+            };
+            var translatedItem = {
+                '$token': this.mixpanel.token,
+                '$distinct_id': this.distinct_id,
+                '$ignore_time': false,
+                '$ip': 0,
+                '$set': {
+                    'field 1': 'value 1',
+                    'field 2': 'value 2'
+                }
+            };
+
+            var i;
+            var inputItems = [];
+            var currentBatch = [];
+            var expected = [];
+
+            for (i = 0; i < 50; ++i) {
+                inputItems.push(extend({}, inputItem));
+                currentBatch.push(extend({}, translatedItem));
+            }
+            expected.push(currentBatch);
+
+            this.test_streamed_operation(test, 'streamed_set', {
+                items: inputItems,
+                expected: expected
+            });
+        },
+
+        "can batch several updates correctly": function(test) {
+            var inputItem = {
+                '$distinct_id': this.distinct_id,
+                'field 1': 'value 1',
+                'field 2': 'value 2'
+            };
+            var translatedItem = {
+                '$token': this.mixpanel.token,
+                '$distinct_id': this.distinct_id,
+                '$ignore_time': false,
+                '$ip': 0,
+                '$set': {
+                    'field 1': 'value 1',
+                    'field 2': 'value 2'
+                }
+            };
+
+            var i;
+            var inputItems = [];
+            var currentBatch = [];
+            var expected = [];
+
+            for (i = 0; i < 50; ++i) {
+                inputItems.push(extend({}, inputItem));
+                currentBatch.push(extend({}, translatedItem));
+            }
+            expected.push(currentBatch);
+            currentBatch = [];
+
+            for (i = 0; i < 50; ++i) {
+                inputItems.push(extend({}, inputItem));
+                currentBatch.push(extend({}, translatedItem));
+            }
+            expected.push(currentBatch);
+            currentBatch = [];
+
+            for (i = 0; i < 30; ++i) {
+                inputItems.push(extend({}, inputItem));
+                currentBatch.push(extend({}, translatedItem));
+            }
+            expected.push(currentBatch);
+
+
+            this.test_streamed_operation(test, 'streamed_set', {
+                items: inputItems,
+                expected: expected
+            });
+        }
+    }
 };

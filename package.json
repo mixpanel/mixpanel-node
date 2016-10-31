@@ -26,7 +26,12 @@
     "test": "nodeunit"
   },
   "devDependencies": {
+    "nock": "^9.0.2",
     "nodeunit": "^0.9.1",
     "sinon": "^1.14.1"
+  },
+  "dependencies": {
+    "extend": "^3.0.0",
+    "request": "^2.76.0"
   }
 }
