@@ -34,6 +34,9 @@ mixpanel.track('my event', {
 });
 mixpanel.track('played_game');
 
+// set an IP address to get automatic geolocation info
+mixpanel.track('my event', {ip: '127.0.0.1'});
+
 // create or update a user in Mixpanel Engage
 mixpanel.people.set('billybob', {
     $first_name: 'Billy',
@@ -51,6 +54,14 @@ mixpanel.people.set('billybob', {
     games_played: 1
 }, {
     $ignore_time: true
+});
+
+// set a user profile's IP address to get automatic geolocation info
+mixpanel.people.set('billybob', {
+    plan: 'premium',
+    games_played: 1
+}, {
+    $ip: '127.0.0.1'
 });
 
 // set a single property on a user
