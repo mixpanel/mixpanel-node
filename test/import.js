@@ -75,7 +75,7 @@ exports.import = {
         var event = "test",
             time = new Date(mock_now_time),
             props = { key1: 'val1' },
-            expected_endpoint = "/track",
+            expected_endpoint = "/import",
             expected_data = {
                 event: 'test',
                 properties: {
@@ -95,7 +95,38 @@ exports.import = {
         test.done();
     },
 
-    "requires the time argument": function(test) {
+    "supports a unix timestamp": function(test) {
+        var event = "test",
+            time = mock_now_time / 1000,
+            props = { key1: 'val1' },
+            expected_endpoint = "/import",
+            expected_data = {
+                event: 'test',
+                properties: {
+                    key1: 'val1',
+                    token: 'token',
+                    time: time
+                }
+            };
+
+        this.mixpanel.import(event, time, props);
+
+        test.ok(
+            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            "import didn't call send_request with correct arguments"
+        );
+
+        test.done();
+    },
+
+    "requires the time argument to be a number or Date": function(test) {
+        test.doesNotThrow(this.mixpanel.import.bind(this, 'test', new Date()));
+        test.doesNotThrow(this.mixpanel.import.bind(this, 'test', Date.now()/1000));
+        test.throws(
+            function() { this.mixpanel.import('test', 'not a number or Date'); },
+            "Import methods require you to specify the time of the event",
+            "import didn't throw an error when time wasn't a number or Date"
+        );
         test.throws(
             function() { this.mixpanel.import('test'); },
             "Import methods require you to specify the time of the event",

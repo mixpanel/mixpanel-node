@@ -86,7 +86,8 @@ exports.track = {
                 event: 'test',
                 properties: {
                     token: 'token',
-                    time: time, mp_lib: 'node'
+                    time: time,
+                    mp_lib: 'node'
                 }
             };
 
@@ -99,16 +100,26 @@ exports.track = {
         test.done();
     },
 
-    "calls `import` endpoint if older than 5 days": function(test) {
+    "throws error if older than 5 days": function(test) {
         var event = 'test',
             time = (mock_now_time - 1000 * 60 * 60 * 24 * 6) / 1000,
+            props = { time: time };
+
+        test.throws(this.mixpanel.track.bind(this, event, props));
+        test.done();
+    },
+
+    "supports Date object for time": function(test) {
+        var event = 'test',
+            time = new Date(mock_now_time),
             props = { time: time },
-            expected_endpoint = "/import",
+            expected_endpoint = "/track",
             expected_data = {
                 event: 'test',
                 properties: {
                     token: 'token',
-                    time: time, mp_lib: 'node'
+                    time: time.getTime() / 1000,
+                    mp_lib: 'node'
                 }
             };
 
@@ -118,6 +129,45 @@ exports.track = {
             this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
             "track didn't call send_request with correct arguments"
         );
+        test.done();
+    },
+
+    "supports unix timestamp for time": function(test) {
+        var event = 'test',
+            time = mock_now_time / 1000,
+            props = { time: time },
+            expected_endpoint = "/track",
+            expected_data = {
+                event: 'test',
+                properties: {
+                    token: 'token',
+                    time: time,
+                    mp_lib: 'node'
+                }
+            };
+
+        this.mixpanel.track(event, props);
+
+        test.ok(
+            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            "track didn't call send_request with correct arguments"
+        );
+        test.done();
+    },
+
+    "throws error if time is not a number or Date": function(test) {
+        var event = 'test',
+            props = { time: 'not a number or Date' };
+
+        test.throws(this.mixpanel.track.bind(this, event, props));
+        test.done();
+    },
+
+    "does not require time property": function(test) {
+        var event = 'test',
+            props = {};
+
+        test.doesNotThrow(this.mixpanel.track.bind(this, event, props));
         test.done();
     }
 };
