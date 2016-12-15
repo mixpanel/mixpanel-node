@@ -24,7 +24,7 @@ exports.import = {
         var event = "test",
             time = 500,
             props = { key1: 'val1' },
-            expected_endpoint = "/import",
+            expected_endpoint = "/track",
             expected_data = {
                 event: 'test',
                 properties: {
@@ -48,7 +48,7 @@ exports.import = {
         var event = "test",
             time = new Date,
             props = { key1: 'val1' },
-            expected_endpoint = "/import",
+            expected_endpoint = "/track",
             expected_data = {
                 event: 'test',
                 properties: {
