@@ -122,13 +122,13 @@ exports.import = {
         test.doesNotThrow(this.mixpanel.import.bind(this, 'test', new Date()));
         test.doesNotThrow(this.mixpanel.import.bind(this, 'test', Date.now()/1000));
         test.throws(
-            function() { this.mixpanel.import('test', 'not a number or Date'); },
-            "Import methods require you to specify the time of the event",
+            this.mixpanel.import.bind(this, 'test', 'not a number or Date'),
+            /`time` property must be a Date or Unix timestamp/,
             "import didn't throw an error when time wasn't a number or Date"
         );
         test.throws(
-            function() { this.mixpanel.import('test'); },
-            "Import methods require you to specify the time of the event",
+            this.mixpanel.import.bind(this, 'test'),
+            /`time` property must be a Date or Unix timestamp/,
             "import didn't throw an error when time wasn't specified"
         );
 
