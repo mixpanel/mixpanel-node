@@ -1,12 +1,14 @@
 var Mixpanel = require('../lib/mixpanel-node'),
     Sinon    = require('sinon'),
     http     = require('http'),
-    events   = require('events');
+    events   = require('events'),
+    mock_now_time = new Date(2016, 1, 1).getTime(),
+    six_days_ago_timestamp = Math.floor(mock_now_time / 1000) - 60 * 60 * 24 * 6;
 
 exports.import = {
     setUp: function(next) {
         this.mixpanel = Mixpanel.init('token', { key: 'key' });
-        this.clock = Sinon.useFakeTimers();
+        this.clock = Sinon.useFakeTimers(mock_now_time);
 
         Sinon.stub(this.mixpanel, 'send_request');
 
@@ -22,7 +24,7 @@ exports.import = {
 
     "calls send_request with correct endpoint and data": function(test) {
         var event = "test",
-            time = 500,
+            time = six_days_ago_timestamp,
             props = { key1: 'val1' },
             expected_endpoint = "/import",
             expected_data = {
@@ -30,7 +32,7 @@ exports.import = {
                 properties: {
                     key1: 'val1',
                     token: 'token',
-                    time: 500
+                    time: time
                 }
             };
 
@@ -44,9 +46,9 @@ exports.import = {
         test.done();
     },
 
-    "supports a Date instance": function(test) {
+    "supports a Date instance greater than 5 days old": function(test) {
         var event = "test",
-            time = new Date,
+            time = new Date(six_days_ago_timestamp * 1000),
             props = { key1: 'val1' },
             expected_endpoint = "/import",
             expected_data = {
@@ -54,7 +56,7 @@ exports.import = {
                 properties: {
                     key1: 'val1',
                     token: 'token',
-                    time: 0
+                    time: six_days_ago_timestamp
                 }
             };
 
@@ -68,10 +70,65 @@ exports.import = {
         test.done();
     },
 
-    "requires the time argument": function(test) {
+    "supports a Date instance less than 5 days old": function(test) {
+        var event = "test",
+            time = new Date(mock_now_time),
+            props = { key1: 'val1' },
+            expected_endpoint = "/import",
+            expected_data = {
+                event: 'test',
+                properties: {
+                    key1: 'val1',
+                    token: 'token',
+                    time: Math.floor(mock_now_time / 1000)
+                }
+            };
+
+        this.mixpanel.import(event, time, props);
+
+        test.ok(
+            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            "import didn't call send_request with correct arguments"
+        );
+
+        test.done();
+    },
+
+    "supports a unix timestamp": function(test) {
+        var event = "test",
+            time = mock_now_time / 1000,
+            props = { key1: 'val1' },
+            expected_endpoint = "/import",
+            expected_data = {
+                event: 'test',
+                properties: {
+                    key1: 'val1',
+                    token: 'token',
+                    time: time
+                }
+            };
+
+        this.mixpanel.import(event, time, props);
+
+        test.ok(
+            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            "import didn't call send_request with correct arguments"
+        );
+
+        test.done();
+    },
+
+    "requires the time argument to be a number or Date": function(test) {
+        test.doesNotThrow(this.mixpanel.import.bind(this, 'test', new Date()));
+        test.doesNotThrow(this.mixpanel.import.bind(this, 'test', Date.now()/1000));
         test.throws(
-            function() { this.mixpanel.import('test'); },
-            "Import methods require you to specify the time of the event",
+            this.mixpanel.import.bind(this, 'test', 'not a number or Date'),
+            /`time` property must be a Date or Unix timestamp/,
+            "import didn't throw an error when time wasn't a number or Date"
+        );
+        test.throws(
+            this.mixpanel.import.bind(this, 'test'),
+            /`time` property must be a Date or Unix timestamp/,
             "import didn't throw an error when time wasn't specified"
         );
 
