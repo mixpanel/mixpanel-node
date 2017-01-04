@@ -1,3 +1,7 @@
+0.6.0 / 2017-01-03
+===================
+* support for `time` field in `mixpanel.track()` (thanks cruzanmo)
+
 0.5.0 / 2016-09-15
 ===================
 * optional https support (thanks chiangf)

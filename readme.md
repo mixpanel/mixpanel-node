@@ -34,6 +34,10 @@ mixpanel.track('my event', {
 });
 mixpanel.track('played_game');
 
+// track an event with a specific timestamp (up to 5 days old;
+// use mixpanel.import() for older events)
+mixpanel.track('timed event', {time: new Date()});
+
 // create or update a user in Mixpanel Engage
 mixpanel.people.set('billybob', {
     $first_name: 'Billy',
@@ -192,6 +196,7 @@ Contributions from:
  - [Eelke Boezeman](https://github.com/godspeedelbow)
  - [Jim Thomas](https://github.com/Left47)
  - [Frank Chiang](https://github.com/chiangf)
+ - [Morgan Croney](https://github.com/cruzanmo)
 
 License
 -------------------
