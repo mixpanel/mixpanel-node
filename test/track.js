@@ -77,38 +77,6 @@ exports.track = {
         });
     },
 
-    "calls `track` endpoint if within last 5 days": function(test) {
-        var event = 'test',
-            time = mock_now_time / 1000,
-            props = { time: time },
-            expected_endpoint = "/track",
-            expected_data = {
-                event: 'test',
-                properties: {
-                    token: 'token',
-                    time: time,
-                    mp_lib: 'node'
-                }
-            };
-
-        this.mixpanel.track(event, props);
-
-        test.ok(
-            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
-            "track didn't call send_request with correct arguments"
-        );
-        test.done();
-    },
-
-    "throws error if older than 5 days": function(test) {
-        var event = 'test',
-            time = (mock_now_time - 1000 * 60 * 60 * 24 * 6) / 1000,
-            props = { time: time };
-
-        test.throws(this.mixpanel.track.bind(this, event, props));
-        test.done();
-    },
-
     "supports Date object for time": function(test) {
         var event = 'test',
             time = new Date(mock_now_time),
@@ -152,6 +120,15 @@ exports.track = {
             this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
             "track didn't call send_request with correct arguments"
         );
+        test.done();
+    },
+
+    "throws error if time property is older than 5 days": function(test) {
+        var event = 'test',
+            time = (mock_now_time - 1000 * 60 * 60 * 24 * 6) / 1000,
+            props = { time: time };
+
+        test.throws(this.mixpanel.track.bind(this, event, props));
         test.done();
     },
 
