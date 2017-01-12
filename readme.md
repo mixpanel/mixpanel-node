@@ -117,6 +117,25 @@ mixpanel.alias('distinct_id', 'your_alias');
 // callback as the last argument
 mixpanel.track('test', function(err) { if (err) throw err; });
 
+// track multiple events at once
+mixpanel.track_batch([
+    {
+        event: 'recent event',
+        properties: {
+            time: new Date(),
+            distinct_id: 'billybob',
+            gender: 'male'
+        }
+    },
+    {
+        event: 'another recent event',
+        properties: {
+            distinct_id: 'billybob',
+            color: 'red'
+        }
+    }
+]);
+
 // import an old event
 var mixpanel_importer = Mixpanel.init('valid mixpanel token', {
     key: 'valid api key for project'
