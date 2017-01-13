@@ -265,7 +265,7 @@ exports.track_batch_integration = {
                 "track_batch didn't call send_request correct number of times before callback"
             );
             test.equals(
-                0, error_list.length,
+                null, error_list,
                 "track_batch returned errors in callback unexpectedly"
             );
             test.done();
@@ -299,7 +299,7 @@ exports.track_batch_integration = {
                 "track_batch didn't call send_request correct number of times before callback"
             );
             test.equals(
-                0, error_list.length,
+                null, error_list,
                 "track_batch returned errors in callback unexpectedly"
             );
             test.done();
@@ -318,7 +318,7 @@ exports.track_batch_integration = {
                 "track_batch didn't call send_request correct number of times before callback"
             );
             test.equals(
-                0, error_list.length,
+                null, error_list,
                 "track_batch returned errors in callback unexpectedly"
             );
             test.done();
