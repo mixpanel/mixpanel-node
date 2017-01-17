@@ -118,23 +118,25 @@ mixpanel.alias('distinct_id', 'your_alias');
 mixpanel.track('test', function(err) { if (err) throw err; });
 
 // track multiple events at once
-mixpanel.track_batch([
-    {
-        event: 'recent event',
-        properties: {
-            time: new Date(),
-            distinct_id: 'billybob',
-            gender: 'male'
+mixpanel.track_batch({
+    event_list: [
+        {
+            event: 'recent event',
+            properties: {
+                time: new Date(),
+                distinct_id: 'billybob',
+                gender: 'male'
+            }
+        },
+        {
+            event: 'another recent event',
+            properties: {
+                distinct_id: 'billybob',
+                color: 'red'
+            }
         }
-    },
-    {
-        event: 'another recent event',
-        properties: {
-            distinct_id: 'billybob',
-            color: 'red'
-        }
-    }
-]);
+    ]
+});
 
 // import an old event
 var mixpanel_importer = Mixpanel.init('valid mixpanel token', {
