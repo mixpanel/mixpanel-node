@@ -141,19 +141,19 @@ exports.import_batch = {
         this.mixpanel = Mixpanel.init('token', { key: 'key' });
         this.clock = Sinon.useFakeTimers();
 
-        Sinon.stub(this.mixpanel, 'send_request');
+        Sinon.stub(this.mixpanel, 'send_post_request');
 
         next();
     },
 
     tearDown: function(next) {
-        this.mixpanel.send_request.restore();
+        this.mixpanel.send_post_request.restore();
         this.clock.restore();
 
         next();
     },
 
-    "calls send_request with correct endpoint and data": function(test) {
+    "calls send_post_request with correct endpoint and data": function(test) {
         var expected_endpoint = "/import",
             event_list = [
                 {event: 'test',  properties: {key1: 'val1', time: 500 }},
@@ -169,8 +169,8 @@ exports.import_batch = {
         this.mixpanel.import_batch(event_list);
 
         test.ok(
-            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
-            "import_batch didn't call send_request with correct arguments"
+            this.mixpanel.send_post_request.calledWithMatch({endpoint: expected_endpoint, data: expected_data}),
+            "import_batch didn't call send_post_request with correct arguments"
         );
 
         test.done();
@@ -200,8 +200,8 @@ exports.import_batch = {
         this.mixpanel.import_batch(event_list);
 
         test.equals(
-            3, this.mixpanel.send_request.callCount,
-            "import_batch didn't call send_request correct number of times"
+            3, this.mixpanel.send_post_request.callCount,
+            "import_batch didn't call send_post_request correct number of times"
         );
 
         test.done();
@@ -213,7 +213,7 @@ exports.import_batch_integration = {
         this.mixpanel = Mixpanel.init('token', { key: 'key' });
         this.clock = Sinon.useFakeTimers();
 
-        Sinon.stub(http, 'get');
+        Sinon.stub(http, 'request');
 
         this.http_emitter = new events.EventEmitter();
 
@@ -221,10 +221,14 @@ exports.import_batch_integration = {
         this.res = [];
         for (var ri = 0; ri < 5; ri++) {
             this.res.push(new events.EventEmitter());
-            http.get
+            http.request
                 .onCall(ri)
                 .callsArgWith(1, this.res[ri])
-                .returns(this.http_emitter);
+                .returns({
+                    write: function () {},
+                    end: function () {},
+                    on: function(event) {}
+                });
         }
 
         this.event_list = [];
@@ -236,7 +240,7 @@ exports.import_batch_integration = {
     },
 
     tearDown: function(next) {
-        http.get.restore();
+        http.request.restore();
         this.clock.restore();
 
         next();
@@ -246,8 +250,8 @@ exports.import_batch_integration = {
         test.expect(2);
         this.mixpanel.import_batch(this.event_list, function(error_list) {
             test.equals(
-                3, http.get.callCount,
-                "import_batch didn't call send_request correct number of times before callback"
+                3, http.request.callCount,
+                "import_batch didn't call send_post_request correct number of times before callback"
             );
             test.equals(
                 null, error_list,
@@ -280,8 +284,8 @@ exports.import_batch_integration = {
         test.expect(2);
         this.mixpanel.import_batch(this.event_list, {max_batch_size: 100}, function(error_list) {
             test.equals(
-                3, http.get.callCount,
-                "import_batch didn't call send_request correct number of times before callback"
+                3, http.request.callCount,
+                "import_batch didn't call send_post_request correct number of times before callback"
             );
             test.equals(
                 null, error_list,
@@ -299,8 +303,8 @@ exports.import_batch_integration = {
         test.expect(2);
         this.mixpanel.import_batch(this.event_list, {max_batch_size: 30}, function(error_list) {
             test.equals(
-                5, http.get.callCount, // 30 + 30 + 30 + 30 + 10
-                "import_batch didn't call send_request correct number of times before callback"
+                5, http.request.callCount, // 30 + 30 + 30 + 30 + 10
+                "import_batch didn't call send_post_request correct number of times before callback"
             );
             test.equals(
                 null, error_list,
@@ -318,13 +322,13 @@ exports.import_batch_integration = {
         test.expect(2);
         this.mixpanel.import_batch(this.event_list);
         test.equals(
-            3, http.get.callCount,
-            "import_batch didn't call send_request correct number of times"
+            3, http.request.callCount,
+            "import_batch didn't call send_post_request correct number of times"
         );
         this.mixpanel.import_batch(this.event_list, {max_batch_size: 100});
         test.equals(
-            5, http.get.callCount, // 3 + 100 / 50; last request starts async
-            "import_batch didn't call send_request correct number of times"
+            5, http.request.callCount, // 3 + 100 / 50; last request starts async
+            "import_batch didn't call send_post_request correct number of times"
         );
         test.done();
     }
