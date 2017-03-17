@@ -337,6 +337,33 @@ exports.track_batch_integration = {
         }
     },
 
+    "can set max concurrent requests": function(test) {
+        var async_all_stub = Sinon.stub(this.mixpanel, 'async_all');
+        async_all_stub.callsArgWith(2, null);
+
+        test.expect(2);
+        this.mixpanel.track_batch({event_list: this.event_list, max_batch_size: 30, max_concurrent_requests: 2}, function(error_list) {
+            // should send 5 event batches over 3 request batches:
+            // request batch 1: 30 events, 30 events
+            // request batch 2: 30 events, 30 events
+            // request batch 3: 10 events
+            test.equals(
+                3, async_all_stub.callCount,
+                "track_batch didn't batch concurrent http requests correctly"
+            );
+            test.equals(
+                null, error_list,
+                "track_batch returned errors in callback unexpectedly"
+            );
+            async_all_stub.restore();
+            test.done();
+        });
+        for (var ri = 0; ri < 3; ri++) {
+            this.res[ri].emit('data', '1');
+            this.res[ri].emit('end');
+        }
+    },
+
     "behaves well without a callback": function(test) {
         test.expect(2);
         this.mixpanel.track_batch({event_list: this.event_list});
@@ -351,5 +378,7 @@ exports.track_batch_integration = {
         );
         test.done();
     }
+
 };
+
 

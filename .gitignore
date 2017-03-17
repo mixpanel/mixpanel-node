@@ -3,3 +3,4 @@ node_modules
 # ide files
 .idea
 
+.DS_Store
