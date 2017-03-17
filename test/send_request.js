@@ -11,11 +11,10 @@ exports.send_request = {
         this.http_emitter = new events.EventEmitter;
         this.http_end_spy = Sinon.spy();
         this.http_write_spy = Sinon.spy();
+        this.http_emitter.write = this.http_write_spy;
+        this.http_emitter.end = this.http_end_spy;
         this.res = new events.EventEmitter;
-        http.request.returns(Object.assign(this.http_emitter, {
-            write: this.http_write_spy,
-            end: this.http_end_spy
-        }));
+        http.request.returns(this.http_emitter);
         http.request.callsArgWith(1, this.res);
 
         next();
@@ -41,7 +40,7 @@ exports.send_request = {
                 method: 'GET',
                 host: 'api.mixpanel.com',
                 headers: {},
-                path: '/track?data=eyJldmVudCI6InRlc3QiLCJwcm9wZXJ0aWVzIjp7ImtleTEiOiJ2YWwxIiwidG9rZW4iOiJ0b2tlbiIsInRpbWUiOjEzNDY4NzY2MjF9fQ%3D%3D&ip=0&verbose=0'
+                path: '/track?ip=0&verbose=0&data=eyJldmVudCI6InRlc3QiLCJwcm9wZXJ0aWVzIjp7ImtleTEiOiJ2YWwxIiwidG9rZW4iOiJ0b2tlbiIsInRpbWUiOjEzNDY4NzY2MjF9fQ%3D%3D'
             };
 
         this.mixpanel.send_request({ method: 'get', endpoint: endpoint, data: data });
@@ -68,7 +67,7 @@ exports.send_request = {
                 method: 'GET',
                 host: 'api.mixpanel.com',
                 headers: {},
-                path: '/track?data=eyJldmVudCI6InRlc3QiLCJwcm9wZXJ0aWVzIjp7ImtleTEiOiJ2YWwxIiwidG9rZW4iOiJ0b2tlbiIsInRpbWUiOjEzNDY4NzY2MjF9fQ%3D%3D&ip=0&verbose=0'
+                path: '/track?ip=0&verbose=0&data=eyJldmVudCI6InRlc3QiLCJwcm9wZXJ0aWVzIjp7ImtleTEiOiJ2YWwxIiwidG9rZW4iOiJ0b2tlbiIsInRpbWUiOjEzNDY4NzY2MjF9fQ%3D%3D'
             };
 
         this.mixpanel.send_request({ endpoint: endpoint, data: data }); // method option not defined
