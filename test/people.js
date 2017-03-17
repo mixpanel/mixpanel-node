@@ -32,12 +32,12 @@ var test_send_request_args = function(test, func, options) {
     this.mixpanel.people[func].apply(this.mixpanel.people, args);
 
     test.ok(
-        this.mixpanel.send_request.calledWithMatch(this.endpoint, expected_data),
+        this.mixpanel.send_request.calledWithMatch({ method: 'get', endpoint: this.endpoint, data: expected_data }),
         "people." + func + " didn't call send_request with correct arguments"
     );
     if (options.use_callback) {
         test.ok(
-            this.mixpanel.send_request.args[0][2] === callback,
+            this.mixpanel.send_request.args[0][1] === callback,
             "people.set didn't call send_request with a callback"
         );
     }
@@ -52,7 +52,7 @@ exports.people = {
         Sinon.stub(this.mixpanel, 'send_request');
 
         this.distinct_id = "user1";
-        this.endpoint = "engage";
+        this.endpoint = "/engage";
 
         this.test_send_request_args = test_send_request_args;
 

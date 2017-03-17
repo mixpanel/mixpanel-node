@@ -36,7 +36,7 @@ exports.track = {
         this.mixpanel.track(event, props);
 
         test.ok(
-            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            this.mixpanel.send_request.calledWithMatch({ endpoint: expected_endpoint, data: expected_data }),
             "track didn't call send_request with correct arguments"
         );
 
@@ -55,7 +55,7 @@ exports.track = {
         this.mixpanel.track("test");
 
         test.ok(
-            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            this.mixpanel.send_request.calledWithMatch({ endpoint: expected_endpoint, data: expected_data }),
             "track didn't call send_request with correct arguments"
         );
         test.done();
@@ -70,7 +70,7 @@ exports.track = {
                 }
             };
 
-        this.mixpanel.send_request.callsArgWith(2, undefined);
+        this.mixpanel.send_request.callsArgWith(1, undefined);
 
         test.expect(1);
         this.mixpanel.track("test", function(e) {
@@ -96,7 +96,7 @@ exports.track = {
         this.mixpanel.track(event, props);
 
         test.ok(
-            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            this.mixpanel.send_request.calledWithMatch({ endpoint: expected_endpoint, data: expected_data }),
             "track didn't call send_request with correct arguments"
         );
         test.done();
@@ -119,7 +119,7 @@ exports.track = {
         this.mixpanel.track(event, props);
 
         test.ok(
-            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            this.mixpanel.send_request.calledWithMatch({ endpoint: expected_endpoint, data: expected_data }),
             "track didn't call send_request with correct arguments"
         );
         test.done();
@@ -163,17 +163,17 @@ exports.track_batch = {
     setUp: function(next) {
         this.mixpanel = Mixpanel.init('token');
         this.clock = Sinon.useFakeTimers();
-        Sinon.stub(this.mixpanel, 'send_post_request');
+        Sinon.stub(this.mixpanel, 'send_request');
         next();
     },
 
     tearDown: function(next) {
-        this.mixpanel.send_post_request.restore();
+        this.mixpanel.send_request.restore();
         this.clock.restore();
         next();
     },
 
-    "calls send_post_request with correct endpoint and data2222": function(test) {
+    "calls send_request with correct endpoint, data, and method": function(test) {
         var expected_endpoint = "/track",
             event_list = [
                 {event: 'test',  properties: {key1: 'val1', time: 500 }},
@@ -189,8 +189,12 @@ exports.track_batch = {
         this.mixpanel.track_batch({event_list: event_list});
 
         test.ok(
-            this.mixpanel.send_post_request.calledWithMatch({endpoint: expected_endpoint, data: expected_data}),
-            "track_batch didn't call send_post_request with correct arguments"
+            this.mixpanel.send_request.calledWithMatch({
+                method: "post",
+                endpoint: expected_endpoint,
+                data: expected_data
+            }),
+            "track_batch didn't call send_request with correct arguments"
         );
 
         test.done();
@@ -215,8 +219,8 @@ exports.track_batch = {
         this.mixpanel.track_batch({event_list: event_list});
 
         test.equals(
-            3, this.mixpanel.send_post_request.callCount,
-            "track_batch didn't call send_post_request correct number of times"
+            3, this.mixpanel.send_request.callCount,
+            "track_batch didn't call send_request correct number of times"
         );
 
         test.done();
@@ -266,7 +270,7 @@ exports.track_batch_integration = {
         this.mixpanel.track_batch({event_list: this.event_list}, function(error_list) {
             test.equals(
                 3, http.request.callCount,
-                "track_batch didn't call send_post_request correct number of times before callback"
+                "track_batch didn't call send_request correct number of times before callback"
             );
             test.equals(
                 null, error_list,
@@ -300,7 +304,7 @@ exports.track_batch_integration = {
         this.mixpanel.track_batch({event_list: this.event_list, max_batch_size: 100}, function(error_list) {
             test.equals(
                 3, http.request.callCount,
-                "track_batch didn't call send_post_request correct number of times before callback"
+                "track_batch didn't call send_request correct number of times before callback"
             );
             test.equals(
                 null, error_list,
@@ -319,7 +323,7 @@ exports.track_batch_integration = {
         this.mixpanel.track_batch({event_list: this.event_list, max_batch_size: 30}, function(error_list) {
             test.equals(
                 5, http.request.callCount, // 30 + 30 + 30 + 30 + 10
-                "track_batch didn't call send_post_request correct number of times before callback"
+                "track_batch didn't call send_request correct number of times before callback"
             );
             test.equals(
                 null, error_list,
@@ -338,12 +342,12 @@ exports.track_batch_integration = {
         this.mixpanel.track_batch({event_list: this.event_list});
         test.equals(
             3, http.request.callCount,
-            "track_batch didn't call send_post_request correct number of times"
+            "track_batch didn't call send_request correct number of times"
         );
         this.mixpanel.track_batch({event_list: this.event_list, max_batch_size: 100});
         test.equals(
             5, http.request.callCount, // 3 + 100 / 50; last request starts async
-            "track_batch didn't call send_post_request correct number of times"
+            "track_batch didn't call send_request correct number of times"
         );
         test.done();
     }

@@ -32,7 +32,7 @@ exports.alias = {
         this.mixpanel.alias(distinct_id, alias);
 
         test.ok(
-            this.mixpanel.send_request.calledWithMatch(expected_endpoint, expected_data),
+            this.mixpanel.send_request.calledWithMatch({ endpoint: expected_endpoint, data: expected_data }),
             "alias didn't call send_request with correct arguments"
         );
 
