@@ -1,12 +1,14 @@
-var Mixpanel    = require('../lib/mixpanel-node'),
-    Sinon       = require('sinon'),
-    http        = require('http'),
-    events      = require('events');
+var Mixpanel,
+    Sinon          = require('sinon'),
+    proxyquire     = require('proxyquire'),
+    http           = require('http'),
+    events         = require('events'),
+    httpProxyOrig  = process.env.HTTP_PROXY,
+    httpsProxyOrig = process.env.HTTPS_PROXY,
+    HttpsProxyAgent;
 
 exports.send_request = {
     setUp: function(next) {
-        this.mixpanel = Mixpanel.init('token');
-
         Sinon.stub(http, 'get');
 
         this.http_emitter = new events.EventEmitter;
@@ -15,11 +17,23 @@ exports.send_request = {
         http.get.returns(this.http_emitter);
         http.get.callsArgWith(1, this.res);
 
+        HttpsProxyAgent = Sinon.stub();
+
+        Mixpanel = proxyquire('../lib/mixpanel-node', {
+            'https-proxy-agent': HttpsProxyAgent
+        });
+
+        this.mixpanel = Mixpanel.init('token');
+
         next();
     },
 
     tearDown: function(next) {
         http.get.restore();
+
+        // restore proxy variables
+        process.env.HTTP_PROXY = httpProxyOrig;
+        process.env.HTTPS_PROXY = httpsProxyOrig;
 
         next();
     },
@@ -85,7 +99,7 @@ exports.send_request = {
 
     "uses correct port": function(test) {
         var host = 'testhost.fakedomain:1337';
-        var customHostnameMixpanel = Mixpanel.init('token', { host: host })
+        var customHostnameMixpanel = Mixpanel.init('token', { host: host });
         var expected_http_get = {
             host: 'testhost.fakedomain',
             port: 1337
@@ -94,6 +108,44 @@ exports.send_request = {
         customHostnameMixpanel.send_request('', {});
 
         test.ok(http.get.calledWithMatch(expected_http_get), "send_request didn't call http.get with correct hostname and port");
+
+        test.done();
+    },
+
+    "uses HTTP_PROXY if set": function(test) {
+        HttpsProxyAgent.reset(); // Mixpanel is instantiated in setup, need to reset callcount
+        process.env.HTTP_PROXY = 'this.aint.real.http';
+        delete process.env.HTTPS_PROXY;
+
+        var proxyMixpanel = Mixpanel.init('token');
+        proxyMixpanel.send_request('', {});
+
+        test.ok(HttpsProxyAgent.calledOnce, "HttpsProxyAgent was not called when process.env.HTTP_PROXY was set");
+
+        var proxyPath = HttpsProxyAgent.firstCall.args[0];
+        test.ok(proxyPath === 'this.aint.real.http', "HttpsProxyAgent was not called with the correct proxy path");
+
+        var getConfig = http.get.firstCall.args[0];
+        test.ok(getConfig.agent !== undefined, "send_request didn't call http.get with agent");
+
+        test.done();
+    },
+
+    "uses HTTPS_PROXY if set": function(test) {
+        HttpsProxyAgent.reset(); // Mixpanel is instantiated in setup, need to reset callcount
+        delete process.env.HTTP_PROXY;
+        process.env.HTTPS_PROXY = 'this.aint.real.https';
+
+        var proxyMixpanel = Mixpanel.init('token');
+        proxyMixpanel.send_request('', {});
+
+        test.ok(HttpsProxyAgent.calledOnce, "HttpsProxyAgent was not called when process.env.HTTPS_PROXY was set");
+
+        var proxyPath = HttpsProxyAgent.firstCall.args[0];
+        test.ok(proxyPath === 'this.aint.real.https', "HttpsProxyAgent was not called with the correct proxy path");
+
+        var getConfig = http.get.firstCall.args[0];
+        test.ok(getConfig.agent !== undefined, "send_request didn't call http.get with agent");
 
         test.done();
     }
