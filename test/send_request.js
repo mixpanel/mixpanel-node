@@ -114,6 +114,7 @@ exports.send_request = {
 
     "uses HTTP_PROXY if set": function(test) {
         HttpsProxyAgent.reset(); // Mixpanel is instantiated in setup, need to reset callcount
+        delete process.env.HTTPS_PROXY;
         process.env.HTTP_PROXY = 'this.aint.real.http';
         delete process.env.HTTPS_PROXY;
 
