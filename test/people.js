@@ -1,5 +1,7 @@
 var Mixpanel    = require('../lib/mixpanel-node'),
-    Sinon       = require('sinon');
+    Sinon       = require('sinon'),
+    http        = require('http'),
+    events      = require('events');
 
 // shared test case
 var test_send_request_args = function(test, func, options) {
@@ -614,4 +616,158 @@ exports.people = {
             });
         },
     },
+};
+
+exports.people_batch_integration = {
+    setUp: function(next) {
+        this.mixpanel = Mixpanel.init('token', { key: 'key' });
+        this.clock = Sinon.useFakeTimers();
+
+        Sinon.stub(http, 'request');
+
+        this.http_emitter = new events.EventEmitter();
+
+        // stub sequence of http responses
+        this.res = [];
+        for (var ri = 0; ri < 5; ri++) {
+            this.res.push(new events.EventEmitter());
+            http.request
+                .onCall(ri)
+                .callsArgWith(1, this.res[ri])
+                .returns({
+                    write: function () {},
+                    end: function () {},
+                    on: function(event) {}
+                });
+        }
+
+        this.changes = [];
+        for (var ei = 0; ei < 130; ei++) { // 3 batches: 50 + 50 + 30
+            this.changes.push({$distinct_id: 'test',  $set: {Address: 'val1'}});
+        }
+
+        next();
+    },
+
+    tearDown: function(next) {
+        http.request.restore();
+        this.clock.restore();
+
+        next();
+    },
+
+    "calls provided callback after all requests finish": function(test) {
+        test.expect(2);
+        this.mixpanel.people.batch({changes: this.changes}, function(error_list) {
+            test.equals(
+                3, http.request.callCount,
+                "people.batch didn't call send_request correct number of times before callback"
+            );
+            test.equals(
+                null, error_list,
+                "people.batch returned errors in callback unexpectedly"
+            );
+            test.done();
+        });
+        for (var ri = 0; ri < 3; ri++) {
+            this.res[ri].emit('data', '1');
+            this.res[ri].emit('end');
+        }
+    },
+
+    "passes error list to callback": function(test) {
+        test.expect(1);
+        this.mixpanel.people.batch({changes: this.changes}, function(error_list) {
+            test.equals(
+                3, error_list.length,
+                "people.batch didn't return errors in callback"
+            );
+            test.done();
+        });
+        for (var ri = 0; ri < 3; ri++) {
+            this.res[ri].emit('data', '0');
+            this.res[ri].emit('end');
+        }
+    },
+
+    "calls provided callback when options are passed": function(test) {
+        test.expect(2);
+        this.mixpanel.people.batch({changes: this.changes, max_batch_size: 100}, function(error_list) {
+            test.equals(
+                3, http.request.callCount,
+                "people.batch didn't call send_request correct number of times before callback"
+            );
+            test.equals(
+                null, error_list,
+                "people.batch returned errors in callback unexpectedly"
+            );
+            test.done();
+        });
+        for (var ri = 0; ri < 3; ri++) {
+            this.res[ri].emit('data', '1');
+            this.res[ri].emit('end');
+        }
+    },
+
+    "sends more requests when max_batch_size < 50": function(test) {
+        test.expect(2);
+        this.mixpanel.people.batch({changes: this.changes, max_batch_size: 30}, function(error_list) {
+            test.equals(
+                5, http.request.callCount, // 30 + 30 + 30 + 30 + 10
+                "people.batch didn't call send_request correct number of times before callback"
+            );
+            test.equals(
+                null, error_list,
+                "people.batch returned errors in callback unexpectedly"
+            );
+            test.done();
+        });
+        for (var ri = 0; ri < 5; ri++) {
+            this.res[ri].emit('data', '1');
+            this.res[ri].emit('end');
+        }
+    },
+
+    "can set max concurrent requests": function(test) {
+        var async_all_stub = Sinon.stub(this.mixpanel, 'async_all');
+        async_all_stub.callsArgWith(2, null);
+
+        test.expect(2);
+        this.mixpanel.people.batch({changes: this.changes, max_batch_size: 30, max_concurrent_requests: 2}, function(error_list) {
+            // should send 5 event batches over 3 request batches:
+            // request batch 1: 30 events, 30 events
+            // request batch 2: 30 events, 30 events
+            // request batch 3: 10 events
+            test.equals(
+                3, async_all_stub.callCount,
+                "people.batch didn't batch concurrent http requests correctly"
+            );
+            test.equals(
+                null, error_list,
+                "people.batch returned errors in callback unexpectedly"
+            );
+            async_all_stub.restore();
+            test.done();
+        });
+        for (var ri = 0; ri < 3; ri++) {
+            this.res[ri].emit('data', '1');
+            this.res[ri].emit('end');
+        }
+    },
+
+    "behaves well without a callback": function(test) {
+        test.expect(2);
+        this.mixpanel.people.batch({changes: this.changes});
+        test.equals(
+            3, http.request.callCount,
+            "people.batch didn't call send_request correct number of times"
+        );
+        this.mixpanel.people.batch({changes: this.changes, max_batch_size: 100});
+        test.equals(
+            5, http.request.callCount, // 3 + 100 / 50; last request starts async
+            "people.batch didn't call send_request correct number of times"
+        );
+        test.done();
+    }
+
 };
