@@ -618,6 +618,64 @@ exports.people = {
     },
 };
 
+exports.track_batch = {
+    setUp: function(next) {
+        this.mixpanel = Mixpanel.init('token');
+        this.clock = Sinon.useFakeTimers();
+        Sinon.stub(this.mixpanel, 'send_request');
+        next();
+    },
+
+    tearDown: function(next) {
+        this.mixpanel.send_request.restore();
+        this.clock.restore();
+        next();
+    },
+
+    "calls people.batch with correct endpoint, data, and method": function(test) {
+        var expected_endpoint = "/engage",
+            changes = [
+                {$distinct_id: 'test',  $set: {Address: 'val1'}},
+                {$distinct_id: 'test1',  $set: {Address: 'val2'}},
+                {$distinct_id: 'test2',  $set: {Address: 'val3'}}
+            ],
+            expected_data = [
+                {$distinct_id: 'test',  $set: {Address: 'val1'}, $token: 'token'},
+                {$distinct_id: 'test1',  $set: {Address: 'val2'}, $token: 'token'},
+                {$distinct_id: 'test2',  $set: {Address: 'val3'}, $token: 'token'}
+            ];
+
+        this.mixpanel.people.batch({changes: changes});
+
+        test.ok(
+            this.mixpanel.send_request.calledWithMatch({
+                method: "post",
+                endpoint: expected_endpoint,
+                data: expected_data
+            }),
+            "people.batch didn't call send_request with correct arguments"
+        );
+
+        test.done();
+    },
+
+    "batches 50 events at a time": function(test) {
+        var changes = [];
+        for (var ei = 0; ei < 130; ei++) { // 3 batches: 50 + 50 + 30
+            changes.push({$distinct_id: 'test',  $set: {Address: 'val1'}});
+        }
+
+        this.mixpanel.people.batch({changes: changes});
+
+        test.equals(
+            3, this.mixpanel.send_request.callCount,
+            "people.batch didn't call send_request correct number of times"
+        );
+
+        test.done();
+    }
+};
+
 exports.people_batch_integration = {
     setUp: function(next) {
         this.mixpanel = Mixpanel.init('token', { key: 'key' });
