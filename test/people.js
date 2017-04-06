@@ -618,7 +618,7 @@ exports.people = {
     },
 };
 
-exports.track_batch = {
+exports.people_batch = {
     setUp: function(next) {
         this.mixpanel = Mixpanel.init('token');
         this.clock = Sinon.useFakeTimers();
