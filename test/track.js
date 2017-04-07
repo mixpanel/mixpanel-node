@@ -190,7 +190,7 @@ exports.track_batch = {
 
         test.ok(
             this.mixpanel.send_request.calledWithMatch({
-                method: "post",
+                method: "POST",
                 endpoint: expected_endpoint,
                 data: expected_data
             }),

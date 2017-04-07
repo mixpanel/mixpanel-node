@@ -32,7 +32,7 @@ var test_send_request_args = function(test, func, options) {
     this.mixpanel.people[func].apply(this.mixpanel.people, args);
 
     test.ok(
-        this.mixpanel.send_request.calledWithMatch({ method: 'get', endpoint: this.endpoint, data: expected_data }),
+        this.mixpanel.send_request.calledWithMatch({ method: 'GET', endpoint: this.endpoint, data: expected_data }),
         "people." + func + " didn't call send_request with correct arguments"
     );
     if (options.use_callback) {
