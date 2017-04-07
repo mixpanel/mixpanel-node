@@ -1,3 +1,10 @@
+0.7.0 / 2017-04-07
+===================
+* added `track_batch` for tracking multiple recent events per request (thanks cruzanmo)
+* support for routing requests through proxy server specified in env var `HTTPS_PROXY`
+or `HTTP_PROXY` (thanks colestrode)
+* dropped support for node 0.10 and 0.12
+
 0.6.0 / 2017-01-03
 ===================
 * support for `time` field in `mixpanel.track()` (thanks cruzanmo)
