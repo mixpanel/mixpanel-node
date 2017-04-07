@@ -1,8 +1,10 @@
-var Mixpanel = require('../lib/mixpanel-node'),
-    Sinon    = require('sinon'),
-    http     = require('http'),
-    events   = require('events'),
-    mock_now_time = new Date(2016, 1, 1).getTime(),
+var proxyquire = require('proxyquire'),
+    Sinon      = require('sinon'),
+    http       = require('http'),
+    events     = require('events'),
+    Mixpanel   = require('../lib/mixpanel-node');
+
+var mock_now_time = new Date(2016, 1, 1).getTime(),
     six_days_ago_timestamp = Math.floor(mock_now_time / 1000) - 60 * 60 * 24 * 6;
 
 exports.import = {
@@ -323,8 +325,12 @@ exports.import_batch_integration = {
     },
 
     "can set max concurrent requests": function(test) {
-        var async_all_stub = Sinon.stub(this.mixpanel, 'async_all');
+        var async_all_stub = Sinon.stub();
+        var PatchedMixpanel = proxyquire('../lib/mixpanel-node', {
+            './utils': {async_all: async_all_stub},
+        });
         async_all_stub.callsArgWith(2, null);
+        this.mixpanel = PatchedMixpanel.init('token', { key: 'key' });
 
         test.expect(2);
         this.mixpanel.import_batch(this.event_list, {max_batch_size: 30, max_concurrent_requests: 2}, function(error_list) {
@@ -340,7 +346,6 @@ exports.import_batch_integration = {
                 null, error_list,
                 "import_batch returned errors in callback unexpectedly"
             );
-            async_all_stub.restore();
             test.done();
         });
         for (var ri = 0; ri < 5; ri++) {

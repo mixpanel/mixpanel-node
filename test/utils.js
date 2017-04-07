@@ -1,22 +1,13 @@
-var Mixpanel    = require('../lib/mixpanel-node'),
-    Sinon       = require('sinon');
+var async_all = require('../lib/utils').async_all,
+    Sinon     = require('sinon');
 
 exports.async_all = {
-    setUp: function(next) {
-        this.mixpanel = Mixpanel.init('token');
-        next();
-    },
-
-    tearDown: function(next) {
-        next();
-    },
-
     "calls callback with empty results if no requests": function(test) {
         var requests = [],
             handler_fn = Sinon.stub();
 
         test.expect(2);
-        this.mixpanel.async_all(requests, handler_fn, function(error, results) {
+        async_all(requests, handler_fn, function(error, results) {
             test.equal(error, null, "error should be null");
             test.equal(results.length, 0, "results should be empty array");
             test.done();
@@ -33,7 +24,7 @@ exports.async_all = {
             .onCall(2).callsArgWithAsync(1, null, 6);
 
         test.expect(6);
-        this.mixpanel.async_all(requests, handler_fn, function(error, results) {
+        async_all(requests, handler_fn, function(error, results) {
             test.equal(handler_fn.callCount, requests.length, "handler function should be called for each request");
             test.equal(handler_fn.getCall(0).args[0], 1, "handler called with request value");
             test.equal(handler_fn.getCall(1).args[0], 2, "handler called with request value");
@@ -54,7 +45,7 @@ exports.async_all = {
             .onCall(2).callsArgWithAsync(1, null, 6);
 
         test.expect(6);
-        this.mixpanel.async_all(requests, handler_fn, function(error, results) {
+        async_all(requests, handler_fn, function(error, results) {
             test.equal(handler_fn.callCount, requests.length, "handler function should be called for each request");
             test.equal(handler_fn.getCall(0).args[0], 1, "handler called with request value");
             test.equal(handler_fn.getCall(1).args[0], 2, "handler called with request value");
