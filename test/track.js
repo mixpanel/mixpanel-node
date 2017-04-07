@@ -188,7 +188,7 @@ exports.track_batch = {
                 {event: 'test2', properties: {key2: 'val2', time: 1500, token: 'token'}}
             ];
 
-        this.mixpanel.track_batch({event_list: event_list});
+        this.mixpanel.track_batch(event_list);
 
         test.ok(
             this.mixpanel.send_request.calledWithMatch({
@@ -208,7 +208,7 @@ exports.track_batch = {
             {event: 'test',  properties: {key2: 'val2', time: 1000}},
             {event: 'test2', properties: {key2: 'val2'            }}
         ];
-        test.doesNotThrow(this.mixpanel.track_batch.bind(this, {event_list: event_list}));
+        test.doesNotThrow(this.mixpanel.track_batch.bind(this, event_list));
         test.done();
     },
 
@@ -218,7 +218,7 @@ exports.track_batch = {
             event_list.push({event: 'test',  properties: {key1: 'val1', time: 500 + ei }});
         }
 
-        this.mixpanel.track_batch({event_list: event_list});
+        this.mixpanel.track_batch(event_list);
 
         test.equals(
             3, this.mixpanel.send_request.callCount,
@@ -269,7 +269,7 @@ exports.track_batch_integration = {
 
     "calls provided callback after all requests finish": function(test) {
         test.expect(2);
-        this.mixpanel.track_batch({event_list: this.event_list}, function(error_list) {
+        this.mixpanel.track_batch(this.event_list, function(error_list) {
             test.equals(
                 3, http.request.callCount,
                 "track_batch didn't call send_request correct number of times before callback"
@@ -288,7 +288,7 @@ exports.track_batch_integration = {
 
     "passes error list to callback": function(test) {
         test.expect(1);
-        this.mixpanel.track_batch({event_list: this.event_list}, function(error_list) {
+        this.mixpanel.track_batch(this.event_list, function(error_list) {
             test.equals(
                 3, error_list.length,
                 "track_batch didn't return errors in callback"
@@ -303,7 +303,7 @@ exports.track_batch_integration = {
 
     "calls provided callback when options are passed": function(test) {
         test.expect(2);
-        this.mixpanel.track_batch({event_list: this.event_list, max_batch_size: 100}, function(error_list) {
+        this.mixpanel.track_batch(this.event_list, {max_batch_size: 100}, function(error_list) {
             test.equals(
                 3, http.request.callCount,
                 "track_batch didn't call send_request correct number of times before callback"
@@ -322,7 +322,7 @@ exports.track_batch_integration = {
 
     "sends more requests when max_batch_size < 50": function(test) {
         test.expect(2);
-        this.mixpanel.track_batch({event_list: this.event_list, max_batch_size: 30}, function(error_list) {
+        this.mixpanel.track_batch(this.event_list, {max_batch_size: 30}, function(error_list) {
             test.equals(
                 5, http.request.callCount, // 30 + 30 + 30 + 30 + 10
                 "track_batch didn't call send_request correct number of times before callback"
@@ -348,7 +348,7 @@ exports.track_batch_integration = {
         this.mixpanel = PatchedMixpanel.init('token', { key: 'key' });
 
         test.expect(2);
-        this.mixpanel.track_batch({event_list: this.event_list, max_batch_size: 30, max_concurrent_requests: 2}, function(error_list) {
+        this.mixpanel.track_batch(this.event_list, {max_batch_size: 30, max_concurrent_requests: 2}, function(error_list) {
             // should send 5 event batches over 3 request batches:
             // request batch 1: 30 events, 30 events
             // request batch 2: 30 events, 30 events
@@ -371,19 +371,18 @@ exports.track_batch_integration = {
 
     "behaves well without a callback": function(test) {
         test.expect(2);
-        this.mixpanel.track_batch({event_list: this.event_list});
+        this.mixpanel.track_batch(this.event_list);
         test.equals(
             3, http.request.callCount,
             "track_batch didn't call send_request correct number of times"
         );
-        this.mixpanel.track_batch({event_list: this.event_list, max_batch_size: 100});
+        this.mixpanel.track_batch(this.event_list, {max_batch_size: 100});
         test.equals(
             5, http.request.callCount, // 3 + 100 / 50; last request starts async
             "track_batch didn't call send_request correct number of times"
         );
         test.done();
     }
-
 };
 
 
