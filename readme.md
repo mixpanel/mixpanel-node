@@ -136,17 +136,15 @@ mixpanel.track_batch([
     }
 ]);
 
-// track multiple events at once
-mixpanel.people.batch({
-    changes: [
-        {
-            "$distinct_id": "13793",
-            "$set": {
-                Address: "unknown"
-            }
+// update multiple profiles
+mixpanel.people.batch([
+    {
+        "$distinct_id": "13793",
+        "$set": {
+            Address: "unknown"
         }
-    ]
-});
+    }
+]);
 
 // import an old event
 var mixpanel_importer = Mixpanel.init('valid mixpanel token', {
