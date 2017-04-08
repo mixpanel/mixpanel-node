@@ -1,7 +1,8 @@
-var Mixpanel    = require('../lib/mixpanel-node'),
-    Sinon       = require('sinon'),
-    http        = require('http'),
-    events      = require('events');
+var proxyquire = require('proxyquire'),
+    Mixpanel   = require('../lib/mixpanel-node'),
+    Sinon      = require('sinon'),
+    http       = require('http'),
+    events     = require('events');
 
 // shared test case
 var test_send_request_args = function(test, func, options) {
@@ -645,11 +646,11 @@ exports.people_batch = {
                 {$distinct_id: 'test2',  $set: {Address: 'val3'}, $token: 'token'}
             ];
 
-        this.mixpanel.people.batch({changes: changes});
+        this.mixpanel.people.batch(changes);
 
         test.ok(
             this.mixpanel.send_request.calledWithMatch({
-                method: "post",
+                method: "POST",
                 endpoint: expected_endpoint,
                 data: expected_data
             }),
@@ -659,13 +660,13 @@ exports.people_batch = {
         test.done();
     },
 
-    "batches 50 events at a time": function(test) {
+    "batches 50 updates at a time": function(test) {
         var changes = [];
         for (var ei = 0; ei < 130; ei++) { // 3 batches: 50 + 50 + 30
             changes.push({$distinct_id: 'test',  $set: {Address: 'val1'}});
         }
 
-        this.mixpanel.people.batch({changes: changes});
+        this.mixpanel.people.batch(changes);
 
         test.equals(
             3, this.mixpanel.send_request.callCount,
@@ -716,7 +717,7 @@ exports.people_batch_integration = {
 
     "calls provided callback after all requests finish": function(test) {
         test.expect(2);
-        this.mixpanel.people.batch({changes: this.changes}, function(error_list) {
+        this.mixpanel.people.batch(this.changes, function(error_list) {
             test.equals(
                 3, http.request.callCount,
                 "people.batch didn't call send_request correct number of times before callback"
@@ -735,7 +736,7 @@ exports.people_batch_integration = {
 
     "passes error list to callback": function(test) {
         test.expect(1);
-        this.mixpanel.people.batch({changes: this.changes}, function(error_list) {
+        this.mixpanel.people.batch(this.changes, function(error_list) {
             test.equals(
                 3, error_list.length,
                 "people.batch didn't return errors in callback"
@@ -750,7 +751,7 @@ exports.people_batch_integration = {
 
     "calls provided callback when options are passed": function(test) {
         test.expect(2);
-        this.mixpanel.people.batch({changes: this.changes, max_batch_size: 100}, function(error_list) {
+        this.mixpanel.people.batch(this.changes, {max_batch_size: 100}, function(error_list) {
             test.equals(
                 3, http.request.callCount,
                 "people.batch didn't call send_request correct number of times before callback"
@@ -769,7 +770,7 @@ exports.people_batch_integration = {
 
     "sends more requests when max_batch_size < 50": function(test) {
         test.expect(2);
-        this.mixpanel.people.batch({changes: this.changes, max_batch_size: 30}, function(error_list) {
+        this.mixpanel.people.batch(this.changes, {max_batch_size: 30}, function(error_list) {
             test.equals(
                 5, http.request.callCount, // 30 + 30 + 30 + 30 + 10
                 "people.batch didn't call send_request correct number of times before callback"
@@ -787,15 +788,19 @@ exports.people_batch_integration = {
     },
 
     "can set max concurrent requests": function(test) {
-        var async_all_stub = Sinon.stub(this.mixpanel, 'async_all');
+        var async_all_stub = Sinon.stub();
+        var PatchedMixpanel = proxyquire('../lib/mixpanel-node', {
+            './utils': {async_all: async_all_stub}
+        });
         async_all_stub.callsArgWith(2, null);
+        var mixpanel = PatchedMixpanel.init('token', { key: 'key' });
 
         test.expect(2);
-        this.mixpanel.people.batch({changes: this.changes, max_batch_size: 30, max_concurrent_requests: 2}, function(error_list) {
-            // should send 5 event batches over 3 request batches:
-            // request batch 1: 30 events, 30 events
-            // request batch 2: 30 events, 30 events
-            // request batch 3: 10 events
+        mixpanel.people.batch(this.changes, {max_batch_size: 30, max_concurrent_requests: 2}, function(error_list) {
+            // should send 5 update batches over 3 request batches:
+            // request batch 1: 30 updates, 30 updates
+            // request batch 2: 30 updates, 30 updates
+            // request batch 3: 10 updates
             test.equals(
                 3, async_all_stub.callCount,
                 "people.batch didn't batch concurrent http requests correctly"
@@ -804,7 +809,6 @@ exports.people_batch_integration = {
                 null, error_list,
                 "people.batch returned errors in callback unexpectedly"
             );
-            async_all_stub.restore();
             test.done();
         });
         for (var ri = 0; ri < 3; ri++) {
@@ -815,12 +819,12 @@ exports.people_batch_integration = {
 
     "behaves well without a callback": function(test) {
         test.expect(2);
-        this.mixpanel.people.batch({changes: this.changes});
+        this.mixpanel.people.batch(this.changes);
         test.equals(
             3, http.request.callCount,
             "people.batch didn't call send_request correct number of times"
         );
-        this.mixpanel.people.batch({changes: this.changes, max_batch_size: 100});
+        this.mixpanel.people.batch(this.changes, {max_batch_size: 100});
         test.equals(
             5, http.request.callCount, // 3 + 100 / 50; last request starts async
             "people.batch didn't call send_request correct number of times"

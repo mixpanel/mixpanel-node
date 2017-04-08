@@ -342,7 +342,7 @@ exports.track_batch_integration = {
     "can set max concurrent requests": function(test) {
         var async_all_stub = Sinon.stub();
         var PatchedMixpanel = proxyquire('../lib/mixpanel-node', {
-            './utils': {async_all: async_all_stub},
+            './utils': {async_all: async_all_stub}
         });
         async_all_stub.callsArgWith(2, null);
         this.mixpanel = PatchedMixpanel.init('token', { key: 'key' });
