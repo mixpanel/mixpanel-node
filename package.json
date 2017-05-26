@@ -12,6 +12,7 @@
   "author": "Carl Sverre",
   "license": "MIT",
   "main": "lib/mixpanel-node",
+  "LICENSE": "SEE LICENSE IN LICENSE",
   "directories": {
     "lib": "lib"
   },
