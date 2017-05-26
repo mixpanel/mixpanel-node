@@ -7,7 +7,7 @@ mixpanel.set_config({ debug: true });
 
 // track an event with optional properties
 mixpanel.track("my event", {
-    distinct_id: "some unique client id",
+    $distinct_id: "some unique client id",
     as: "many",
     properties: "as",
     you: "want"
@@ -77,7 +77,7 @@ mixpanel_importer.set_config({ debug: true });
 mixpanel_importer.track('old event', { gender: '' });
 
 mixpanel_importer.import("old event", new Date(2012, 4, 20, 12, 34, 56), {
-    distinct_id: 'billybob',
+    $distinct_id: 'billybob',
     gender: 'male'
 });
 
@@ -87,7 +87,7 @@ mixpanel_importer.import_batch([
         event: 'old event',
         properties: {
             time: new Date(2012, 4, 20, 12, 34, 56),
-            distinct_id: 'billybob',
+            $distinct_id: 'billybob',
             gender: 'male'
         }
     },
@@ -95,7 +95,7 @@ mixpanel_importer.import_batch([
         event: 'another old event',
         properties: {
             time: new Date(2012, 4, 21, 11, 33, 55),
-            distinct_id: 'billybob',
+            $distinct_id: 'billybob',
             color: 'red'
         }
     }
