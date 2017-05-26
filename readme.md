@@ -27,7 +27,7 @@ var mixpanel = Mixpanel.init('<YOUR_TOKEN>', {
 
 // track an event with optional properties
 mixpanel.track('my event', {
-    distinct_id: 'some unique client id',
+    $distinct_id: 'some unique client id',
     as: 'many',
     properties: 'as',
     you: 'want'
@@ -111,7 +111,7 @@ mixpanel.people.delete_user('billybob');
 mixpanel.people.delete_user('billybob', {$ignore_time: true, $ignore_alias: true});
 
 // Create an alias for an existing distinct id
-mixpanel.alias('distinct_id', 'your_alias');
+mixpanel.alias('$distinct_id', 'your_alias');
 
 // all functions that send data to mixpanel take an optional
 // callback as the last argument
@@ -145,7 +145,7 @@ var mixpanel_importer = Mixpanel.init('valid mixpanel token', {
 mixpanel_importer.track('old event', { gender: '' });
 
 mixpanel_importer.import('old event', new Date(2012, 4, 20, 12, 34, 56), {
-    distinct_id: 'billybob',
+    $distinct_id: 'billybob',
     gender: 'male'
 });
 
@@ -155,7 +155,7 @@ mixpanel_importer.import_batch([
         event: 'old event',
         properties: {
             time: new Date(2012, 4, 20, 12, 34, 56),
-            distinct_id: 'billybob',
+            $distinct_id: 'billybob',
             gender: 'male'
         }
     },
@@ -163,7 +163,7 @@ mixpanel_importer.import_batch([
         event: 'another old event',
         properties: {
             time: new Date(2012, 4, 21, 11, 33, 55),
-            distinct_id: 'billybob',
+            $distinct_id: 'billybob',
             color: 'red'
         }
     }
@@ -176,10 +176,13 @@ FAQ
 
 `mixpanel-node` is a server-side library, optimized for stateless shared usage; e.g.,
 in a web application, the same mixpanel instance is used across requests for all users.
-Rather than setting a `distinct_id` through `identify()` calls like Mixpanel client-side
-libraries (where a single Mixpanel instance is tied to a single user), this library
-requires you to pass the `distinct_id` with every tracking call. See
+Rather than setting a `distinct_id` through `identify()` calls like Mixpanel client-side libraries (where a single Mixpanel instance is tied to a single user), this library
+requires you to pass the `$distinct_id` with every tracking call. See
 https://github.com/mixpanel/mixpanel-node/issues/13.
+
+**How do I associate a user with an event I track?**
+
+Passing through a `$distinct_id` property with every single event will allow you to associate events with specific users using the Distinct Id that you have identified them with.
 
 **How do I get or set superproperties?**
 
