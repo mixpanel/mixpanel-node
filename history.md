@@ -1,3 +1,12 @@
+0.9.0 / 2018-02-09
+==================
+* default to tracking over HTTPS (thanks jhermsmeier)
+
+0.8.0 / 2017-11-28
+==================
+* upgraded node-https-proxy-agent to v2.1.1 for security patch (see
+https://github.com/TooTallNate/node-https-proxy-agent/issues/37)
+
 0.7.0 / 2017-04-07
 ===================
 * added `track_batch` for tracking multiple recent events per request (thanks cruzanmo)
