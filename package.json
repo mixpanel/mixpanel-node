@@ -31,6 +31,6 @@
     "sinon": "^1.14.1"
   },
   "dependencies": {
-    "https-proxy-agent": "2.1.1"
+    "https-proxy-agent": "2.2.1"
   }
 }
