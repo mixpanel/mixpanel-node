@@ -11,7 +11,7 @@ exports.config = {
             test: false,
             debug: false,
             verbose: false,
-            avoidMutation: false,
+            avoid_mutation: false,
             host: 'api.mixpanel.com',
             protocol: 'https'
         }, "default config is incorrect");
