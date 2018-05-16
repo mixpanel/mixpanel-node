@@ -3,10 +3,10 @@ declare const mixpanel: mixpanel.Mixpanel;
 declare namespace mixpanel {
   export type DistinctId = string;
 
-  export type ErrorCallback = (err: Error|undefined) => any;
-  export type ErrorsCallback = (errors: [Error]|undefined) => any;
+  export type ErrorCallback = (err: Error | undefined) => any;
+  export type ErrorsCallback = (errors: [Error] | undefined) => any;
 
-  type Scalar = string|number|boolean;
+  type Scalar = string | number | boolean;
 
   export interface PropertyMap {
     [key: string]: any;
@@ -33,7 +33,7 @@ declare namespace mixpanel {
   }
 
   export interface UnionData {
-    [key: string]: Scalar|Scalar[];
+    [key: string]: Scalar | Scalar[];
   }
 
   interface Mixpanel {
@@ -47,8 +47,8 @@ declare namespace mixpanel {
     track_batch(eventNames: string[], options?: BatchOptions, callback?: ErrorsCallback): undefined;
     track_batch(eventNames: string[], callback?: ErrorsCallback): undefined;
 
-    import(eventName: string, time: Date|number, properties?: Object, callback?: ErrorCallback): undefined;
-    import(eventName: string, time: Date|number, callback: ErrorCallback): undefined;
+    import(eventName: string, time: Date | number, properties?: Object, callback?: ErrorCallback): undefined;
+    import(eventName: string, time: Date | number, callback: ErrorCallback): undefined;
 
     import_batch(eventNames: string[], options?: BatchOptions, callback?: ErrorsCallback): undefined;
     import_batch(eventNames: string[], callback?: ErrorsCallback): undefined;
@@ -67,12 +67,12 @@ declare namespace mixpanel {
       modifiers?: Modifiers,
       callback?: ErrorCallback,
     ): undefined;
-    set(distinctId: DistinctId, propertyName: string, value: string|number, modifiers: Modifiers): undefined;
-    set(distinctId: DistinctId, propertyName: string, value: string|number, callback?: ErrorCallback): undefined;
+    set(distinctId: DistinctId, propertyName: string, value: string | number, modifiers: Modifiers): undefined;
+    set(distinctId: DistinctId, propertyName: string, value: string | number, callback?: ErrorCallback): undefined;
     set(
       distinctId: DistinctId,
       propertyName: string,
-      value: string|number,
+      value: string | number,
       modifiers: Modifiers,
       callback: ErrorCallback,
     ): undefined;
@@ -136,13 +136,13 @@ declare namespace mixpanel {
 
     track_charge(
       distinctId: DistinctId,
-      amount: number|string,
+      amount: number | string,
       properties?: PropertyMap,
       callback?: ErrorCallback,
     ): undefined;
     track_charge(
       distinctId: DistinctId,
-      amount: number|string,
+      amount: number | string,
       properties: PropertyMap,
       modifiers?: Modifiers,
       callback?: ErrorCallback,
