@@ -25,6 +25,7 @@
   "scripts": {
     "test": "nodeunit"
   },
+  "types": "./lib/mixpanel-node.d.ts",
   "devDependencies": {
     "nodeunit": "^0.9.1",
     "proxyquire": "^1.7.11",
