@@ -6,7 +6,7 @@ declare namespace mixpanel {
 
   type Scalar = string | number | boolean;
 
-  export interface PropertyMap {
+  export interface PropertyDict {
     [key: string]: any;
   }
 
@@ -16,7 +16,7 @@ declare namespace mixpanel {
 
   export interface Event {
     event: string;
-    properties: PropertyMap;
+    properties: PropertyDict;
   }
   export interface Modifiers {
     $ip?: string;
@@ -35,7 +35,7 @@ declare namespace mixpanel {
   }
 
   interface Mixpanel {
-    init(mixpanelToken: string, config?: PropertyMap): Mixpanel;
+    init(mixpanelToken: string, config?: PropertyDict): Mixpanel;
 
     track(eventName: string, callback?: ErrorCallback): undefined;
     track(eventName: string, properties: Object, callback?: ErrorCallback): undefined;
@@ -58,10 +58,10 @@ declare namespace mixpanel {
   }
 
   interface People {
-    set(distinctId: string, properties: PropertyMap, callback?: ErrorCallback): undefined;
+    set(distinctId: string, properties: PropertyDict, callback?: ErrorCallback): undefined;
     set(
       distinctId: string,
-      properties: PropertyMap,
+      properties: PropertyDict,
       modifiers?: Modifiers,
       callback?: ErrorCallback,
     ): undefined;
@@ -83,10 +83,10 @@ declare namespace mixpanel {
       modifiers: Modifiers,
       callback?: ErrorCallback,
     ): undefined;
-    set_once(distinctId: string, properties: PropertyMap, callback?: ErrorCallback): undefined;
+    set_once(distinctId: string, properties: PropertyDict, callback?: ErrorCallback): undefined;
     set_once(
       distinctId: string,
-      properties: PropertyMap,
+      properties: PropertyDict,
       modifiers?: Modifiers,
       callback?: ErrorCallback,
     ): undefined;
@@ -121,10 +121,10 @@ declare namespace mixpanel {
       callback?: ErrorCallback,
     ): undefined;
     append(distinctId: string, propertyName: string, value: any, callback?: ErrorCallback): undefined;
-    append(distinctId: string, properties: PropertyMap, callback?: ErrorCallback): undefined;
+    append(distinctId: string, properties: PropertyDict, callback?: ErrorCallback): undefined;
     append(
       distinctId: string,
-      properties: PropertyMap,
+      properties: PropertyDict,
       modifiers: Modifiers,
       callback?: ErrorCallback,
     ): undefined;
@@ -135,13 +135,13 @@ declare namespace mixpanel {
     track_charge(
       distinctId: string,
       amount: number | string,
-      properties?: PropertyMap,
+      properties?: PropertyDict,
       callback?: ErrorCallback,
     ): undefined;
     track_charge(
       distinctId: string,
       amount: number | string,
-      properties: PropertyMap,
+      properties: PropertyDict,
       modifiers?: Modifiers,
       callback?: ErrorCallback,
     ): undefined;
