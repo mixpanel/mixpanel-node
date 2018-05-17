@@ -63,92 +63,32 @@ declare namespace mixpanel {
 
   interface People {
     set(distinctId: string, properties: PropertyDict, callback?: Callback): undefined;
-    set(
-      distinctId: string,
-      properties: PropertyDict,
-      modifiers?: Modifiers,
-      callback?: Callback,
-    ): undefined;
+    set(distinctId: string, properties: PropertyDict, modifiers?: Modifiers, callback?: Callback): undefined;
     set(distinctId: string, propertyName: string, value: string | number, modifiers: Modifiers): undefined;
     set(distinctId: string, propertyName: string, value: string | number, callback?: Callback): undefined;
-    set(
-      distinctId: string,
-      propertyName: string,
-      value: string | number,
-      modifiers: Modifiers,
-      callback: Callback,
-    ): undefined;
+    set(distinctId: string, propertyName: string, value: string | number, modifiers: Modifiers, callback: Callback): undefined;
 
     set_once(distinctId: string, propertyName: string, value: string, callback?: Callback): undefined;
-    set_once(
-      distinctId: string,
-      propertyName: string,
-      value: string,
-      modifiers: Modifiers,
-      callback?: Callback,
-    ): undefined;
+    set_once( distinctId: string, propertyName: string, value: string, modifiers: Modifiers, callback?: Callback): undefined;
     set_once(distinctId: string, properties: PropertyDict, callback?: Callback): undefined;
-    set_once(
-      distinctId: string,
-      properties: PropertyDict,
-      modifiers?: Modifiers,
-      callback?: Callback,
-    ): undefined;
+    set_once(distinctId: string, properties: PropertyDict, modifiers?: Modifiers, callback?: Callback): undefined;
 
-    increment(
-      distinctId: string,
-      propertyName: string,
-      modifiers?: Modifiers,
-      callback?: Callback,
-    ): undefined;
-    increment(
-      distinctId: string,
-      propertyName: string,
-      incrementBy: number,
-      modifiers: Modifiers,
-      callback?: Callback,
-    ): undefined;
+    increment(distinctId: string, propertyName: string, modifiers?: Modifiers, callback?: Callback): undefined;
+    increment(distinctId: string, propertyName: string, incrementBy: number, modifiers: Modifiers, callback?: Callback): undefined;
     increment(distinctId: string, propertyName: string, incrementBy: number, callback?: Callback): undefined;
-    increment(
-      distinctId: string,
-      properties: NumberMap,
-      modifiers: Modifiers,
-      callback?: Callback,
-    ): undefined;
+    increment(distinctId: string, properties: NumberMap, modifiers: Modifiers, callback?: Callback): undefined;
     increment(distinctId: string, properties: NumberMap, callback?: Callback): undefined;
 
-    append(
-      distinctId: string,
-      propertyName: string,
-      value: any,
-      modifiers: Modifiers,
-      callback?: Callback,
-    ): undefined;
+    append(distinctId: string, propertyName: string, value: any, modifiers: Modifiers, callback?: Callback): undefined;
     append(distinctId: string, propertyName: string, value: any, callback?: Callback): undefined;
     append(distinctId: string, properties: PropertyDict, callback?: Callback): undefined;
-    append(
-      distinctId: string,
-      properties: PropertyDict,
-      modifiers: Modifiers,
-      callback?: Callback,
-    ): undefined;
+    append(distinctId: string, properties: PropertyDict, modifiers: Modifiers, callback?: Callback): undefined;
 
     union(distinctId: string, data: UnionData, modifiers?: Modifiers, callback?: Callback): undefined;
     union(distinctId: string, data: UnionData, callback: Callback): undefined;
 
-    track_charge(
-      distinctId: string,
-      amount: number | string,
-      properties?: PropertyDict,
-      callback?: Callback,
-    ): undefined;
-    track_charge(
-      distinctId: string,
-      amount: number | string,
-      properties: PropertyDict,
-      modifiers?: Modifiers,
-      callback?: Callback,
-    ): undefined;
+    track_charge(distinctId: string, amount: number | string, properties?: PropertyDict, callback?: Callback): undefined;
+    track_charge(distinctId: string, amount: number | string, properties: PropertyDict, modifiers?: Modifiers, callback?: Callback): undefined;
 
     clear_charges(distinctId: string, modifiers?: Modifiers, callback?: Callback): undefined;
     clear_charges(distinctId: string, callback: Callback): undefined;
