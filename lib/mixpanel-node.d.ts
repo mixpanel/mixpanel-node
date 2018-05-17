@@ -41,60 +41,60 @@ declare namespace mixpanel {
   interface Mixpanel {
     init(mixpanelToken: string, config?: InitConfig): Mixpanel;
 
-    track(eventName: string, callback?: Callback): undefined;
-    track(eventName: string, properties: PropertyDict, callback?: Callback): undefined;
+    track(eventName: string, callback?: Callback): void;
+    track(eventName: string, properties: PropertyDict, callback?: Callback): void;
 
-    track_batch(events: Event[], options?: BatchOptions, callback?: BatchCallback): undefined;
-    track_batch(events: Event[], callback: BatchCallback): undefined;
-    track_batch(eventNames: string[], options?: BatchOptions, callback?: BatchCallback): undefined;
-    track_batch(eventNames: string[], callback?: BatchCallback): undefined;
+    track_batch(events: Event[], options?: BatchOptions, callback?: BatchCallback): void;
+    track_batch(events: Event[], callback: BatchCallback): void;
+    track_batch(eventNames: string[], options?: BatchOptions, callback?: BatchCallback): void;
+    track_batch(eventNames: string[], callback?: BatchCallback): void;
 
-    import(eventName: string, time: Date | number, properties?: PropertyDict, callback?: Callback): undefined;
-    import(eventName: string, time: Date | number, callback: Callback): undefined;
+    import(eventName: string, time: Date | number, properties?: PropertyDict, callback?: Callback): void;
+    import(eventName: string, time: Date | number, callback: Callback): void;
 
-    import_batch(eventNames: string[], options?: BatchOptions, callback?: BatchCallback): undefined;
-    import_batch(eventNames: string[], callback?: BatchCallback): undefined;
-    import_batch(events: Event[], callback?: BatchCallback): undefined;
+    import_batch(eventNames: string[], options?: BatchOptions, callback?: BatchCallback): void;
+    import_batch(eventNames: string[], callback?: BatchCallback): void;
+    import_batch(events: Event[], callback?: BatchCallback): void;
 
-    alias(distinctId: string, alias: string, callback?: Callback): undefined;
+    alias(distinctId: string, alias: string, callback?: Callback): void;
 
     people: People;
   }
 
   interface People {
-    set(distinctId: string, properties: PropertyDict, callback?: Callback): undefined;
-    set(distinctId: string, properties: PropertyDict, modifiers?: Modifiers, callback?: Callback): undefined;
-    set(distinctId: string, propertyName: string, value: string | number, modifiers: Modifiers): undefined;
-    set(distinctId: string, propertyName: string, value: string | number, callback?: Callback): undefined;
-    set(distinctId: string, propertyName: string, value: string | number, modifiers: Modifiers, callback: Callback): undefined;
+    set(distinctId: string, properties: PropertyDict, callback?: Callback): void;
+    set(distinctId: string, properties: PropertyDict, modifiers?: Modifiers, callback?: Callback): void;
+    set(distinctId: string, propertyName: string, value: string | number, modifiers: Modifiers): void;
+    set(distinctId: string, propertyName: string, value: string | number, callback?: Callback): void;
+    set(distinctId: string, propertyName: string, value: string | number, modifiers: Modifiers, callback: Callback): void;
 
-    set_once(distinctId: string, propertyName: string, value: string, callback?: Callback): undefined;
-    set_once( distinctId: string, propertyName: string, value: string, modifiers: Modifiers, callback?: Callback): undefined;
-    set_once(distinctId: string, properties: PropertyDict, callback?: Callback): undefined;
-    set_once(distinctId: string, properties: PropertyDict, modifiers?: Modifiers, callback?: Callback): undefined;
+    set_once(distinctId: string, propertyName: string, value: string, callback?: Callback): void;
+    set_once( distinctId: string, propertyName: string, value: string, modifiers: Modifiers, callback?: Callback): void;
+    set_once(distinctId: string, properties: PropertyDict, callback?: Callback): void;
+    set_once(distinctId: string, properties: PropertyDict, modifiers?: Modifiers, callback?: Callback): void;
 
-    increment(distinctId: string, propertyName: string, modifiers?: Modifiers, callback?: Callback): undefined;
-    increment(distinctId: string, propertyName: string, incrementBy: number, modifiers: Modifiers, callback?: Callback): undefined;
-    increment(distinctId: string, propertyName: string, incrementBy: number, callback?: Callback): undefined;
-    increment(distinctId: string, properties: NumberMap, modifiers: Modifiers, callback?: Callback): undefined;
-    increment(distinctId: string, properties: NumberMap, callback?: Callback): undefined;
+    increment(distinctId: string, propertyName: string, modifiers?: Modifiers, callback?: Callback): void;
+    increment(distinctId: string, propertyName: string, incrementBy: number, modifiers: Modifiers, callback?: Callback): void;
+    increment(distinctId: string, propertyName: string, incrementBy: number, callback?: Callback): void;
+    increment(distinctId: string, properties: NumberMap, modifiers: Modifiers, callback?: Callback): void;
+    increment(distinctId: string, properties: NumberMap, callback?: Callback): void;
 
-    append(distinctId: string, propertyName: string, value: any, modifiers: Modifiers, callback?: Callback): undefined;
-    append(distinctId: string, propertyName: string, value: any, callback?: Callback): undefined;
-    append(distinctId: string, properties: PropertyDict, callback?: Callback): undefined;
-    append(distinctId: string, properties: PropertyDict, modifiers: Modifiers, callback?: Callback): undefined;
+    append(distinctId: string, propertyName: string, value: any, modifiers: Modifiers, callback?: Callback): void;
+    append(distinctId: string, propertyName: string, value: any, callback?: Callback): void;
+    append(distinctId: string, properties: PropertyDict, callback?: Callback): void;
+    append(distinctId: string, properties: PropertyDict, modifiers: Modifiers, callback?: Callback): void;
 
-    union(distinctId: string, data: UnionData, modifiers?: Modifiers, callback?: Callback): undefined;
-    union(distinctId: string, data: UnionData, callback: Callback): undefined;
+    union(distinctId: string, data: UnionData, modifiers?: Modifiers, callback?: Callback): void;
+    union(distinctId: string, data: UnionData, callback: Callback): void;
 
-    track_charge(distinctId: string, amount: number | string, properties?: PropertyDict, callback?: Callback): undefined;
-    track_charge(distinctId: string, amount: number | string, properties: PropertyDict, modifiers?: Modifiers, callback?: Callback): undefined;
+    track_charge(distinctId: string, amount: number | string, properties?: PropertyDict, callback?: Callback): void;
+    track_charge(distinctId: string, amount: number | string, properties: PropertyDict, modifiers?: Modifiers, callback?: Callback): void;
 
-    clear_charges(distinctId: string, modifiers?: Modifiers, callback?: Callback): undefined;
-    clear_charges(distinctId: string, callback: Callback): undefined;
+    clear_charges(distinctId: string, modifiers?: Modifiers, callback?: Callback): void;
+    clear_charges(distinctId: string, callback: Callback): void;
 
-    delete_user(distinctId: string, modifiers?: Modifiers, callback?: Callback): undefined;
-    delete_user(distinctId: string, callback: Callback): undefined;
+    delete_user(distinctId: string, modifiers?: Modifiers, callback?: Callback): void;
+    delete_user(distinctId: string, callback: Callback): void;
   }
 }
 
