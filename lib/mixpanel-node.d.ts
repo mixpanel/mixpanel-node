@@ -6,6 +6,10 @@ declare namespace mixpanel {
 
   type Scalar = string | number | boolean;
 
+  export interface InitConfig {
+    [key: string]: any;
+  }
+
   export interface PropertyDict {
     [key: string]: any;
   }
@@ -35,7 +39,7 @@ declare namespace mixpanel {
   }
 
   interface Mixpanel {
-    init(mixpanelToken: string, config?: PropertyDict): Mixpanel;
+    init(mixpanelToken: string, config?: InitConfig): Mixpanel;
 
     track(eventName: string, callback?: ErrorCallback): undefined;
     track(eventName: string, properties: PropertyDict, callback?: ErrorCallback): undefined;
