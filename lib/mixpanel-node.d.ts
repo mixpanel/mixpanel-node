@@ -1,8 +1,6 @@
 declare const mixpanel: mixpanel.Mixpanel;
 
 declare namespace mixpanel {
-  export type DistinctId = string;
-
   export type ErrorCallback = (err: Error | undefined) => any;
   export type ErrorsCallback = (errors: [Error] | undefined) => any;
 
@@ -54,105 +52,105 @@ declare namespace mixpanel {
     import_batch(eventNames: string[], callback?: ErrorsCallback): undefined;
     import_batch(events: Event[], callback?: ErrorsCallback): undefined;
 
-    alias(distinctId: DistinctId, alias: string, callback?: ErrorCallback): undefined;
+    alias(distinctId: string, alias: string, callback?: ErrorCallback): undefined;
 
     people: People;
   }
 
   interface People {
-    set(distinctId: DistinctId, properties: PropertyMap, callback?: ErrorCallback): undefined;
+    set(distinctId: string, properties: PropertyMap, callback?: ErrorCallback): undefined;
     set(
-      distinctId: DistinctId,
+      distinctId: string,
       properties: PropertyMap,
       modifiers?: Modifiers,
       callback?: ErrorCallback,
     ): undefined;
-    set(distinctId: DistinctId, propertyName: string, value: string | number, modifiers: Modifiers): undefined;
-    set(distinctId: DistinctId, propertyName: string, value: string | number, callback?: ErrorCallback): undefined;
+    set(distinctId: string, propertyName: string, value: string | number, modifiers: Modifiers): undefined;
+    set(distinctId: string, propertyName: string, value: string | number, callback?: ErrorCallback): undefined;
     set(
-      distinctId: DistinctId,
+      distinctId: string,
       propertyName: string,
       value: string | number,
       modifiers: Modifiers,
       callback: ErrorCallback,
     ): undefined;
 
-    set_once(distinctId: DistinctId, propertyName: string, value: string, callback?: ErrorCallback): undefined;
+    set_once(distinctId: string, propertyName: string, value: string, callback?: ErrorCallback): undefined;
     set_once(
-      distinctId: DistinctId,
+      distinctId: string,
       propertyName: string,
       value: string,
       modifiers: Modifiers,
       callback?: ErrorCallback,
     ): undefined;
-    set_once(distinctId: DistinctId, properties: PropertyMap, callback?: ErrorCallback): undefined;
+    set_once(distinctId: string, properties: PropertyMap, callback?: ErrorCallback): undefined;
     set_once(
-      distinctId: DistinctId,
+      distinctId: string,
       properties: PropertyMap,
       modifiers?: Modifiers,
       callback?: ErrorCallback,
     ): undefined;
 
     increment(
-      distinctId: DistinctId,
+      distinctId: string,
       propertyName: string,
       modifiers?: Modifiers,
       callback?: ErrorCallback,
     ): undefined;
     increment(
-      distinctId: DistinctId,
+      distinctId: string,
       propertyName: string,
       incrementBy: number,
       modifiers: Modifiers,
       callback?: ErrorCallback,
     ): undefined;
-    increment(distinctId: DistinctId, propertyName: string, incrementBy: number, callback?: ErrorCallback): undefined;
+    increment(distinctId: string, propertyName: string, incrementBy: number, callback?: ErrorCallback): undefined;
     increment(
-      distinctId: DistinctId,
+      distinctId: string,
       properties: NumberMap,
       modifiers: Modifiers,
       callback?: ErrorCallback,
     ): undefined;
-    increment(distinctId: DistinctId, properties: NumberMap, callback?: ErrorCallback): undefined;
+    increment(distinctId: string, properties: NumberMap, callback?: ErrorCallback): undefined;
 
     append(
-      distinctId: DistinctId,
+      distinctId: string,
       propertyName: string,
       value: any,
       modifiers: Modifiers,
       callback?: ErrorCallback,
     ): undefined;
-    append(distinctId: DistinctId, propertyName: string, value: any, callback?: ErrorCallback): undefined;
-    append(distinctId: DistinctId, properties: PropertyMap, callback?: ErrorCallback): undefined;
+    append(distinctId: string, propertyName: string, value: any, callback?: ErrorCallback): undefined;
+    append(distinctId: string, properties: PropertyMap, callback?: ErrorCallback): undefined;
     append(
-      distinctId: DistinctId,
+      distinctId: string,
       properties: PropertyMap,
       modifiers: Modifiers,
       callback?: ErrorCallback,
     ): undefined;
 
-    union(distinctId: DistinctId, data: UnionData, modifiers?: Modifiers, callback?: ErrorCallback): undefined;
-    union(distinctId: DistinctId, data: UnionData, callback: ErrorCallback): undefined;
+    union(distinctId: string, data: UnionData, modifiers?: Modifiers, callback?: ErrorCallback): undefined;
+    union(distinctId: string, data: UnionData, callback: ErrorCallback): undefined;
 
     track_charge(
-      distinctId: DistinctId,
+      distinctId: string,
       amount: number | string,
       properties?: PropertyMap,
       callback?: ErrorCallback,
     ): undefined;
     track_charge(
-      distinctId: DistinctId,
+      distinctId: string,
       amount: number | string,
       properties: PropertyMap,
       modifiers?: Modifiers,
       callback?: ErrorCallback,
     ): undefined;
 
-    clear_charges(distinctId: DistinctId, modifiers?: Modifiers, callback?: ErrorCallback): undefined;
-    clear_charges(distinctId: DistinctId, callback: ErrorCallback): undefined;
+    clear_charges(distinctId: string, modifiers?: Modifiers, callback?: ErrorCallback): undefined;
+    clear_charges(distinctId: string, callback: ErrorCallback): undefined;
 
-    delete_user(distinctId: DistinctId, modifiers?: Modifiers, callback?: ErrorCallback): undefined;
-    delete_user(distinctId: DistinctId, callback: ErrorCallback): undefined;
+    delete_user(distinctId: string, modifiers?: Modifiers, callback?: ErrorCallback): undefined;
+    delete_user(distinctId: string, callback: ErrorCallback): undefined;
   }
 }
 
