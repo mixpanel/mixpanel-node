@@ -38,14 +38,14 @@ declare namespace mixpanel {
     init(mixpanelToken: string, config?: PropertyDict): Mixpanel;
 
     track(eventName: string, callback?: ErrorCallback): undefined;
-    track(eventName: string, properties: Object, callback?: ErrorCallback): undefined;
+    track(eventName: string, properties: PropertyDict, callback?: ErrorCallback): undefined;
 
     track_batch(events: Event[], options?: BatchOptions, callback?: ErrorsCallback): undefined;
     track_batch(events: Event[], callback: ErrorsCallback): undefined;
     track_batch(eventNames: string[], options?: BatchOptions, callback?: ErrorsCallback): undefined;
     track_batch(eventNames: string[], callback?: ErrorsCallback): undefined;
 
-    import(eventName: string, time: Date | number, properties?: Object, callback?: ErrorCallback): undefined;
+    import(eventName: string, time: Date | number, properties?: PropertyDict, callback?: ErrorCallback): undefined;
     import(eventName: string, time: Date | number, callback: ErrorCallback): undefined;
 
     import_batch(eventNames: string[], options?: BatchOptions, callback?: ErrorsCallback): undefined;
