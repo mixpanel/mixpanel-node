@@ -236,6 +236,7 @@ Contributions from:
  - [Morgan Croney](https://github.com/cruzanmo)
  - [Cole Furfaro-Strode](https://github.com/colestrode)
  - [Jonas Hermsmeier](https://github.com/jhermsmeier)
+ - [Marko Klopets](https://github.com/mklopets)
 
 License
 -------------------

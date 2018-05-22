@@ -1,3 +1,11 @@
+0.9.2 / 2018-05-22
+==================
+* add type declarations file (thanks mklopets)
+
+0.9.1 / 2018-04-12
+==================
+* upgrade https-proxy-agent for security fix
+
 0.9.0 / 2018-02-09
 ==================
 * default to tracking over HTTPS (thanks jhermsmeier)
