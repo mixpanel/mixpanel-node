@@ -17,13 +17,16 @@ Quick Start
 // grab the Mixpanel factory
 var Mixpanel = require('mixpanel');
 
-// create an instance of the mixpanel client
-var mixpanel = Mixpanel.init('<YOUR_TOKEN>');
-
 // initialize mixpanel client configured to communicate over https
 var mixpanel = Mixpanel.init('<YOUR_TOKEN>', {
-    protocol: 'https'
 });
+
+// set the configuration for the mixpanel instance
+//the values shown are the default configuration and the parameters can be used in the init method
+mixpanel.set_config({
+    debug: false,
+    host: 'api.mixpanel.com',
+    protocol: 'https'
 
 // track an event with optional properties
 mixpanel.track('my event', {
