@@ -1,7 +1,7 @@
 var Mixpanel,
     Sinon          = require('sinon'),
     proxyquire     = require('proxyquire'),
-    http           = require('http'),
+    https          = require('https'),
     events         = require('events'),
     httpProxyOrig  = process.env.HTTP_PROXY,
     httpsProxyOrig = process.env.HTTPS_PROXY,
@@ -9,7 +9,12 @@ var Mixpanel,
 
 exports.send_request = {
     setUp: function(next) {
-        Sinon.stub(http, 'request');
+        HttpsProxyAgent = Sinon.stub();
+        Mixpanel = proxyquire('../lib/mixpanel-node', {
+            'https-proxy-agent': HttpsProxyAgent
+        });
+
+        Sinon.stub(https, 'request');
 
         this.http_emitter = new events.EventEmitter;
         this.http_end_spy = Sinon.spy();
@@ -17,14 +22,8 @@ exports.send_request = {
         this.http_emitter.write = this.http_write_spy;
         this.http_emitter.end = this.http_end_spy;
         this.res = new events.EventEmitter;
-        http.request.returns(this.http_emitter);
-        http.request.callsArgWith(1, this.res);
-
-        HttpsProxyAgent = Sinon.stub();
-
-        Mixpanel = proxyquire('../lib/mixpanel-node', {
-            'https-proxy-agent': HttpsProxyAgent
-        });
+        https.request.returns(this.http_emitter);
+        https.request.callsArgWith(1, this.res);
 
         this.mixpanel = Mixpanel.init('token');
 
@@ -32,7 +31,7 @@ exports.send_request = {
     },
 
     tearDown: function(next) {
-        http.request.restore();
+        https.request.restore();
 
         // restore proxy variables
         process.env.HTTP_PROXY = httpProxyOrig;
@@ -61,8 +60,8 @@ exports.send_request = {
         this.mixpanel.send_request({ method: 'get', endpoint: endpoint, data: data });
 
         test.expect(3);
-        test.ok(http.request.calledWithMatch(expected_http_request), "send_request didn't call http.request with correct arguments");
-        test.ok(this.http_end_spy.callCount === 1, "send_request didn't end http.request");
+        test.ok(https.request.calledWithMatch(expected_http_request), "send_request didn't call https.request with correct arguments");
+        test.ok(this.http_end_spy.callCount === 1, "send_request didn't end https.request");
         test.ok(this.http_write_spy.callCount === 0, "send_request called write for a GET");
 
         test.done();
@@ -87,7 +86,7 @@ exports.send_request = {
 
         this.mixpanel.send_request({ endpoint: endpoint, data: data }); // method option not defined
 
-        test.ok(http.request.calledWithMatch(expected_http_request), "send_request didn't call http.request with correct method argument");
+        test.ok(https.request.calledWithMatch(expected_http_request), "send_request didn't call https.request with correct method argument");
 
         test.done();
     },
@@ -113,8 +112,8 @@ exports.send_request = {
         this.mixpanel.send_request({ method: 'post', endpoint: endpoint, data: data });
 
         test.expect(3);
-        test.ok(http.request.calledWithMatch(expected_http_request), "send_request didn't call http.request with correct arguments");
-        test.ok(this.http_end_spy.callCount === 1, "send_request didn't end http.request");
+        test.ok(https.request.calledWithMatch(expected_http_request), "send_request didn't call https.request with correct arguments");
+        test.ok(this.http_end_spy.callCount === 1, "send_request didn't end https.request");
         test.ok(this.http_write_spy.calledWithExactly(expected_http_request_body), "send_request did not write data correctly for a POST");
 
         test.done();
@@ -131,7 +130,7 @@ exports.send_request = {
         this.res.emit('end');
     },
 
-    "handles http.request errors": function(test) {
+    "handles https.request errors": function(test) {
         test.expect(1);
         this.mixpanel.send_request({ endpoint: "/track", data: { event: "test" } }, function(e) {
             test.equal(e, 'error', "error did not get passed back to callback");
@@ -150,7 +149,7 @@ exports.send_request = {
 
         customHostnameMixpanel.send_request({ endpoint: "", data: {} });
 
-        test.ok(http.request.calledWithMatch(expected_http_request), "send_request didn't call http.request with correct hostname");
+        test.ok(https.request.calledWithMatch(expected_http_request), "send_request didn't call https.request with correct hostname");
 
         test.done();
     },
@@ -165,7 +164,7 @@ exports.send_request = {
 
         customHostnameMixpanel.send_request({ endpoint: "", data: {} });
 
-        test.ok(http.request.calledWithMatch(expected_http_request), "send_request didn't call http.request with correct hostname and port");
+        test.ok(https.request.calledWithMatch(expected_http_request), "send_request didn't call https.request with correct hostname and port");
 
         test.done();
     },
@@ -173,7 +172,7 @@ exports.send_request = {
     "uses HTTP_PROXY if set": function(test) {
         HttpsProxyAgent.reset(); // Mixpanel is instantiated in setup, need to reset callcount
         delete process.env.HTTPS_PROXY;
-        process.env.HTTP_PROXY = 'this.aint.real.http';
+        process.env.HTTP_PROXY = 'this.aint.real.https';
 
         var proxyMixpanel = Mixpanel.init('token');
         proxyMixpanel.send_request({ endpoint: '', data: {} });
@@ -181,10 +180,10 @@ exports.send_request = {
         test.ok(HttpsProxyAgent.calledOnce, "HttpsProxyAgent was not called when process.env.HTTP_PROXY was set");
 
         var proxyPath = HttpsProxyAgent.firstCall.args[0];
-        test.ok(proxyPath === 'this.aint.real.http', "HttpsProxyAgent was not called with the correct proxy path");
+        test.ok(proxyPath === 'this.aint.real.https', "HttpsProxyAgent was not called with the correct proxy path");
 
-        var getConfig = http.request.firstCall.args[0];
-        test.ok(getConfig.agent !== undefined, "send_request didn't call http.request with agent");
+        var getConfig = https.request.firstCall.args[0];
+        test.ok(getConfig.agent !== undefined, "send_request didn't call https.request with agent");
 
         test.done();
     },
@@ -202,8 +201,8 @@ exports.send_request = {
         var proxyPath = HttpsProxyAgent.firstCall.args[0];
         test.ok(proxyPath === 'this.aint.real.https', "HttpsProxyAgent was not called with the correct proxy path");
 
-        var getConfig = http.request.firstCall.args[0];
-        test.ok(getConfig.agent !== undefined, "send_request didn't call http.request with agent");
+        var getConfig = https.request.firstCall.args[0];
+        test.ok(getConfig.agent !== undefined, "send_request didn't call https.request with agent");
 
         test.done();
     }
