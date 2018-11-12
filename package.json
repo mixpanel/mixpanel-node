@@ -20,7 +20,7 @@
     "url": "http://github.com/mixpanel/mixpanel-node.git"
   },
   "engines": {
-    "node": ">=4.2"
+    "node": ">=6.9"
   },
   "scripts": {
     "test": "nodeunit"
