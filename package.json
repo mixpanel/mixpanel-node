@@ -27,7 +27,7 @@
   },
   "types": "./lib/mixpanel-node.d.ts",
   "devDependencies": {
-    "nodeunit": "^0.9.1",
+    "nodeunit": "^0.11.3",
     "proxyquire": "^1.7.11",
     "sinon": "^7.1.1"
   },
