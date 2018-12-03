@@ -169,6 +169,42 @@ exports.send_request = {
         test.done();
     },
 
+    "uses correct path": function(test) {
+        var host = 'testhost.fakedomain';
+        var customPath = '/mypath';
+        var customHostnameMixpanel = Mixpanel.init('token', {
+            host,
+            path: customPath,
+        });
+        var expected_http_request = {
+            host,
+            path: '/mypath?ip=0&verbose=0&data=e30%3D',
+        };
+
+        customHostnameMixpanel.send_request({endpoint: "", data: {}});
+        test.ok(https.request.calledWithMatch(expected_http_request), "send_request didn't call https.request with correct hostname and port");
+
+        test.done();
+    },
+
+    "combines custom path and endpoint": function(test) {
+        var host = 'testhost.fakedomain';
+        var customPath = '/mypath';
+        var customHostnameMixpanel = Mixpanel.init('token', {
+            host,
+            path: customPath,
+        });
+        var expected_http_request = {
+            host,
+            path: '/mypath/track?ip=0&verbose=0&data=e30%3D',
+        };
+
+        customHostnameMixpanel.send_request({endpoint: '/track', data: {}});
+        test.ok(https.request.calledWithMatch(expected_http_request), "send_request didn't call https.request with correct hostname and port");
+
+        test.done();
+    },
+
     "uses HTTP_PROXY if set": function(test) {
         HttpsProxyAgent.reset(); // Mixpanel is instantiated in setup, need to reset callcount
         delete process.env.HTTPS_PROXY;
