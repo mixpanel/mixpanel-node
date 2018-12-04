@@ -1,3 +1,7 @@
+0.10.1 / 2018-12-03
+==================
+* support configurable API path (thanks CameronDiver)
+
 0.9.2 / 2018-05-22
 ==================
 * add type declarations file (thanks mklopets)

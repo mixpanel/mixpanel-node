@@ -237,6 +237,7 @@ Contributions from:
  - [Cole Furfaro-Strode](https://github.com/colestrode)
  - [Jonas Hermsmeier](https://github.com/jhermsmeier)
  - [Marko Klopets](https://github.com/mklopets)
+ - [Cameron Diver](https://github.com/CameronDiver)
 
 License
 -------------------
