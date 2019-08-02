@@ -2,40 +2,53 @@ var Mixpanel    = require('../lib/mixpanel-node'),
     Sinon       = require('sinon');
 
 // shared test case
-var test_send_request_args = function(test, func, options) {
-    var expected_data = {
-            $token: this.token,
-            $distinct_id: this.distinct_id,
-        };
-    for (var k in options.expected) {
-        expected_data[k] = options.expected[k];
+test_send_request_args = function(test, func, {args, expected, use_modifiers, use_callback} = {}) {
+    var endpoint;
+    var arguments;
+    var expected_data = {$token: this.token};
+    if (this.namespace === 'people') {
+        endpoint = "/engage";
+        var $distinct_id = this.distinct_id;
+        expected_data = {...expected_data, $distinct_id};
+        arguments = [$distinct_id];
+    } else if (this.namespace === 'groups') {
+        endpoint = "/groups";
+        var $group_key = this.group_key;
+        var $group_id = this.group_id;
+        expected_data = {...expected_data, $group_key, $group_id};
+        arguments = [$group_key, $group_id];
+        if (['increment', 'append'].includes(func)) {
+            return test.done()
+        }
+    } else {
+        throw `Invalid namespace: ${this.namespace}`;
     }
-    var args = [this.distinct_id].concat(options.args || []);
 
-    if (options.use_modifiers) {
+    expected_data = {...expected_data, ...expected}
+    arguments = arguments.concat(args || []);
+
+    if (use_modifiers) {
         var modifiers = {
             '$ignore_alias': true,
             '$ignore_time': true,
             '$ip': '1.2.3.4',
             '$time': 1234567890
         };
-        for (k in modifiers) {
-            expected_data[k] = modifiers[k];
-        }
-        args.push(modifiers);
+        expected_data = {...expected_data, ...modifiers};
+        arguments.push(modifiers);
     }
-    if (options.use_callback) {
+    if (use_callback) {
         var callback = function() {};
-        args.push(callback);
+        arguments.push(callback);
     }
 
-    this.mixpanel.people[func].apply(this.mixpanel.people, args);
+    this.mixpanel[this.namespace][func].apply(this.mixpanel[this.namespace], arguments);
 
     test.ok(
-        this.mixpanel.send_request.calledWithMatch({ method: 'GET', endpoint: this.endpoint, data: expected_data }),
-        "people." + func + " didn't call send_request with correct arguments"
+        this.mixpanel.send_request.calledWithMatch({ method: 'GET', endpoint: endpoint, data: expected_data }),
+        `${this.namespace}.${func} didn't call send_request with correct arguments`
     );
-    if (options.use_callback) {
+    if (use_callback) {
         test.ok(
             this.mixpanel.send_request.args[0][1] === callback,
             "people.set didn't call send_request with a callback"
@@ -46,13 +59,12 @@ var test_send_request_args = function(test, func, options) {
 
 exports.people = {
     setUp: function(next) {
+        this.namespace = 'people';
+        this.distinct_id = 'user1';
         this.token = 'token';
         this.mixpanel = Mixpanel.init(this.token);
 
         Sinon.stub(this.mixpanel, 'send_request');
-
-        this.distinct_id = "user1";
-        this.endpoint = "/engage";
 
         this.test_send_request_args = test_send_request_args;
 
@@ -585,6 +597,315 @@ exports.people = {
             test.ok(
                 !this.mixpanel.send_request.called,
                 "people.unset shouldn't call send_request on invalid arguments"
+            );
+            test.done();
+        },
+
+        "supports being called with a modifiers argument": function(test) {
+            this.test_send_request_args(test, 'unset', {
+                args: ['key1'],
+                expected: {$unset: ['key1']},
+                use_modifiers: true,
+            });
+        },
+
+        "supports being called with a callback": function(test) {
+            this.test_send_request_args(test, 'unset', {
+                args: ['key1'],
+                expected: {$unset: ['key1']},
+                use_callback: true,
+            });
+        },
+
+        "supports being called with a modifiers argument and a callback": function(test) {
+            this.test_send_request_args(test, 'unset', {
+                args: ['key1'],
+                expected: {$unset: ['key1']},
+                use_callback: true,
+                use_modifiers: true,
+            });
+        },
+    },
+};
+
+exports.groups = {
+    setUp: function(next) {
+        this.namespace = 'groups';
+        this.group_key = 'company';
+        this.group_id = 'Acme Inc.';
+        this.token = 'token';
+        this.mixpanel = Mixpanel.init(this.token);
+
+        Sinon.stub(this.mixpanel, 'send_request');
+
+        this.test_send_request_args = test_send_request_args;
+
+        next();
+    },
+
+    tearDown: function(next) {
+        this.mixpanel.send_request.restore();
+
+        next();
+    },
+
+    _set: {
+        "handles set_once correctly": function(test){
+            this.test_send_request_args(test, 'set_once', {
+                args: ['key1', 'val1'],
+                expected: {$set_once: {'key1': 'val1'}},
+            });
+        },
+
+        "calls send_request with correct endpoint and data": function(test) {
+            this.test_send_request_args(test, 'set', {
+                args: ['key1', 'val1'],
+                expected: {$set: {'key1': 'val1'}},
+            });
+        },
+
+        "supports being called with a property object": function(test) {
+            this.test_send_request_args(test, 'set', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set: {'key1': 'val1', 'key2': 'val2'}},
+            });
+        },
+
+        "supports being called with a property object (set_once)": function(test) {
+            this.test_send_request_args(test, 'set_once', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set_once: {'key1': 'val1', 'key2': 'val2'}},
+            });
+        },
+
+        "supports being called with a modifiers argument": function(test) {
+            this.test_send_request_args(test, 'set', {
+                args: ['key1', 'val1'],
+                expected: {$set: {'key1': 'val1'}},
+                use_modifiers: true,
+            });
+        },
+
+        "supports being called with a modifiers argument (set_once)": function(test) {
+            this.test_send_request_args(test, 'set_once', {
+                args: ['key1', 'val1'],
+                expected: {$set_once: {'key1': 'val1'}},
+                use_modifiers: true,
+            });
+        },
+
+        "supports being called with a properties object and a modifiers argument": function(test) {
+            this.test_send_request_args(test, 'set', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set: {'key1': 'val1', 'key2': 'val2'}},
+                use_modifiers: true,
+            });
+        },
+
+        "supports being called with a properties object and a modifiers argument (set_once)": function(test) {
+            this.test_send_request_args(test, 'set_once', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set_once: {'key1': 'val1', 'key2': 'val2'}},
+                use_modifiers: true,
+            });
+        },
+
+        "handles the ip property in a property object properly": function(test) {
+            this.test_send_request_args(test, 'set', {
+                args: [{'ip': '1.2.3.4', 'key1': 'val1', 'key2': 'val2'}],
+                expected: {
+                    $ip: '1.2.3.4',
+                    $set: {'key1': 'val1', 'key2': 'val2'},
+                },
+            });
+        },
+
+        "handles the $ignore_time property in a property object properly": function(test) {
+            this.test_send_request_args(test, 'set', {
+                args: [{'$ignore_time': true, 'key1': 'val1', 'key2': 'val2'}],
+                expected: {
+                    $ignore_time: true,
+                    $set: {'key1': 'val1', 'key2': 'val2'},
+                },
+            });
+        },
+
+        "supports being called with a callback": function(test) {
+            this.test_send_request_args(test, 'set', {
+                args: ['key1', 'val1'],
+                expected: {$set: {'key1': 'val1'}},
+                use_callback: true,
+            });
+        },
+
+        "supports being called with a callback (set_once)": function(test) {
+            this.test_send_request_args(test, 'set_once', {
+                args: ['key1', 'val1'],
+                expected: {$set_once: {'key1': 'val1'}},
+                use_callback: true,
+            });
+        },
+
+        "supports being called with a properties object and a callback": function(test) {
+            this.test_send_request_args(test, 'set', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set: {'key1': 'val1', 'key2': 'val2'}},
+                use_callback: true,
+            });
+        },
+
+        "supports being called with a properties object and a callback (set_once)": function(test) {
+            this.test_send_request_args(test, 'set_once', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set_once: {'key1': 'val1', 'key2': 'val2'}},
+                use_callback: true,
+            });
+        },
+
+        "supports being called with a modifiers argument and a callback": function(test) {
+            this.test_send_request_args(test, 'set', {
+                args: ['key1', 'val1'],
+                expected: {$set: {'key1': 'val1'}},
+                use_callback: true,
+                use_modifiers: true,
+            });
+        },
+
+        "supports being called with a modifiers argument and a callback (set_once)": function(test) {
+            this.test_send_request_args(test, 'set_once', {
+                args: ['key1', 'val1'],
+                expected: {$set_once: {'key1': 'val1'}},
+                use_callback: true,
+                use_modifiers: true,
+            });
+        },
+
+        "supports being called with a properties object, a modifiers argument and a callback": function(test) {
+            this.test_send_request_args(test, 'set', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set: {'key1': 'val1', 'key2': 'val2'}},
+                use_callback: true,
+                use_modifiers: true,
+            });
+        },
+
+        "supports being called with a properties object, a modifiers argument and a callback (set_once)": function(test) {
+            this.test_send_request_args(test, 'set_once', {
+                args: [{'key1': 'val1', 'key2': 'val2'}],
+                expected: {$set_once: {'key1': 'val1', 'key2': 'val2'}},
+                use_callback: true,
+                use_modifiers: true,
+            });
+        },
+    },
+
+    delete_group: {
+        "calls send_request with correct endpoint and data": function(test) {
+            this.test_send_request_args(test, 'delete_group', {
+                expected: {$delete: ''},
+            });
+        },
+
+        "supports being called with a modifiers argument": function(test) {
+            this.test_send_request_args(test, 'delete_group', {
+                expected: {$delete: ''},
+                use_modifiers: true,
+            });
+        },
+
+        "supports being called with a callback": function(test) {
+            this.test_send_request_args(test, 'delete_group', {
+                expected: {$delete: ''},
+                use_callback: true,
+            });
+        },
+
+        "supports being called with a modifiers argument and a callback": function(test) {
+            this.test_send_request_args(test, 'delete_group', {
+                expected: {$delete: ''},
+                use_callback: true,
+                use_modifiers: true,
+            });
+        },
+    },
+
+    union: {
+        "calls send_request with correct endpoint and data": function(test) {
+            this.test_send_request_args(test, 'union', {
+                args: [{'key1': ['value1', 'value2']}],
+                expected: {$union: {'key1': ['value1', 'value2']}},
+            });
+        },
+
+        "supports being called with a scalar value": function(test) {
+            this.test_send_request_args(test, 'union', {
+                args: [{'key1': 'value1'}],
+                expected: {$union: {'key1': ['value1']}},
+            });
+        },
+
+        "errors on other argument types": function(test) {
+            this.mixpanel.groups.union(this.group_key, this.group_id, {key1: {key: 'val'}});
+            this.mixpanel.groups.union(this.group_key, this.group_id, 1231241.123);
+            this.mixpanel.groups.union(this.group_key, this.group_id, [5]);
+            this.mixpanel.groups.union(this.group_key, this.group_id, {key1: function() {}});
+            this.mixpanel.groups.union(this.group_key, this.group_id, {key1: [function() {}]});
+
+            test.ok(
+                !this.mixpanel.send_request.called,
+                "groups.union shouldn't call send_request on invalid arguments"
+            );
+            test.done();
+        },
+
+        "supports being called with a modifiers argument": function(test) {
+            this.test_send_request_args(test, 'union', {
+                args: [{'key1': ['value1', 'value2']}],
+                expected: {$union: {'key1': ['value1', 'value2']}},
+                use_modifiers: true,
+            });
+        },
+
+        "supports being called with a callback": function(test) {
+            this.test_send_request_args(test, 'union', {
+                args: [{'key1': ['value1', 'value2']}],
+                expected: {$union: {'key1': ['value1', 'value2']}},
+                use_callback: true,
+            });
+        },
+
+        "supports being called with a modifiers argument and a callback": function(test) {
+            this.test_send_request_args(test, 'union', {
+                args: [{'key1': ['value1', 'value2']}],
+                expected: {$union: {'key1': ['value1', 'value2']}},
+                use_callback: true,
+                use_modifiers: true,
+            });
+        },
+    },
+
+    unset: {
+        "calls send_request with correct endpoint and data": function(test) {
+            this.test_send_request_args(test, 'unset', {
+                args: ['key1'],
+                expected: {$unset: ['key1']},
+            });
+        },
+
+        "supports being called with a property array": function(test) {
+            this.test_send_request_args(test, 'unset', {
+                args: [['key1', 'key2']],
+                expected: {$unset: ['key1', 'key2']},
+            });
+        },
+
+        "errors on other argument types": function(test) {
+            this.mixpanel.groups.unset(this.group_key, this.group_id, { key1:'val1', key2:'val2' });
+            this.mixpanel.groups.unset(this.group_key, this.group_id, 1231241.123);
+
+            test.ok(
+                !this.mixpanel.send_request.called,
+                "groups.unset shouldn't call send_request on invalid arguments"
             );
             test.done();
         },
