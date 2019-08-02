@@ -520,6 +520,55 @@ exports.people = {
         },
     },
 
+    remove: {
+        "calls send_request with correct endpoint and data": function(test) {
+            this.test_send_request_args(test, 'remove', {
+                args: [{'key1': 'value1', 'key2': 'value2'}],
+                expected: {$remove: {'key1': 'value1', 'key2': 'value2'}},
+            });
+        },
+
+        "errors on non-scalar argument types": function(test) {
+            this.mixpanel.people.remove(this.distinct_id, {'key1': ['value1']});
+            this.mixpanel.people.remove(this.distinct_id, {key1: {key: 'val'}});
+            this.mixpanel.people.remove(this.distinct_id, 1231241.123);
+            this.mixpanel.people.remove(this.distinct_id, [5]);
+            this.mixpanel.people.remove(this.distinct_id, {key1: function() {}});
+            this.mixpanel.people.remove(this.distinct_id, {key1: [function() {}]});
+
+            test.ok(
+              !this.mixpanel.send_request.called,
+              "people.remove shouldn't call send_request on invalid arguments"
+            );
+            test.done();
+        },
+
+        "supports being called with a modifiers argument": function(test) {
+            this.test_send_request_args(test, 'remove', {
+                args: [{'key1': 'value1'}],
+                expected: {$remove: {'key1': 'value1'}},
+                use_modifiers: true,
+            });
+        },
+
+        "supports being called with a callback": function(test) {
+            this.test_send_request_args(test, 'remove', {
+                args: [{'key1': 'value1'}],
+                expected: {$remove: {'key1': 'value1'}},
+                use_callback: true,
+            });
+        },
+
+        "supports being called with a modifiers argument and a callback": function(test) {
+            this.test_send_request_args(test, 'remove', {
+                args: [{'key1': 'value1'}],
+                expected: {$remove: {'key1': 'value1'}},
+                use_callback: true,
+                use_modifiers: true,
+            });
+        },
+    },
+
     union: {
         "calls send_request with correct endpoint and data": function(test) {
             this.test_send_request_args(test, 'union', {
@@ -823,6 +872,55 @@ exports.groups = {
         "supports being called with a modifiers argument and a callback": function(test) {
             this.test_send_request_args(test, 'delete_group', {
                 expected: {$delete: ''},
+                use_callback: true,
+                use_modifiers: true,
+            });
+        },
+    },
+
+    remove: {
+        "calls send_request with correct endpoint and data": function(test) {
+            this.test_send_request_args(test, 'remove', {
+                args: [{'key1': 'value1', 'key2': 'value2'}],
+                expected: {$remove: {'key1': 'value1', 'key2': 'value2'}},
+            });
+        },
+
+        "errors on non-scalar argument types": function(test) {
+            this.mixpanel.groups.remove(this.group_key, this.group_id, {'key1': ['value1']});
+            this.mixpanel.groups.remove(this.group_key, this.group_id, {key1: {key: 'val'}});
+            this.mixpanel.groups.remove(this.group_key, this.group_id, 1231241.123);
+            this.mixpanel.groups.remove(this.group_key, this.group_id, [5]);
+            this.mixpanel.groups.remove(this.group_key, this.group_id, {key1: function() {}});
+            this.mixpanel.groups.remove(this.group_key, this.group_id, {key1: [function() {}]});
+
+            test.ok(
+              !this.mixpanel.send_request.called,
+              "groups.remove shouldn't call send_request on invalid arguments"
+            );
+            test.done();
+        },
+
+        "supports being called with a modifiers argument": function(test) {
+            this.test_send_request_args(test, 'remove', {
+                args: [{'key1': 'value1'}],
+                expected: {$remove: {'key1': 'value1'}},
+                use_modifiers: true,
+            });
+        },
+
+        "supports being called with a callback": function(test) {
+            this.test_send_request_args(test, 'remove', {
+                args: [{'key1': 'value1'}],
+                expected: {$remove: {'key1': 'value1'}},
+                use_callback: true,
+            });
+        },
+
+        "supports being called with a modifiers argument and a callback": function(test) {
+            this.test_send_request_args(test, 'remove', {
+                args: [{'key1': 'value1'}],
+                expected: {$remove: {'key1': 'value1'}},
                 use_callback: true,
                 use_modifiers: true,
             });
