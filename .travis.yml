@@ -3,6 +3,5 @@ node_js:
   - node
   - "10"
   - "8"
-  - "6.9"
 branches:
   only: master
