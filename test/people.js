@@ -16,7 +16,7 @@ const test_send_request_args = function(test, func, {args, expected, use_modifie
             '$ip': '1.2.3.4',
             '$time': 1234567890
         };
-        expected_data = {...expected_data, ...modifiers};
+        Object.assign(expected_data, modifiers);
         args.push(modifiers);
     }
     if (use_callback) {
