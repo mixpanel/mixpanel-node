@@ -38,6 +38,10 @@ declare namespace mixpanel {
     [key: string]: Scalar | Scalar[];
   }
 
+  export interface RemoveData {
+    [key: string]: string | number
+  }
+
   interface Mixpanel {
     init(mixpanelToken: string, config?: InitConfig): Mixpanel;
 
@@ -59,6 +63,8 @@ declare namespace mixpanel {
     alias(distinctId: string, alias: string, callback?: Callback): void;
 
     people: People;
+
+    groups: Groups;
   }
 
   interface People {
@@ -70,7 +76,7 @@ declare namespace mixpanel {
 
     unset(distinctId: string, propertyName: string | string[], callback?: Callback): void;
     unset(distinctId: string, propertyName: string | string[], modifiers?: Modifiers, callback?: Callback): void;
-    
+
     set_once(distinctId: string, propertyName: string, value: string, callback?: Callback): void;
     set_once( distinctId: string, propertyName: string, value: string, modifiers: Modifiers, callback?: Callback): void;
     set_once(distinctId: string, properties: PropertyDict, callback?: Callback): void;
@@ -90,6 +96,9 @@ declare namespace mixpanel {
     union(distinctId: string, data: UnionData, modifiers?: Modifiers, callback?: Callback): void;
     union(distinctId: string, data: UnionData, callback: Callback): void;
 
+    remove(distinctId: string, data: RemoveData, modifiers?: Modifiers, callback?: Callback): void;
+    remove(distinctId: string, data: RemoveData, callback: Callback): void;
+
     track_charge(distinctId: string, amount: number | string, properties?: PropertyDict, callback?: Callback): void;
     track_charge(distinctId: string, amount: number | string, properties: PropertyDict, modifiers?: Modifiers, callback?: Callback): void;
 
@@ -98,6 +107,31 @@ declare namespace mixpanel {
 
     delete_user(distinctId: string, modifiers?: Modifiers, callback?: Callback): void;
     delete_user(distinctId: string, callback: Callback): void;
+  }
+
+  interface Groups {
+      set(groupKey: string, groupId: string, properties: PropertyDict, callback?: Callback): void;
+      set(groupKey: string, groupId: string, properties: PropertyDict, modifiers?: Modifiers, callback?: Callback): void;
+      set(groupKey: string, groupId: string, propertyName: string, value: string | number, modifiers: Modifiers): void;
+      set(groupKey: string, groupId: string, propertyName: string, value: string | number, callback?: Callback): void;
+      set(groupKey: string, groupId: string, propertyName: string, value: string | number, modifiers: Modifiers, callback: Callback): void;
+
+      unset(groupKey: string, groupId: string, propertyName: string | string[], callback?: Callback): void;
+      unset(groupKey: string, groupId: string, propertyName: string | string[], modifiers?: Modifiers, callback?: Callback): void;
+
+      set_once(groupKey: string, groupId: string, propertyName: string, value: string, callback?: Callback): void;
+      set_once( groupKey: string, groupId: string, propertyName: string, value: string, modifiers: Modifiers, callback?: Callback): void;
+      set_once(groupKey: string, groupId: string, properties: PropertyDict, callback?: Callback): void;
+      set_once(groupKey: string, groupId: string, properties: PropertyDict, modifiers?: Modifiers, callback?: Callback): void;
+
+      union(groupKey: string, groupId: string, data: UnionData, modifiers?: Modifiers, callback?: Callback): void;
+      union(groupKey: string, groupId: string, data: UnionData, callback: Callback): void;
+
+      remove(groupKey: string, groupId: string, data: RemoveData, modifiers?: Modifiers, callback?: Callback): void;
+      remove(groupKey: string, groupId: string, data: RemoveData, callback: Callback): void;
+
+      delete_group(groupKey: string, groupId: string, modifiers?: Modifiers, callback?: Callback): void;
+      delete_group(groupKey: string, groupId: string, callback: Callback): void;
   }
 }
 
