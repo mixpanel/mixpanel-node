@@ -1,6 +1,7 @@
 const Mixpanel = require('../lib/mixpanel-node');
 const Sinon = require('sinon');
 const {create_group_funcs} = require('../lib/groups');
+const {create_profile_helpers} = require('../lib/profile_helpers');
 
 // shared test case
 test_send_request_args = function(test, func, {args, expected, use_modifiers, use_callback} = {}) {
@@ -54,9 +55,7 @@ exports.groups = {
 
         this.mixpanel = Mixpanel.init(this.token);
         this.mixpanel.groups = create_group_funcs({
-            token: this.mixpanel.token,
-            config: this.mixpanel.config,
-            send_request: this.send_request,
+            profile_helpers: create_profile_helpers({token: this.token, config: {}, send_request: this.send_request})
         });
 
         this.test_send_request_args = test_send_request_args;
