@@ -33,5 +33,19 @@ exports.config = {
 
         test.equal(mp.config.test, true, "init() didn't set the config correctly");
         test.done();
-    }
+    },
+
+    "host config is split into host and port": function(test) {
+        const exampleHost = 'api.example.com';
+        const examplePort = 70;
+        const hostWithoutPortConfig = Mixpanel.init('token', {host: exampleHost}).config;
+        test.equal(hostWithoutPortConfig.port, undefined, "port should not have been added to config");
+        test.equal(hostWithoutPortConfig.host, exampleHost, `host should match ${exampleHost}`);
+
+        const hostWithPortConfig = Mixpanel.init('token', {host: `${exampleHost}:${examplePort}`}).config;
+        test.equal(hostWithPortConfig.port, examplePort, "port should have been added to config");
+        test.equal(hostWithPortConfig.host, exampleHost, `host should match ${exampleHost}`);
+
+        test.done();
+    },
 };
