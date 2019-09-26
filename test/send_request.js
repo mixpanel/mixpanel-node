@@ -1,17 +1,19 @@
-var Mixpanel,
-    Sinon          = require('sinon'),
-    proxyquire     = require('proxyquire'),
-    https          = require('https'),
-    events         = require('events'),
-    httpProxyOrig  = process.env.HTTP_PROXY,
-    httpsProxyOrig = process.env.HTTPS_PROXY,
-    HttpsProxyAgent;
+let Mixpanel;
+const Sinon = require('sinon');
+const proxyquire = require('proxyquire');
+const https = require('https');
+const events = require('events');
+const httpProxyOrig  = process.env.HTTP_PROXY;
+const httpsProxyOrig = process.env.HTTPS_PROXY;
+let HttpsProxyAgent;
 
 exports.send_request = {
     setUp: function(next) {
         HttpsProxyAgent = Sinon.stub();
         Mixpanel = proxyquire('../lib/mixpanel-node', {
-            'https-proxy-agent': HttpsProxyAgent
+            './utils': proxyquire('../lib/utils', {
+                'https-proxy-agent': HttpsProxyAgent
+            })
         });
 
         Sinon.stub(https, 'request');
