@@ -3,7 +3,7 @@ const Sinon = require('sinon');
 const {create_profile_helpers} = require('../lib/profile_helpers');
 
 // shared test case
-test_send_request_args = function(test, func, {args, expected, use_modifiers, use_callback} = {}) {
+const test_send_request_args = function(test, func, {args, expected, use_modifiers, use_callback} = {}) {
     let expected_data = {$token: this.token, $distinct_id: this.distinct_id, ...expected};
     let callback;
 

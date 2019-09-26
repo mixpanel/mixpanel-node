@@ -4,7 +4,7 @@ const {create_group_funcs} = require('../lib/groups');
 const {create_profile_helpers} = require('../lib/profile_helpers');
 
 // shared test case
-test_send_request_args = function(test, func, {args, expected, use_modifiers, use_callback} = {}) {
+const test_send_request_args = function(test, func, {args, expected, use_modifiers, use_callback} = {}) {
     let expected_data = {$token: this.token, $group_key: this.group_key, $group_id: this.group_id, ...expected};
     let callback;
 
