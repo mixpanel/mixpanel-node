@@ -1,5 +1,6 @@
 const Mixpanel = require('../lib/mixpanel-node');
 const Sinon = require('sinon');
+const {create_profile_helpers} = require('../lib/profile_helpers');
 
 // shared test case
 test_send_request_args = function(test, func, {args, expected, use_modifiers, use_callback} = {}) {
@@ -25,13 +26,16 @@ test_send_request_args = function(test, func, {args, expected, use_modifiers, us
 
     this.mixpanel.people[func](...args);
 
+    const expectedSendRequestArgs = [{ method: 'GET', endpoint: this.endpoint, data: expected_data }];
     test.ok(
-        this.mixpanel.send_request.calledWithMatch({ method: 'GET', endpoint: this.endpoint, data: expected_data }),
-        `people.${func} didn't call send_request with correct arguments`
+        this.send_request.calledWithMatch(...expectedSendRequestArgs),
+        `people.${func} didn't call send_request with correct arguments
+        Actual arguments:    ${JSON.stringify(this.send_request.getCall(0).args)}
+        expected to include: ${JSON.stringify(expectedSendRequestArgs)}`
     );
     if (use_callback) {
         test.ok(
-            this.mixpanel.send_request.args[0][1] === callback,
+            this.send_request.args[0][1] === callback,
             `people.${func} didn't call send_request with a callback`
         );
     }
@@ -43,9 +47,12 @@ exports.people = {
         this.endpoint = '/engage';
         this.distinct_id = 'user1';
         this.token = 'token';
-        this.mixpanel = Mixpanel.init(this.token);
 
-        Sinon.stub(this.mixpanel, 'send_request');
+        this.send_request = Sinon.stub();
+
+        this.mixpanel = Mixpanel.init(this.token);
+        this.mixpanel.send_request = this.send_request
+        this.mixpanel._helpers = create_profile_helpers({token: this.token, config: {}, send_request: this.send_request});
 
         this.test_send_request_args = test_send_request_args;
 
@@ -53,8 +60,6 @@ exports.people = {
     },
 
     tearDown: function(next) {
-        this.mixpanel.send_request.restore();
-
         next();
     },
 
