@@ -1,3 +1,11 @@
+0.10.3 / 2019-10-09
+==================
+* upgrade https-proxy-agent for security fix (thanks omrilotan)
+
+0.10.2 / 2019-03-26
+==================
+* type definitions for people.unset (thanks bradleyayers)
+
 0.10.1 / 2018-12-03
 ==================
 * support configurable API path (thanks CameronDiver)
