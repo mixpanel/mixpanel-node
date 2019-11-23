@@ -11,9 +11,7 @@ exports.send_request = {
     setUp: function(next) {
         HttpsProxyAgent = Sinon.stub();
         Mixpanel = proxyquire('../lib/mixpanel-node', {
-            './utils': proxyquire('../lib/utils', {
-                'https-proxy-agent': HttpsProxyAgent
-            })
+            'https-proxy-agent': HttpsProxyAgent,
         });
 
         Sinon.stub(https, 'request');
