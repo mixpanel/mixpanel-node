@@ -54,9 +54,8 @@ exports.groups = {
         this.send_request = Sinon.stub();
 
         this.mixpanel = Mixpanel.init(this.token);
-        this.mixpanel.groups = create_group_funcs({
-            profile_helpers: create_profile_helpers({token: this.token, config: {}, send_request: this.send_request})
-        });
+        this.mixpanel.send_request = this.send_request;
+        this.mixpanel._helpers = create_profile_helpers({token: this.token, config: {}, send_request: this.send_request});
 
         this.test_send_request_args = test_send_request_args;
 
