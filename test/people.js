@@ -52,7 +52,6 @@ exports.people = {
 
         this.mixpanel = Mixpanel.init(this.token);
         this.mixpanel.send_request = this.send_request
-        this.mixpanel._helpers = create_profile_helpers({token: this.token, config: {}, send_request: this.send_request});
 
         this.test_send_request_args = test_send_request_args;
 
