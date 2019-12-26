@@ -78,7 +78,7 @@ declare namespace mixpanel {
     unset(distinctId: string, propertyName: string | string[], modifiers?: Modifiers, callback?: Callback): void;
 
     set_once(distinctId: string, propertyName: string, value: string, callback?: Callback): void;
-    set_once( distinctId: string, propertyName: string, value: string, modifiers: Modifiers, callback?: Callback): void;
+    set_once(distinctId: string, propertyName: string, value: string, modifiers: Modifiers, callback?: Callback): void;
     set_once(distinctId: string, properties: PropertyDict, callback?: Callback): void;
     set_once(distinctId: string, properties: PropertyDict, modifiers?: Modifiers, callback?: Callback): void;
 
