@@ -238,6 +238,7 @@ Contributions from:
  - [Jonas Hermsmeier](https://github.com/jhermsmeier)
  - [Marko Klopets](https://github.com/mklopets)
  - [Cameron Diver](https://github.com/CameronDiver)
+ - [veerabio](https://github.com/veerabio)
 
 License
 -------------------

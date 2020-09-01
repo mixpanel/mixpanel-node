@@ -1,3 +1,12 @@
+0.12.0 / 2020-08-31
+==================
+* https-proxy-agent upgrade to 5.0.0 to fix https.request patching and many subdependency upgrades (thanks veerabio)
+* dropped support for node 8
+
+0.11.0 / 2019-11-26
+==================
+* add support for Groups API
+
 0.10.3 / 2019-10-09
 ==================
 * upgrade https-proxy-agent for security fix (thanks omrilotan)
