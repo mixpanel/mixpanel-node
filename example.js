@@ -69,7 +69,7 @@ mixpanel.track("test", function(err) { if (err) { throw err; } });
 
 // import an old event
 var mixpanel_importer = Mixpanel.init('valid mixpanel token', {
-    key: "valid api key for project"
+    secret: "valid api secret for project"
 });
 mixpanel_importer.set_config({ debug: true });
 

@@ -138,7 +138,7 @@ mixpanel.track_batch([
 
 // import an old event
 var mixpanel_importer = Mixpanel.init('valid mixpanel token', {
-    key: 'valid api key for project'
+    secret: 'valid api secret for project'
 });
 
 // needs to be in the system once for it to show up in the interface

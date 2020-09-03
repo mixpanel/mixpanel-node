@@ -9,7 +9,7 @@ var mock_now_time = new Date(2016, 1, 1).getTime(),
 
 exports.import = {
     setUp: function(next) {
-        this.mixpanel = Mixpanel.init('token', { key: 'key' });
+        this.mixpanel = Mixpanel.init('token', { secret: 'my api secret' });
         this.clock = Sinon.useFakeTimers(mock_now_time);
 
         Sinon.stub(this.mixpanel, 'send_request');
@@ -140,7 +140,7 @@ exports.import = {
 
 exports.import_batch = {
     setUp: function(next) {
-        this.mixpanel = Mixpanel.init('token', { key: 'key' });
+        this.mixpanel = Mixpanel.init('token', { secret: 'my api secret' });
         this.clock = Sinon.useFakeTimers();
 
         Sinon.stub(this.mixpanel, 'send_request');
@@ -216,7 +216,7 @@ exports.import_batch = {
 
 exports.import_batch_integration = {
     setUp: function(next) {
-        this.mixpanel = Mixpanel.init('token', { key: 'key' });
+        this.mixpanel = Mixpanel.init('token', { secret: 'my api secret' });
         this.clock = Sinon.useFakeTimers();
 
         Sinon.stub(https, 'request');
@@ -328,7 +328,7 @@ exports.import_batch_integration = {
             './utils': {async_all: async_all_stub},
         });
         async_all_stub.callsArgWith(2, null);
-        this.mixpanel = PatchedMixpanel.init('token', { key: 'key' });
+        this.mixpanel = PatchedMixpanel.init('token', { secret: 'my api secret' });
 
         test.expect(2);
         this.mixpanel.import_batch(this.event_list, {max_batch_size: 30, max_concurrent_requests: 2}, function(error_list) {
