@@ -241,5 +241,30 @@ exports.send_request = {
         test.ok(getConfig.agent !== undefined, "send_request didn't call https.request with agent");
 
         test.done();
-    }
+    },
+
+    "requires credentials for import requests": function(test) {
+        test.throws(
+            this.mixpanel.send_request.bind(this, {
+                endpoint: `/import`,
+                data: {event: `test event`},
+            }),
+            /The Mixpanel Client needs a Mixpanel API Secret when importing old events/,
+            "import request didn't throw error when no credentials provided"
+        );
+        test.done();
+    },
+
+    "sets basic auth header if API secret is provided": function(test) {
+        this.mixpanel.set_config({secret: `foobar`});
+        this.mixpanel.send_request({
+            endpoint: `/import`,
+            data: {event: `test event`},
+        });
+        test.ok(https.request.calledOnce);
+        test.deepEqual(https.request.args[0][0].headers, {
+            'Authorization': `Basic Zm9vYmFyOg==`, // base64 of "foobar:"
+        }, "send_request didn't pass correct auth header to https.request");
+        test.done();
+    },
 };
