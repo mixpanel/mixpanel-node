@@ -1,3 +1,7 @@
+0.13.0 / 2020-09-04
+==================
+* support API Secret auth for imports and deprecate use of API Key
+
 0.12.0 / 2020-08-31
 ==================
 * https-proxy-agent upgrade to 5.0.0 to fix https.request patching and many subdependency upgrades (thanks veerabio)
