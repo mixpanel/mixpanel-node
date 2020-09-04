@@ -267,4 +267,19 @@ exports.send_request = {
         }, "send_request didn't pass correct auth header to https.request");
         test.done();
     },
+
+    "still supports import with api_key (legacy)": function(test) {
+        this.mixpanel.set_config({key: `barbaz`});
+        this.mixpanel.send_request({
+            endpoint: `/import`,
+            data: {},
+        });
+        test.ok(https.request.calledOnce);
+        test.equal(
+            https.request.args[0][0].path,
+            `/import?ip=0&verbose=0&data=e30%3D&api_key=barbaz`,
+            "send_request didn't pass correct query params to https.request"
+        );
+        test.done();
+    },
 };
