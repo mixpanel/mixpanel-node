@@ -239,6 +239,7 @@ Contributions from:
  - [Marko Klopets](https://github.com/mklopets)
  - [Cameron Diver](https://github.com/CameronDiver)
  - [veerabio](https://github.com/veerabio)
+ - [wille](https://github.com/wille)
 
 License
 -------------------
