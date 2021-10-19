@@ -14,7 +14,9 @@ const test_send_request_args = function(test, func, {args, expected, use_modifie
             '$ignore_alias': true,
             '$ignore_time': true,
             '$ip': '1.2.3.4',
-            '$time': 1234567890
+            '$time': 1234567890,
+            '$latitude': 40.7127753,
+            '$longitude': -74.0059728,
         };
         Object.assign(expected_data, modifiers);
         args.push(modifiers);
