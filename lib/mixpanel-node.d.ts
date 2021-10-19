@@ -27,8 +27,8 @@ declare namespace mixpanel {
     $ignore_time?: boolean;
     $time?: string;
     $ignore_alias?: boolean;
-    $latitude: number;
-    $longitude: number;
+    $latitude?: number;
+    $longitude?: number;
   }
 
   export interface BatchOptions {
