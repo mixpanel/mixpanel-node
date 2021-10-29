@@ -1,3 +1,7 @@
+0.14.0 / 2021-10-29
+==================
+* support $latitude and $longitude in profile operations (thanks wneild)
+
 0.13.0 / 2020-09-04
 ==================
 * support API Secret auth for imports and deprecate use of API Key

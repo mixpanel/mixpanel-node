@@ -219,7 +219,7 @@ Attribution/Credits
 Heavily inspired by the original js library copyright Mixpanel, Inc.
 (http://mixpanel.com/)
 
-Copyright (c) 2014-18 Mixpanel
+Copyright (c) 2014-21 Mixpanel
 Original Library Copyright (c) 2012-14 Carl Sverre
 
 Contributions from:
@@ -248,6 +248,7 @@ Contributions from:
  - [Marko Klopets](https://github.com/mklopets)
  - [Cameron Diver](https://github.com/CameronDiver)
  - [veerabio](https://github.com/veerabio)
+ - [Will Neild](https://github.com/wneild)
 
 License
 -------------------
