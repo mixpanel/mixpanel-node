@@ -68,6 +68,15 @@ mixpanel.people.set('billybob', {
     $ip: '127.0.0.1'
 });
 
+// set a user profile's latitude and longitude to get automatic geolocation info
+mixpanel.people.set('billybob', {
+    plan: 'premium',
+    games_played: 1
+}, {
+    $latitude: 40.7127753,
+    $longitude: -74.0059728
+});
+
 // set a single property on a user
 mixpanel.people.set('billybob', 'plan', 'free');
 
