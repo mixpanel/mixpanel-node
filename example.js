@@ -3,7 +3,7 @@ var Mixpanel = require('./lib/mixpanel-node');
 
 // create an instance of the mixpanel client
 var mixpanel = Mixpanel.init('962dbca1bbc54701d402c94d65b4a20e');
-mixpanel.set_config({ debug: true });
+mixpanel.set_config({ debug: true, strict: true });
 
 // track an event with optional properties
 mixpanel.track("my event", {
