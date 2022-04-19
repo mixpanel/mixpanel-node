@@ -142,21 +142,25 @@ exports.send_request = {
 
     "default use keepAlive agent": function(test) {
         test.expect(2);
+        var agent = new https.Agent({ keepAlive: true });
         var httpsStub = {
-          request: Sinon.stub().returns(this.http_emitter).callsArgWith(1, this.res),
-          Agent: Sinon.stub().returns({})
+            request: Sinon.stub().returns(this.http_emitter).callsArgWith(1, this.res),
+            Agent: Sinon.stub().returns(agent),
         };
+        // force SDK not use `undefined` string to initialize proxy-agent
+        delete process.env.HTTP_PROXY
+        delete process.env.HTTPS_PROXY
         Mixpanel = proxyquire('../lib/mixpanel-node', {
             'https': httpsStub
         });
         var proxyMixpanel = Mixpanel.init('token');
         proxyMixpanel.send_request({ endpoint: '', data: {} });
 
+        var getConfig = httpsStub.request.firstCall.args[0];
         var agentOpts = httpsStub.Agent.firstCall.args[0];
         test.ok(agentOpts.keepAlive === true, "HTTP Agent is set to keepAlive by default");
 
-        var getConfig = httpsStub.request.firstCall.args[0];
-        test.ok(getConfig.agent !== undefined, "send_request didn't call https.request with agent");
+        test.ok(getConfig.agent === agent, "send_request didn't call https.request with agent");
 
         test.done();
     },
