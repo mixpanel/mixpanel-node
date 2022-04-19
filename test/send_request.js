@@ -140,6 +140,27 @@ exports.send_request = {
         this.http_emitter.emit('error', 'error');
     },
 
+    "default use keepAlive agent": function(test) {
+        test.expect(2);
+        var httpsStub = {
+          request: Sinon.stub().returns(this.http_emitter).callsArgWith(1, this.res),
+          Agent: Sinon.stub().returns({})
+        };
+        Mixpanel = proxyquire('../lib/mixpanel-node', {
+            'https': httpsStub
+        });
+        var proxyMixpanel = Mixpanel.init('token');
+        proxyMixpanel.send_request({ endpoint: '', data: {} });
+
+        var agentOpts = httpsStub.Agent.firstCall.args[0];
+        test.ok(agentOpts.keepAlive === true, "HTTP Agent is set to keepAlive by default");
+
+        var getConfig = httpsStub.request.firstCall.args[0];
+        test.ok(getConfig.agent !== undefined, "send_request didn't call https.request with agent");
+
+        test.done();
+    },
+
     "uses correct hostname": function(test) {
         var host = 'testhost.fakedomain';
         var customHostnameMixpanel = Mixpanel.init('token', { host: host });
@@ -215,8 +236,9 @@ exports.send_request = {
 
         test.ok(HttpsProxyAgent.calledOnce, "HttpsProxyAgent was not called when process.env.HTTP_PROXY was set");
 
-        var proxyPath = HttpsProxyAgent.firstCall.args[0];
-        test.ok(proxyPath === 'this.aint.real.https', "HttpsProxyAgent was not called with the correct proxy path");
+        var agentOpts = HttpsProxyAgent.firstCall.args[0];
+        test.ok(agentOpts.pathname === "this.aint.real.https", "HttpsProxyAgent was not called with the correct proxy path");
+        test.ok(agentOpts.keepAlive === true, "HttpsProxyAgent was not called with the correct proxy path");
 
         var getConfig = https.request.firstCall.args[0];
         test.ok(getConfig.agent !== undefined, "send_request didn't call https.request with agent");
@@ -234,8 +256,8 @@ exports.send_request = {
 
         test.ok(HttpsProxyAgent.calledOnce, "HttpsProxyAgent was not called when process.env.HTTPS_PROXY was set");
 
-        var proxyPath = HttpsProxyAgent.firstCall.args[0];
-        test.ok(proxyPath === 'this.aint.real.https', "HttpsProxyAgent was not called with the correct proxy path");
+        var proxyOpts = HttpsProxyAgent.firstCall.args[0];
+        test.ok(proxyOpts.pathname === 'this.aint.real.https', "HttpsProxyAgent was not called with the correct proxy path");
 
         var getConfig = https.request.firstCall.args[0];
         test.ok(getConfig.agent !== undefined, "send_request didn't call https.request with agent");
