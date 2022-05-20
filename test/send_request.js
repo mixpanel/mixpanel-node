@@ -142,7 +142,7 @@ exports.send_request = {
 
     "default use keepAlive agent": function(test) {
         test.expect(2);
-        var agent = new https.Agent({ keepAlive: true });
+        var agent = new https.Agent({ keepAlive: false });
         var httpsStub = {
             request: Sinon.stub().returns(this.http_emitter).callsArgWith(1, this.res),
             Agent: Sinon.stub().returns(agent),
@@ -158,8 +158,7 @@ exports.send_request = {
 
         var getConfig = httpsStub.request.firstCall.args[0];
         var agentOpts = httpsStub.Agent.firstCall.args[0];
-        test.ok(agentOpts.keepAlive === true, "HTTP Agent is set to keepAlive by default");
-
+        test.ok(agentOpts.keepAlive === true, "HTTP Agent wasn't initialized with keepAlive by default");
         test.ok(getConfig.agent === agent, "send_request didn't call https.request with agent");
 
         test.done();
