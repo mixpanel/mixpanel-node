@@ -1,3 +1,7 @@
+0.15.0 / 2022-05-20
+==================
+* use keepAlive by default for requests
+
 0.14.0 / 2021-10-29
 ==================
 * support $latitude and $longitude in profile operations (thanks wneild)

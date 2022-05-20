@@ -20,9 +20,14 @@ var Mixpanel = require('mixpanel');
 // create an instance of the mixpanel client
 var mixpanel = Mixpanel.init('<YOUR_TOKEN>');
 
-// initialize mixpanel client configured to communicate over https
+// initialize mixpanel client configured to communicate over http instead of https
 var mixpanel = Mixpanel.init('<YOUR_TOKEN>', {
-    protocol: 'https'
+    protocol: 'http',
+});
+
+// turn off keepAlive (reestablish connection on each request)
+var mixpanel = Mixpanel.init('<YOUR_TOKEN>', {
+    keepAlive: false,
 });
 
 // track an event with optional properties
