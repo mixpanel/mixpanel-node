@@ -13,7 +13,8 @@ exports.config = {
             verbose: false,
             host: 'api.mixpanel.com',
             protocol: 'https',
-            path: ''
+            path: '',
+            keepAlive: true,
         }, "default config is incorrect");
         test.done();
     },
