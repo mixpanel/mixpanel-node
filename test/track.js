@@ -1,8 +1,9 @@
-var proxyquire = require('proxyquire'),
-    Sinon      = require('sinon'),
-    https      = require('https'),
-    events     = require('events'),
-    Mixpanel   = require('../lib/mixpanel-node');
+var proxyquire  = require('proxyquire'),
+    Sinon       = require('sinon'),
+    https       = require('https'),
+    events      = require('events'),
+    Mixpanel    = require('../lib/mixpanel-node'),
+    packageInfo = require('../package.json');
 
 var mock_now_time = new Date(2016, 1, 1).getTime();
 
@@ -91,7 +92,8 @@ exports.track = {
                 properties: {
                     token: 'token',
                     time: time.getTime() / 1000,
-                    mp_lib: 'node'
+                    mp_lib: 'node',
+                    $lib_version: packageInfo.version
                 }
             };
 
@@ -114,7 +116,8 @@ exports.track = {
                 properties: {
                     token: 'token',
                     time: time,
-                    mp_lib: 'node'
+                    mp_lib: 'node',
+                    $lib_version: packageInfo.version
                 }
             };
 
