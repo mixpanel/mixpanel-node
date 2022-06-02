@@ -15,6 +15,7 @@ exports.config = {
             protocol: 'https',
             path: '',
             keepAlive: true,
+            geolocate: false,
         }, "default config is incorrect");
         test.done();
     },
