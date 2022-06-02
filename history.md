@@ -1,3 +1,8 @@
+0.16.0 / 2022-06-02
+==================
+* support automatic geolocation with `geolocate` option (thanks tmpvar)
+* send library version as property with events (thanks ArsalImam)
+
 0.15.0 / 2022-05-20
 ==================
 * use keepAlive by default for requests

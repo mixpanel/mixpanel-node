@@ -254,6 +254,8 @@ Contributions from:
  - [Cameron Diver](https://github.com/CameronDiver)
  - [veerabio](https://github.com/veerabio)
  - [Will Neild](https://github.com/wneild)
+ - [Elijah Insua](https://github.com/tmpvar)
+ - [Arsal Imam](https://github.com/ArsalImam)
 
 License
 -------------------
