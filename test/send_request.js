@@ -119,12 +119,12 @@ exports.send_request = {
         test.done();
     },
 
-    "includes configured request data": function(test) {
+    "sets ip=1 when geolocate option is on": function(test) {
       this.mixpanel.set_config({ geolocate: true });
 
       this.mixpanel.send_request({ method: "get", endpoint: "/track", event: "test", data: {} });
 
-      test.ok(http.request.calledWithMatch({ path: Sinon.match('ip=1') }), "send_request didn't call http.get with correct request data");
+      test.ok(https.request.calledWithMatch({ path: Sinon.match('ip=1') }), "send_request didn't call http.get with correct request data");
 
       test.done();
     },
