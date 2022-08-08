@@ -130,19 +130,6 @@ exports.track = {
         test.done();
     },
 
-    "throws error if time property is older than 5 days": function(test) {
-        var event = 'test',
-            time = mock_now_time - (1000 * 60 * 60 * 24 * 6),
-            props = { time: time };
-
-        test.throws(
-            this.mixpanel.track.bind(this, event, props),
-            /`track` not allowed for event more than 5 days old/,
-            "track didn't throw an error when time was more than 5 days ago"
-        );
-        test.done();
-    },
-
     "throws error if time is not a number or Date": function(test) {
         var event = 'test',
             props = { time: 'not a number or Date' };
