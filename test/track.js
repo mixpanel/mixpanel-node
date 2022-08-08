@@ -91,7 +91,7 @@ exports.track = {
                 event: 'test',
                 properties: {
                     token: 'token',
-                    time: time.getTime() / 1000,
+                    time: time.getTime(),
                     mp_lib: 'node',
                     $lib_version: packageInfo.version
                 }
@@ -108,7 +108,7 @@ exports.track = {
 
     "supports unix timestamp for time": function(test) {
         var event = 'test',
-            time = mock_now_time / 1000,
+            time = mock_now_time,
             props = { time: time },
             expected_endpoint = "/track",
             expected_data = {
@@ -132,7 +132,7 @@ exports.track = {
 
     "throws error if time property is older than 5 days": function(test) {
         var event = 'test',
-            time = (mock_now_time - 1000 * 60 * 60 * 24 * 6) / 1000,
+            time = mock_now_time - (1000 * 60 * 60 * 24 * 6),
             props = { time: time };
 
         test.throws(
