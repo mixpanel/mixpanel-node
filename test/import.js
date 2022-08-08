@@ -5,7 +5,7 @@ var proxyquire = require('proxyquire'),
     Mixpanel   = require('../lib/mixpanel-node');
 
 var mock_now_time = new Date(2016, 1, 1).getTime(),
-    six_days_ago_timestamp = Math.floor(mock_now_time / 1000) - 60 * 60 * 24 * 6;
+    six_days_ago_timestamp = mock_now_time - (1000 * 60 * 60 * 24 * 6);
 
 exports.import = {
     setUp: function(next) {
@@ -50,7 +50,7 @@ exports.import = {
 
     "supports a Date instance greater than 5 days old": function(test) {
         var event = "test",
-            time = new Date(six_days_ago_timestamp * 1000),
+            time = new Date(six_days_ago_timestamp),
             props = { key1: 'val1' },
             expected_endpoint = "/import",
             expected_data = {
@@ -82,7 +82,7 @@ exports.import = {
                 properties: {
                     key1: 'val1',
                     token: 'token',
-                    time: Math.floor(mock_now_time / 1000)
+                    time: Math.floor(mock_now_time)
                 }
             };
 
@@ -98,7 +98,7 @@ exports.import = {
 
     "supports a unix timestamp": function(test) {
         var event = "test",
-            time = mock_now_time / 1000,
+            time = mock_now_time,
             props = { key1: 'val1' },
             expected_endpoint = "/import",
             expected_data = {
@@ -122,7 +122,7 @@ exports.import = {
 
     "requires the time argument to be a number or Date": function(test) {
         test.doesNotThrow(this.mixpanel.import.bind(this, 'test', new Date()));
-        test.doesNotThrow(this.mixpanel.import.bind(this, 'test', Date.now()/1000));
+        test.doesNotThrow(this.mixpanel.import.bind(this, 'test', Date.now()));
         test.throws(
             this.mixpanel.import.bind(this, 'test', 'not a number or Date'),
             /`time` property must be a Date or Unix timestamp/,
