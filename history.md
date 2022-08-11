@@ -1,3 +1,7 @@
+0.17.0 / 2022-08-11
+==================
+* support sending timestamps with millisecond precision
+
 0.16.0 / 2022-06-02
 ==================
 * support automatic geolocation with `geolocate` option (thanks tmpvar)
