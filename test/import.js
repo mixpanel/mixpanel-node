@@ -82,7 +82,7 @@ exports.import = {
                 properties: {
                     key1: 'val1',
                     token: 'token',
-                    time: Math.floor(mock_now_time)
+                    time: mock_now_time
                 }
             };
 
