@@ -7,7 +7,7 @@
     "api",
     "stats"
   ],
-  "version": "0.16.0",
+  "version": "0.17.0",
   "homepage": "https://github.com/mixpanel/mixpanel-node",
   "author": "Carl Sverre",
   "license": "MIT",
