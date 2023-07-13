@@ -19,6 +19,7 @@ declare namespace mixpanel {
     protocol?: string;
     /* API pathname - defaults to `""` */
     path?: '';
+    /* request keepAlive setting - defaults to `true` */
     keepAlive?: boolean;
     /** Geolocate based on client IP (e.g. when running in Electron) - defaults to `false`. 
      * To supply the user's IP manually, set to false and provide the `$ip` property instead.
