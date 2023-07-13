@@ -7,7 +7,23 @@ declare namespace mixpanel {
   type Scalar = string | number | boolean;
 
   export interface InitConfig {
-    [key: string]: any;
+    /* Defaults to `false` */
+    test?: boolean;
+    /* Defaults to `false` */
+    debug?: boolean;
+    /* Enable verbose logging - defaults to `false` */
+    verbose?: boolean;
+    /* API hostname - defaults to `"api.mixpanel.com"` */
+    host?: string;
+    /* API protocol - defaults to `"https"` */
+    protocol?: string;
+    /* API pathname - defaults to `""` */
+    path?: '';
+    keepAlive?: boolean;
+    /** Geolocate based on client IP (e.g. when running in Electron) - defaults to `false`. 
+     * To supply the user's IP manually, set to false and provide the `$ip` property instead.
+     **/
+    geolocate?: false;
   }
 
   export interface PropertyDict {
