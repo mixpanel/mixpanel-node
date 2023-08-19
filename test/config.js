@@ -16,6 +16,7 @@ exports.config = {
             path: '',
             keepAlive: true,
             geolocate: false,
+            logger: console,
         }, "default config is incorrect");
         test.done();
     },

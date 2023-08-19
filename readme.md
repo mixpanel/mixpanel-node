@@ -30,6 +30,12 @@ var mixpanel = Mixpanel.init('<YOUR_TOKEN>', {
     keepAlive: false,
 });
 
+// pass the custom logger (default is console)
+var mixpanel = Mixpanel.init('<YOUR_TOKEN>', {
+    debug: true,
+    logger: pinoLogger, // or bunyan, or any other logger that implements the same interface
+});
+
 // track an event with optional properties
 mixpanel.track('my event', {
     distinct_id: 'some unique client id',

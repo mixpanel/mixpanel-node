@@ -6,8 +6,24 @@ declare namespace mixpanel {
 
   type Scalar = string | number | boolean;
 
+  export interface CustomLogger {
+    trace(message?: any, ...optionalParams: any[]): void;
+    debug(message?: any, ...optionalParams: any[]): void;
+    info(message?: any, ...optionalParams: any[]): void;
+    warn(message?: any, ...optionalParams: any[]): void;
+    error(message?: any, ...optionalParams: any[]): void;
+  }
+
   export interface InitConfig {
-    [key: string]: any;
+    test: boolean;
+    debug: boolean;
+    verbose: boolean;
+    host: string;
+    protocol: string;
+    path: string;
+    keepAlive: boolean;
+    geolocate: boolean;
+    logger: CustomLogger;
   }
 
   export interface PropertyDict {
@@ -45,7 +61,7 @@ declare namespace mixpanel {
   }
 
   interface Mixpanel {
-    init(mixpanelToken: string, config?: InitConfig): Mixpanel;
+    init(mixpanelToken: string, config?: Partial<InitConfig>): Mixpanel;
 
     track(eventName: string, callback?: Callback): void;
     track(eventName: string, properties: PropertyDict, callback?: Callback): void;
