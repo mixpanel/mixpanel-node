@@ -18,13 +18,13 @@ exports.logger = {
         next();
     },
 
-    "is default logger is console object": function(test) {
+    "defaults to console logger": function(test) {
         const loggerName = Object.prototype.toString.call(this.mixpanel.config.logger);
         test.deepEqual(loggerName, '[object console]', "default logger is incorrect");
         test.done();
     },
 
-    "is throws an error on incorrect logger object": function(test) {
+    "throws an error on incorrect logger object": function(test) {
         test.throws(
             () => this.mixpanel.set_config({logger: false}),
             TypeError,
@@ -38,7 +38,7 @@ exports.logger = {
         test.done();
     },
 
-    "is write log for track() method": function(test) {
+    "writes log for track() method": function(test) {
         this.mixpanel.set_config({debug: true});
 
         this.mixpanel.track('test', {foo: 'bar'});
@@ -58,7 +58,7 @@ exports.logger = {
         test.done();
     },
 
-    "is write log for increment() method": function(test) {
+    "writes log for increment() method": function(test) {
         this.mixpanel.set_config({debug: true});
 
         this.mixpanel.people.increment('bob', 'page_views', 1);
@@ -78,7 +78,7 @@ exports.logger = {
         test.done();
     },
 
-    "is write log for remove() method": function(test) {
+    "writes log for remove() method": function(test) {
         this.mixpanel.set_config({debug: true});
 
         this.mixpanel.people.remove('bob', {'browsers': 'firefox'});
