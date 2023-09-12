@@ -262,6 +262,7 @@ Contributions from:
  - [Will Neild](https://github.com/wneild)
  - [Elijah Insua](https://github.com/tmpvar)
  - [Arsal Imam](https://github.com/ArsalImam)
+ - [Aleksei Iatsiuk](https://github.com/iatsiuk)
 
 License
 -------------------

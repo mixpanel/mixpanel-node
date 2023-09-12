@@ -1,3 +1,7 @@
+0.18.0 / 2023-09-12
+==================
+* custom logger support (thanks iatsiuk)
+
 0.17.0 / 2022-08-11
 ==================
 * support sending timestamps with millisecond precision
