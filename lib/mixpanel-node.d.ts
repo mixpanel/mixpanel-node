@@ -21,6 +21,7 @@ declare namespace mixpanel {
     host: string;
     protocol: string;
     path: string;
+    secret: string;
     keepAlive: boolean;
     geolocate: boolean;
     logger: CustomLogger;
