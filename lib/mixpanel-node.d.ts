@@ -24,6 +24,7 @@ declare namespace mixpanel {
     keepAlive: boolean;
     geolocate: boolean;
     logger: CustomLogger;
+    secret: string;
   }
 
   export interface PropertyDict {
