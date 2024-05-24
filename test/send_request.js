@@ -50,8 +50,8 @@ exports.send_request = {
           .catch((err) => {
               test.ok(err, "It should not throw and error");
           });
-      this.res.emit('data', '1');
-      this.res.emit('end');
+         this.res.emit('data', '1');
+         this.res.emit('end');
     },
 
     "sends correct data on GET": function(test) {
@@ -156,10 +156,12 @@ exports.send_request = {
 
     "handles mixpanel errors with promise": function(test) {
         test.expect(1);
-        this.mixpanel.send_request({ endpoint: "/track", data: { event: "test" } }).catch((e) => {
-            test.equal(e.message, 'Mixpanel Server Error: 0', "error did not get passed back to callback");
-            test.done();
-        });
+        this.mixpanel
+            .send_request({ endpoint: "/track", data: { event: "test" } })
+            .catch((e) => {
+                test.equal(e.message, 'Mixpanel Server Error: 0', "error did not get passed back to callback");
+                test.done();
+            });
 
         this.res.emit('data', '0');
         this.res.emit('end');
