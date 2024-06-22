@@ -1,41 +1,37 @@
-var Mixpanel    = require('../lib/mixpanel-node'),
-    Sinon       = require('sinon');
+const Mixpanel = require('../lib/mixpanel-node');
 
-exports.alias = {
-    setUp: function(next) {
-        this.mixpanel = Mixpanel.init('token', { key: 'key' });
+describe('alias', () => {
+    let mixpanel;
+    let sendRequestMock;
+    beforeAll(() => {
+        mixpanel = Mixpanel.init('token', { key: 'key' });
+        vi.spyOn(mixpanel, 'send_request');
+        return () => {
+          mixpanel.send_request.mockRestore();
+        };
+    });
 
-        Sinon.stub(this.mixpanel, 'send_request');
-
-        next();
-    },
-
-    tearDown: function(next) {
-        this.mixpanel.send_request.restore();
-
-        next();
-    },
-
-    "calls send_request with correct endpoint and data": function(test) {
+    it("calls send_request with correct endpoint and data", () => {
         var alias = "test",
             distinct_id = "old_id",
             expected_endpoint = "/track",
             expected_data = {
                 event: '$create_alias',
-                properties: {
+                properties: expect.objectContaining({
                     distinct_id: distinct_id,
                     alias: alias,
-                    token: 'token'
-                }
+                    token: 'token',
+                }),
             };
 
-        this.mixpanel.alias(distinct_id, alias);
+        mixpanel.alias(distinct_id, alias);
 
-        test.ok(
-            this.mixpanel.send_request.calledWithMatch({ endpoint: expected_endpoint, data: expected_data }),
-            "alias didn't call send_request with correct arguments"
+        expect(mixpanel.send_request).toHaveBeenCalledWith(
+            expect.objectContaining({
+              endpoint: expected_endpoint,
+              data: expected_data,
+            }),
+            undefined,
         );
-
-        test.done();
-    }
-};
+    });
+});

@@ -1,369 +1,306 @@
 var proxyquire = require('proxyquire'),
-    Sinon      = require('sinon'),
     https      = require('https'),
     events     = require('events'),
     Mixpanel   = require('../lib/mixpanel-node');
 
 var mock_now_time = new Date(2016, 1, 1).getTime(),
-    six_days_ago_timestamp = mock_now_time - (1000 * 60 * 60 * 24 * 6);
+six_days_ago_timestamp = mock_now_time - 1000 * 60 * 60 * 24 * 6;
 
-exports.import = {
-    setUp: function(next) {
-        this.mixpanel = Mixpanel.init('token', { secret: 'my api secret' });
-        this.clock = Sinon.useFakeTimers(mock_now_time);
+describe('import', () => {
+    let mixpanel;
+    beforeAll(() => {
+        mixpanel = Mixpanel.init('token', { secret: 'my api secret' });
 
-        Sinon.stub(this.mixpanel, 'send_request');
-
-        next();
-    },
-
-    tearDown: function(next) {
-        this.mixpanel.send_request.restore();
-        this.clock.restore();
-
-        next();
-    },
-
-    "calls send_request with correct endpoint and data": function(test) {
-        var event = "test",
+        vi.spyOn(mixpanel, 'send_request');
+    }),
+    afterAll(() => {
+        mixpanel.send_request.mockRestore();
+    }),
+    it('calls send_request with correct endpoint and data', () => {
+        var event = 'test',
             time = six_days_ago_timestamp,
             props = { key1: 'val1' },
-            expected_endpoint = "/import",
+            expected_endpoint = '/import',
             expected_data = {
                 event: 'test',
-                properties: {
+                properties: expect.objectContaining({
                     key1: 'val1',
                     token: 'token',
-                    time: time
-                }
+                    time: time,
+                }),
             };
 
-        this.mixpanel.import(event, time, props);
+        mixpanel.import(event, time, props);
 
-        test.ok(
-            this.mixpanel.send_request.calledWithMatch({ endpoint: expected_endpoint, data: expected_data }),
-            "import didn't call send_request with correct arguments"
+        expect(mixpanel.send_request).toHaveBeenCalledWith(
+            expect.objectContaining({
+                endpoint: expected_endpoint,
+                data: expected_data,
+            }),
+            undefined,
         );
+    });
 
-        test.done();
-    },
-
-    "supports a Date instance greater than 5 days old": function(test) {
-        var event = "test",
+    it('supports a Date instance greater than 5 days old', () => {
+        var event = 'test',
             time = new Date(six_days_ago_timestamp),
             props = { key1: 'val1' },
-            expected_endpoint = "/import",
+            expected_endpoint = '/import',
             expected_data = {
                 event: 'test',
-                properties: {
+                properties: expect.objectContaining({
                     key1: 'val1',
                     token: 'token',
-                    time: six_days_ago_timestamp
-                }
+                    time: six_days_ago_timestamp,
+                }),
             };
 
-        this.mixpanel.import(event, time, props);
+        mixpanel.import(event, time, props);
 
-        test.ok(
-            this.mixpanel.send_request.calledWithMatch({ endpoint: expected_endpoint, data: expected_data }),
-            "import didn't call send_request with correct arguments"
+        expect(mixpanel.send_request).toHaveBeenCalledWith(
+            expect.objectContaining({
+                endpoint: expected_endpoint,
+                data: expected_data,
+            }),
+            undefined,
         );
+    });
 
-        test.done();
-    },
-
-    "supports a Date instance less than 5 days old": function(test) {
-        var event = "test",
+    it('supports a Date instance less than 5 days old', () => {
+        var event = 'test',
             time = new Date(mock_now_time),
             props = { key1: 'val1' },
-            expected_endpoint = "/import",
+            expected_endpoint = '/import',
             expected_data = {
                 event: 'test',
-                properties: {
+                properties: expect.objectContaining({
                     key1: 'val1',
                     token: 'token',
-                    time: mock_now_time
-                }
+                    time: mock_now_time,
+                }),
             };
 
-        this.mixpanel.import(event, time, props);
+        mixpanel.import(event, time, props);
 
-        test.ok(
-            this.mixpanel.send_request.calledWithMatch({ endpoint: expected_endpoint, data: expected_data }),
-            "import didn't call send_request with correct arguments"
+        expect(mixpanel.send_request).toHaveBeenCalledWith(
+            expect.objectContaining({
+                endpoint: expected_endpoint,
+                data: expected_data,
+            }),
+            undefined,
         );
+    });
 
-        test.done();
-    },
-
-    "supports a unix timestamp": function(test) {
-        var event = "test",
+    it('supports a unix timestamp', () => {
+        var event = 'test',
             time = mock_now_time,
             props = { key1: 'val1' },
-            expected_endpoint = "/import",
+            expected_endpoint = '/import',
             expected_data = {
                 event: 'test',
-                properties: {
+                properties: expect.objectContaining({
                     key1: 'val1',
                     token: 'token',
-                    time: time
-                }
+                    time: time,
+                }),
             };
 
-        this.mixpanel.import(event, time, props);
-
-        test.ok(
-            this.mixpanel.send_request.calledWithMatch({ endpoint: expected_endpoint, data: expected_data }),
-            "import didn't call send_request with correct arguments"
+        mixpanel.import(event, time, props);
+        expect(mixpanel.send_request).toHaveBeenCalledWith(
+            expect.objectContaining({
+                endpoint: expected_endpoint,
+                data: expected_data,
+            }),
+            undefined,
         );
+    });
 
-        test.done();
-    },
-
-    "requires the time argument to be a number or Date": function(test) {
-        test.doesNotThrow(this.mixpanel.import.bind(this, 'test', new Date()));
-        test.doesNotThrow(this.mixpanel.import.bind(this, 'test', Date.now()));
-        test.throws(
-            this.mixpanel.import.bind(this, 'test', 'not a number or Date'),
+    it('requires the time argument to be a number or Date', () => {
+        expect(() => mixpanel.import('test', new Date())).not.toThrowError();
+        expect(() => mixpanel.import('test', Date.now())).not.toThrowError();
+        expect(() => mixpanel.import('test', 'not a number or Date')).toThrowError(
             /`time` property must be a Date or Unix timestamp/,
-            "import didn't throw an error when time wasn't a number or Date"
         );
-        test.throws(
-            this.mixpanel.import.bind(this, 'test'),
+        expect(() => mixpanel.import('test')).toThrowError(
             /`time` property must be a Date or Unix timestamp/,
-            "import didn't throw an error when time wasn't specified"
         );
+    });
+});
 
-        test.done();
-    }
-};
+describe('import_batch', () => {
+    let mixpanel;
+    beforeEach(() => {
+        mixpanel = Mixpanel.init('token', { secret: 'my api secret' });
 
-exports.import_batch = {
-    setUp: function(next) {
-        this.mixpanel = Mixpanel.init('token', { secret: 'my api secret' });
-        this.clock = Sinon.useFakeTimers();
+        vi.spyOn(mixpanel, 'send_request');
+    });
 
-        Sinon.stub(this.mixpanel, 'send_request');
+    afterEach(() => {
+        mixpanel.send_request.mockRestore();
+    });
 
-        next();
-    },
-
-    tearDown: function(next) {
-        this.mixpanel.send_request.restore();
-        this.clock.restore();
-
-        next();
-    },
-
-    "calls send_request with correct endpoint, data, and method": function(test) {
-        var expected_endpoint = "/import",
+    it('calls send_request with correct endpoint, data, and method', () => {
+        var expected_endpoint = '/import',
             event_list = [
                 {event: 'test',  properties: {key1: 'val1', time: 500 }},
                 {event: 'test',  properties: {key2: 'val2', time: 1000}},
-                {event: 'test2', properties: {key2: 'val2', time: 1500}}
+                {event: 'test2', properties: {key2: 'val2', time: 1500}},
             ],
             expected_data = [
                 {event: 'test',  properties: {key1: 'val1', time: 500,  token: 'token'}},
                 {event: 'test',  properties: {key2: 'val2', time: 1000, token: 'token'}},
-                {event: 'test2', properties: {key2: 'val2', time: 1500, token: 'token'}}
+                {event: 'test2', properties: {key2: 'val2', time: 1500, token: 'token'}},
             ];
 
-        this.mixpanel.import_batch(event_list);
+        mixpanel.import_batch(event_list);
 
-        test.ok(
-            this.mixpanel.send_request.calledWithMatch({
+        expect(mixpanel.send_request).toHaveBeenCalledWith(
+            {
                 method: 'POST',
                 endpoint: expected_endpoint,
-                data: expected_data
-            }),
-            "import_batch didn't call send_request with correct arguments"
+                data: expected_data,
+            },
+            expect.any(Function)
         );
+    });
 
-        test.done();
-    },
-
-    "requires the time argument for every event": function(test) {
+    it('requires the time argument for every event', () => {
         var event_list = [
-                {event: 'test',  properties: {key1: 'val1', time: 500 }},
-                {event: 'test',  properties: {key2: 'val2', time: 1000}},
-                {event: 'test2', properties: {key2: 'val2'            }}
-            ];
-        test.throws(
-            function() { this.mixpanel.import_batch(event_list); },
-            "Import methods require you to specify the time of the event",
-            "import didn't throw an error when time wasn't specified"
+            { event: 'test', properties: { key1: 'val1', time: 500  } },
+            { event: 'test', properties: { key2: 'val2', time: 1000 } },
+            { event: 'test2', properties: { key2: 'val2'            } },
+        ];
+        expect(() => mixpanel.import_batch(event_list)).toThrowError(
+            '`time` property must be a Date or Unix timestamp and is only required for `import` endpoint',
         );
+    });
 
-        test.done();
-    },
-
-    "batches 50 events at a time": function(test) {
+    it('batches 50 events at a time', () => {
         var event_list = [];
         for (var ei = 0; ei < 130; ei++) { // 3 batches: 50 + 50 + 30
-            event_list.push({event: 'test',  properties: {key1: 'val1', time: 500 + ei }});
-        }
-
-        this.mixpanel.import_batch(event_list);
-
-        test.equals(
-            3, this.mixpanel.send_request.callCount,
-            "import_batch didn't call send_request correct number of times"
-        );
-
-        test.done();
-    }
-};
-
-exports.import_batch_integration = {
-    setUp: function(next) {
-        this.mixpanel = Mixpanel.init('token', { secret: 'my api secret' });
-        this.clock = Sinon.useFakeTimers();
-
-        Sinon.stub(https, 'request');
-
-        this.http_emitter = new events.EventEmitter();
-
-        // stub sequence of https responses
-        this.res = [];
-        for (var ri = 0; ri < 5; ri++) {
-            this.res.push(new events.EventEmitter());
-            https.request.onCall(ri).callsArgWith(1, this.res[ri]);
-            https.request.onCall(ri).returns({
-                write: function () {},
-                end: function () {},
-                on: function(event) {},
+            event_list.push({
+                event: 'test',
+                properties: { key1: 'val1', time: 500 + ei },
             });
         }
 
-        this.event_list = [];
+        mixpanel.import_batch(event_list);
+        expect(mixpanel.send_request).toHaveBeenCalledTimes(3);
+    });
+});
+
+describe('import_batch_integration', () => {
+    let mixpanel;
+    let http_emitter;
+    let event_list;
+    let res;
+    beforeEach(() => {
+        mixpanel = Mixpanel.init('token', { secret: 'my api secret' });
+
+        vi.spyOn(https, 'request');
+
+        http_emitter = new events.EventEmitter();
+
+        // stub sequence of https responses
+        res = [];
+        for (let ri = 0; ri < 5; ri++) {
+            res.push(new events.EventEmitter());
+            https.request.mockImplementationOnce((_, cb) => {
+                cb(res[ri]);
+                return {
+                    write: () => {},
+                    end: () => {},
+                    on: (event) => {},
+                };
+            });
+        }
+
+        event_list = [];
         for (var ei = 0; ei < 130; ei++) { // 3 batches: 50 + 50 + 30
-            this.event_list.push({event: 'test',  properties: {key1: 'val1', time: 500 + ei }});
+            event_list.push({
+                event: 'test',
+                properties: { key1: 'val1', time: 500 + ei },
+            });
         }
+    });
 
-        next();
-    },
+    afterEach(() => {
+        https.request.mockRestore();
+    });
 
-    tearDown: function(next) {
-        https.request.restore();
-        this.clock.restore();
-
-        next();
-    },
-
-    "calls provided callback after all requests finish": function(test) {
-        test.expect(2);
-        this.mixpanel.import_batch(this.event_list, function(error_list) {
-            test.equals(
-                3, https.request.callCount,
-                "import_batch didn't call send_request correct number of times before callback"
-            );
-            test.equals(
-                null, error_list,
-                "import_batch returned errors in callback unexpectedly"
-            );
-            test.done();
+    it('calls provided callback after all requests finish', () => {
+        mixpanel.import_batch(event_list, function (error_list) {
+            expect(https.request).toHaveBeenCalledTimes(3);
+            expect(error_list).toBe(null);
         });
         for (var ri = 0; ri < 3; ri++) {
-            this.res[ri].emit('data', '1');
-            this.res[ri].emit('end');
+            res[ri].emit('data', '1');
+            res[ri].emit('end');
         }
-    },
+    });
 
-    "passes error list to callback": function(test) {
-        test.expect(1);
-        this.mixpanel.import_batch(this.event_list, function(error_list) {
-            test.equals(
-                3, error_list.length,
-                "import_batch didn't return errors in callback"
-            );
-            test.done();
+    it('passes error list to callback', () => {
+        mixpanel.import_batch(event_list, function (error_list) {
+            expect(error_list.length).toBe(3);
         });
         for (var ri = 0; ri < 3; ri++) {
-            this.res[ri].emit('data', '0');
-            this.res[ri].emit('end');
+            res[ri].emit('data', '0');
+            res[ri].emit('end');
         }
-    },
+    });
 
-    "calls provided callback when options are passed": function(test) {
-        test.expect(2);
-        this.mixpanel.import_batch(this.event_list, {max_batch_size: 100}, function(error_list) {
-            test.equals(
-                3, https.request.callCount,
-                "import_batch didn't call send_request correct number of times before callback"
-            );
-            test.equals(
-                null, error_list,
-                "import_batch returned errors in callback unexpectedly"
-            );
-            test.done();
+    it('calls provided callback when options are passed', () => {
+        mixpanel.import_batch(event_list, { max_batch_size: 100 }, function (error_list) {
+            expect(https.request).toHaveBeenCalledTimes(3);
+            expect(error_list).toBe(null);
         });
         for (var ri = 0; ri < 3; ri++) {
-            this.res[ri].emit('data', '1');
-            this.res[ri].emit('end');
+            res[ri].emit('data', '1');
+            res[ri].emit('end');
         }
-    },
+    });
 
-    "sends more requests when max_batch_size < 50": function(test) {
-        test.expect(2);
-        this.mixpanel.import_batch(this.event_list, {max_batch_size: 30}, function(error_list) {
-            test.equals(
-                5, https.request.callCount, // 30 + 30 + 30 + 30 + 10
-                "import_batch didn't call send_request correct number of times before callback"
-            );
-            test.equals(
-                null, error_list,
-                "import_batch returned errors in callback unexpectedly"
-            );
-            test.done();
+    it('sends more requests when max_batch_size < 50', () => {
+        mixpanel.import_batch(event_list, { max_batch_size: 30 }, function (error_list) {
+            expect(https.request).toHaveBeenCalledTimes(5); // 30 + 30 + 30 + 30 + 10
+            expect(error_list).toBe(null);
         });
         for (var ri = 0; ri < 5; ri++) {
-            this.res[ri].emit('data', '1');
-            this.res[ri].emit('end');
+            res[ri].emit('data', '1');
+            res[ri].emit('end');
         }
-    },
+    });
 
-    "can set max concurrent requests": function(test) {
-        var async_all_stub = Sinon.stub();
+    it('can set max concurrent requests', () => {
+        var async_all_stub = vi.fn();
         var PatchedMixpanel = proxyquire('../lib/mixpanel-node', {
-            './utils': {async_all: async_all_stub},
+            './utils': { async_all: async_all_stub },
         });
-        async_all_stub.callsArgWith(2, null);
-        this.mixpanel = PatchedMixpanel.init('token', { secret: 'my api secret' });
+        async_all_stub.mockImplementationOnce((_, __, cb) => cb(null));
+        mixpanel = PatchedMixpanel.init('token', { secret: 'my api secret' });
 
-        test.expect(2);
-        this.mixpanel.import_batch(this.event_list, {max_batch_size: 30, max_concurrent_requests: 2}, function(error_list) {
-            // should send 5 event batches over 3 request batches:
-            // request batch 1: 30 events, 30 events
-            // request batch 2: 30 events, 30 events
-            // request batch 3: 10 events
-            test.equals(
-                3, async_all_stub.callCount,
-                "import_batch didn't batch concurrent https requests correctly"
-            );
-            test.equals(
-                null, error_list,
-                "import_batch returned errors in callback unexpectedly"
-            );
-            test.done();
-        });
+        mixpanel.import_batch(
+            event_list,
+            { max_batch_size: 30, max_concurrent_requests: 2 },
+            function (error_list) {
+                // should send 5 event batches over 3 request batches:
+                // request batch 1: 30 events, 30 events
+                // request batch 2: 30 events, 30 events
+                // request batch 3: 10 events
+                expect(async_all_stub).toHaveBeenCalledTimes(3);
+                expect(error_list).toBe(null);
+            },
+        );
         for (var ri = 0; ri < 5; ri++) {
-            this.res[ri].emit('data', '1');
-            this.res[ri].emit('end');
+            res[ri].emit('data', '1');
+            res[ri].emit('end');
         }
-    },
+    });
 
-    "behaves well without a callback": function(test) {
-        test.expect(2);
-        this.mixpanel.import_batch(this.event_list);
-        test.equals(
-            3, https.request.callCount,
-            "import_batch didn't call send_request correct number of times"
-        );
-        this.mixpanel.import_batch(this.event_list, {max_batch_size: 100});
-        test.equals(
-            5, https.request.callCount, // 3 + 100 / 50; last request starts async
-            "import_batch didn't call send_request correct number of times"
-        );
-        test.done();
-    }
-};
+    it('behaves well without a callback', () => {
+        mixpanel.import_batch(event_list);
+        expect(https.request).toHaveBeenCalledTimes(3);
+        mixpanel.import_batch(event_list, { max_batch_size: 100 });
+        expect(https.request).toHaveBeenCalledTimes(5);
+    });
+});
