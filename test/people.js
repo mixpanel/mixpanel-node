@@ -5,13 +5,14 @@ describe('people', () => {
     const endpoint = '/engage';
     const distinct_id = 'user1';
     const token = 'token';
-    let send_request;
     let mixpanel;
     beforeEach(() => {
-        send_request = vi.fn();
-
         mixpanel = Mixpanel.init(token);
-        mixpanel.send_request = send_request
+        vi.spyOn(mixpanel, 'send_request')
+
+        return () => {
+          mixpanel.send_request.mockRestore();
+        }
     });
 
     // shared test case
@@ -44,7 +45,7 @@ describe('people', () => {
             { method: 'GET', endpoint, data: expected_data },
             use_callback ? callback : undefined,
         ];
-        expect(send_request).toHaveBeenCalledWith(...expectedSendRequestArgs)
+        expect(mixpanel.send_request).toHaveBeenCalledWith(...expectedSendRequestArgs)
     };
 
     describe("_set", () => {
