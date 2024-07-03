@@ -14,11 +14,11 @@ describe('track', () => {
         vi.useFakeTimers();
         vi.setSystemTime(mock_now_time);
         vi.spyOn(mixpanel, 'send_request');
-    });
 
-    afterAll(() => {
-        vi.useRealTimers();
-        mixpanel.send_request.mockRestore();
+        return () => {
+            vi.useRealTimers();
+            mixpanel.send_request.mockRestore();
+        }
     });
 
     it('calls send_request with correct endpoint and data', () => {
@@ -155,11 +155,11 @@ describe('track_batch', () => {
         mixpanel = Mixpanel.init('token');
         vi.useFakeTimers();
         vi.spyOn(mixpanel, 'send_request');
-    });
 
-    afterEach(() => {
-        vi.useRealTimers();
-        mixpanel.send_request.mockRestore();
+        return () => {
+            vi.useRealTimers();
+            mixpanel.send_request.mockRestore();
+        }
     });
 
     it('calls send_request with correct endpoint, data, and method', () => {
@@ -242,10 +242,10 @@ describe('track_batch_integration', () => {
         for (var ei = 0; ei < 130; ei++) {// 3 batches: 50 + 50 + 30
             event_list.push({event: 'test', properties: { key1: 'val1', time: 500 + ei }});
         }
-    });
 
-    afterEach(() => {
-        vi.restoreAllMocks();
+        return () => {
+            vi.restoreAllMocks();
+        }
     });
 
     it('calls provided callback after all requests finish', () => {

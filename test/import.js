@@ -4,18 +4,20 @@ var proxyquire = require('proxyquire'),
     Mixpanel   = require('../lib/mixpanel-node');
 
 var mock_now_time = new Date(2016, 1, 1).getTime(),
-six_days_ago_timestamp = mock_now_time - 1000 * 60 * 60 * 24 * 6;
+    six_days_ago_timestamp = mock_now_time - 1000 * 60 * 60 * 24 * 6;
 
 describe('import', () => {
     let mixpanel;
-    beforeAll(() => {
+    beforeEach(() => {
         mixpanel = Mixpanel.init('token', { secret: 'my api secret' });
 
         vi.spyOn(mixpanel, 'send_request');
-    }),
-    afterAll(() => {
-        mixpanel.send_request.mockRestore();
-    }),
+
+        return () => {
+            mixpanel.send_request.mockRestore();
+        }
+    });
+
     it('calls send_request with correct endpoint and data', () => {
         var event = 'test',
             time = six_days_ago_timestamp,
@@ -133,10 +135,10 @@ describe('import_batch', () => {
         mixpanel = Mixpanel.init('token', { secret: 'my api secret' });
 
         vi.spyOn(mixpanel, 'send_request');
-    });
 
-    afterEach(() => {
-        mixpanel.send_request.mockRestore();
+        return () => {
+            mixpanel.send_request.mockRestore();
+        };
     });
 
     it('calls send_request with correct endpoint, data, and method', () => {
@@ -222,10 +224,10 @@ describe('import_batch_integration', () => {
                 properties: { key1: 'val1', time: 500 + ei },
             });
         }
-    });
 
-    afterEach(() => {
-        https.request.mockRestore();
+        return () => {
+            https.request.mockRestore();
+        }
     });
 
     it('calls provided callback after all requests finish', () => {

@@ -10,7 +10,7 @@ describe("send_request", () => {
     let mixpanel;
     let http_emitter;
     let res;
-    beforeEach((next) => {
+    beforeEach(() => {
         HttpsProxyAgent = vi.fn();
         Mixpanel = proxyquire('../lib/mixpanel-node', {
             'https-proxy-agent': HttpsProxyAgent,
@@ -27,14 +27,14 @@ describe("send_request", () => {
         http_emitter.end = vi.fn();
 
         mixpanel = Mixpanel.init('token');
-    });
 
-    afterEach(() => {
-        https.request.mockRestore();
+        return () => {
+            https.request.mockRestore();
 
-        // restore proxy variables
-        process.env.HTTP_PROXY = httpProxyOrig;
-        process.env.HTTPS_PROXY = httpsProxyOrig;
+            // restore proxy variables
+            process.env.HTTP_PROXY = httpProxyOrig;
+            process.env.HTTPS_PROXY = httpsProxyOrig;
+        }
     });
 
     it("sends correct data on GET", () => {

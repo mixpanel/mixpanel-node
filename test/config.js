@@ -2,7 +2,7 @@ const Mixpanel = require('../lib/mixpanel-node');
 
 describe('config', () => {
     let mixpanel;
-    beforeAll(() => {
+    beforeEach(() => {
         mixpanel = Mixpanel.init('asjdf');
     })
     it("is set to correct defaults", () => {
