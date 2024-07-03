@@ -1,13 +1,12 @@
-var Mixpanel = require('../lib/mixpanel-node');
+const Mixpanel = require('../lib/mixpanel-node');
 
-exports.config = {
-    setUp: function(cb) {
-        this.mixpanel = Mixpanel.init('asjdf');
-        cb();
-    },
-
-    "is set to correct defaults": function(test) {
-        test.deepEqual(this.mixpanel.config, {
+describe('config', () => {
+    let mixpanel;
+    beforeEach(() => {
+        mixpanel = Mixpanel.init('asjdf');
+    })
+    it("is set to correct defaults", () => {
+        expect(mixpanel.config).toEqual({
             test: false,
             debug: false,
             verbose: false,
@@ -17,38 +16,32 @@ exports.config = {
             keepAlive: true,
             geolocate: false,
             logger: console,
-        }, "default config is incorrect");
-        test.done();
-    },
+        });
+    });
 
-    "is modified by set_config": function(test) {
-        test.equal(this.mixpanel.config.test, false, "default config has incorrect value for test");
+    it("is modified by set_config", () => {
+        expect(mixpanel.config.test).toBe(false);
 
-        this.mixpanel.set_config({ test: true });
+        mixpanel.set_config({ test: true });
 
-        test.equal(this.mixpanel.config.test, true, "set_config failed to modify the config");
+        expect(mixpanel.config.test).toBe(true);
+    });
 
-        test.done();
-    },
-
-    "can be set during init": function(test) {
+    it("can be set during init", () => {
         var mp = Mixpanel.init('token', { test: true });
 
-        test.equal(mp.config.test, true, "init() didn't set the config correctly");
-        test.done();
-    },
+        expect(mp.config.test).toBe(true);
+    });
 
-    "host config is split into host and port": function(test) {
+    it("host config is split into host and port", () => {
         const exampleHost = 'api.example.com';
         const examplePort = 70;
         const hostWithoutPortConfig = Mixpanel.init('token', {host: exampleHost}).config;
-        test.equal(hostWithoutPortConfig.port, undefined, "port should not have been added to config");
-        test.equal(hostWithoutPortConfig.host, exampleHost, `host should match ${exampleHost}`);
+        expect(hostWithoutPortConfig.port).toEqual(undefined);
+        expect(hostWithoutPortConfig.host).toEqual(exampleHost);
 
         const hostWithPortConfig = Mixpanel.init('token', {host: `${exampleHost}:${examplePort}`}).config;
-        test.equal(hostWithPortConfig.port, examplePort, "port should have been added to config");
-        test.equal(hostWithPortConfig.host, exampleHost, `host should match ${exampleHost}`);
-
-        test.done();
-    },
-};
+        expect(hostWithPortConfig.port).toBe(examplePort);
+        expect(hostWithPortConfig.host).toBe(exampleHost);
+    });
+});

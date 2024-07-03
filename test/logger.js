@@ -1,106 +1,73 @@
-const Sinon = require('sinon');
 const Mixpanel = require('../lib/mixpanel-node');
 
-exports.logger = {
-    'console logger': {
-        setUp: function(cb) {
-            this.consoleDebugFn = Sinon.stub(console, 'debug');
+describe("logger", () => {
+    describe("console logger", () => {
+        let mixpanel;
+        let consoleDebugFn;
+        beforeAll(() => {
+            consoleDebugFn = vi.spyOn(console, 'debug').mockImplementation(() => {});
 
-            this.mixpanel = Mixpanel.init('test token');
+            mixpanel = Mixpanel.init('test token');
+            mixpanel.send_request = () => {};
+            return () => {
+                consoleDebugFn.mockRestore();
+            };
+        });
 
-            this.mixpanel.send_request = () => {};
+        it("defaults to console logger", () => {
+            const loggerName = Object.prototype.toString.call(mixpanel.config.logger);
+            expect(loggerName).toBe('[object console]');
+        });
 
-            cb();
-        },
+        it("throws an error on incorrect logger object", () => {
+            expect(() => mixpanel.set_config({ logger: false }))
+                .toThrow(new TypeError('"logger" must be a valid Logger object'));
+            expect(() => mixpanel.set_config({logger: {log: () => {}}}))
+                .toThrow(new TypeError('Logger object missing "trace" method'));
+        });
 
-        tearDown: function(next) {
-            this.consoleDebugFn.restore();
+        it("writes log for track() method", () => {
+            mixpanel.set_config({debug: true});
 
-            next();
-        },
+            mixpanel.track('test', {foo: 'bar'});
 
-        "defaults to console logger": function(test) {
-            const loggerName = Object.prototype.toString.call(this.mixpanel.config.logger);
-            test.deepEqual(loggerName, '[object console]', "default logger is incorrect");
-            test.done();
-        },
+            expect(consoleDebugFn).toHaveBeenCalledTimes(1);
 
-        "throws an error on incorrect logger object": function(test) {
-            test.throws(
-                () => this.mixpanel.set_config({logger: false}),
-                TypeError,
-                "logger object must be a valid Logger object"
-            );
-            test.throws(
-                () => this.mixpanel.set_config({logger: {log: () => {}}}),
-                TypeError,
-                "logger object must be a valid Logger object"
-            );
-            test.done();
-        },
+            const [message] = consoleDebugFn.mock.calls[0];
 
-        "writes log for track() method": function(test) {
-            this.mixpanel.set_config({debug: true});
+            expect(message).toMatch(/Sending the following event/);
+        });
 
-            this.mixpanel.track('test', {foo: 'bar'});
+        it("writes log for increment() method", () => {
+            mixpanel.set_config({debug: true});
 
-            test.ok(
-                this.consoleDebugFn.calledOnce,
-                `debug() method wasn't called on default logger`
-            );
+            mixpanel.people.increment('bob', 'page_views', 1);
 
-            const [message] = this.consoleDebugFn.lastCall.args;
+            expect(consoleDebugFn).toHaveBeenCalledTimes(2);
 
-            test.ok(
-                message.startsWith('Sending the following event'),
-                'incorrect argument was passed to debug() method'
-            );
+            const [message] = consoleDebugFn.mock.calls[1];
 
-            test.done();
-        },
+            expect(message).toMatch(/Sending the following data/);
+        });
 
-        "writes log for increment() method": function(test) {
-            this.mixpanel.set_config({debug: true});
+        it("writes log for remove() method", () => {
+            mixpanel.set_config({debug: true});
 
-            this.mixpanel.people.increment('bob', 'page_views', 1);
+            mixpanel.people.remove('bob', {'browsers': 'firefox'});
 
-            test.ok(
-                this.consoleDebugFn.calledOnce,
-                `debug() method wasn't called on default logger`
-            );
+            expect(consoleDebugFn).toHaveBeenCalledTimes(3);
 
-            const [message] = this.consoleDebugFn.lastCall.args;
+            const [message] = consoleDebugFn.mock.calls[2];
 
-            test.ok(
-                message.startsWith('Sending the following data'),
-                'incorrect argument was passed to debug() method'
-            );
+            expect(message).toMatch(/Sending the following data/);
+        });
+    });
 
-            test.done();
-        },
-
-        "writes log for remove() method": function(test) {
-            this.mixpanel.set_config({debug: true});
-
-            this.mixpanel.people.remove('bob', {'browsers': 'firefox'});
-
-            test.ok(
-                this.consoleDebugFn.calledOnce,
-                `debug() method wasn't called on default logger`
-            );
-
-            const [message] = this.consoleDebugFn.lastCall.args;
-
-            test.ok(
-                message.startsWith('Sending the following data'),
-                'incorrect argument was passed to debug() method'
-            );
-
-            test.done();
-        },
-    },
-    'custom logger': {
-        setUp: function(cb) {
+    describe('custom logger', () => {
+        let mixpanel;
+        let customLogger;
+        let consoleDebugFn;
+        beforeAll((cb) => {
             /**
              * Custom logger must be an object with the following methods:
              * 
@@ -112,98 +79,60 @@ exports.logger = {
              *     error(message?: any, ...optionalParams: any[]): void;
              * }
              */
-            this.customLogger = {
-                trace: Sinon.stub(),
-                debug: Sinon.stub(),
-                info: Sinon.stub(),
-                warn: Sinon.stub(),
-                error: Sinon.stub(),
+            customLogger = {
+                trace: vi.fn(),
+                debug: vi.fn(),
+                info: vi.fn(),
+                warn: vi.fn(),
+                error: vi.fn(),
             };
-            this.consoleDebugFn = Sinon.stub(console, 'debug');
+            consoleDebugFn = vi.spyOn(console, 'debug');
 
-            this.mixpanel = Mixpanel.init('test token', {logger: this.customLogger});
+            mixpanel = Mixpanel.init('test token', {logger: customLogger});
 
-            this.mixpanel.send_request = () => {};
+            mixpanel.send_request = () => {};
 
-            cb();
-        },
+            return () => {
+                consoleDebugFn.mockRestore();
+            }
+        });
 
-        tearDown: function(next) {
-            this.consoleDebugFn.restore();
+        it("writes log for track() method", () => {
+            mixpanel.set_config({debug: true});
 
-            next();
-        },
+            mixpanel.track('test', {foo: 'bar'});
 
-        "writes log for track() method": function(test) {
-            this.mixpanel.set_config({debug: true});
+            expect(customLogger.debug).toHaveBeenCalledTimes(1);
+            expect(consoleDebugFn).toHaveBeenCalledTimes(0);
 
-            this.mixpanel.track('test', {foo: 'bar'});
+            const [message] = customLogger.debug.mock.calls[0];
 
-            test.ok(
-                this.customLogger.debug.calledOnce,
-                `debug() method wasn't called on default logger`
-            );
-            test.ok(
-                !this.consoleDebugFn.calledOnce,
-                `console.debug() method was called while it shouldn't`
-            );
+            expect(message).toMatch(/Sending the following event/)
+        });
 
-            const [message] = this.customLogger.debug.lastCall.args;
+        it("writes log for increment() method", () => {
+            mixpanel.set_config({debug: true});
 
-            test.ok(
-                message.startsWith('Sending the following event'),
-                'incorrect argument was passed to debug() method'
-            );
+            mixpanel.people.increment('bob', 'page_views', 1);
 
-            test.done();
-        },
+            expect(customLogger.debug).toHaveBeenCalledTimes(2);
+            expect(consoleDebugFn).toHaveBeenCalledTimes(0);
 
-        "writes log for increment() method": function(test) {
-            this.mixpanel.set_config({debug: true});
+            const [message] = customLogger.debug.mock.calls[1];
 
-            this.mixpanel.people.increment('bob', 'page_views', 1);
+            expect(message).toMatch(/Sending the following data/);
+        });
 
-            test.ok(
-                this.customLogger.debug.calledOnce,
-                `debug() method wasn't called on default logger`
-            );
-            test.ok(
-                !this.consoleDebugFn.calledOnce,
-                `console.debug() method was called while it shouldn't`
-            );
+        it("writes log for remove() method", (test) => {
+            mixpanel.set_config({debug: true});
 
-            const [message] = this.customLogger.debug.lastCall.args;
+            mixpanel.people.remove('bob', {'browsers': 'firefox'});
+            expect(customLogger.debug).toHaveBeenCalledTimes(3);
+            expect(consoleDebugFn).toHaveBeenCalledTimes(0);
 
-            test.ok(
-                message.startsWith('Sending the following data'),
-                'incorrect argument was passed to debug() method'
-            );
+            const [message] = customLogger.debug.mock.calls[2];
 
-            test.done();
-        },
-
-        "writes log for remove() method": function(test) {
-            this.mixpanel.set_config({debug: true});
-
-            this.mixpanel.people.remove('bob', {'browsers': 'firefox'});
-
-            test.ok(
-                this.customLogger.debug.calledOnce,
-                `debug() method wasn't called on default logger`
-            );
-            test.ok(
-                !this.consoleDebugFn.calledOnce,
-                `console.debug() method was called while it shouldn't`
-            );
-
-            const [message] = this.customLogger.debug.lastCall.args;
-
-            test.ok(
-                message.startsWith('Sending the following data'),
-                'incorrect argument was passed to debug() method'
-            );
-
-            test.done();
-        },
-    },
-};
+            expect(message).toMatch(/Sending the following data/)
+        });
+    });
+});

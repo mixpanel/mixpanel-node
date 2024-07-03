@@ -1,5 +1,4 @@
 let Mixpanel;
-const Sinon = require('sinon');
 const proxyquire = require('proxyquire');
 const https = require('https');
 const events = require('events');
@@ -7,40 +6,38 @@ const httpProxyOrig  = process.env.HTTP_PROXY;
 const httpsProxyOrig = process.env.HTTPS_PROXY;
 let HttpsProxyAgent;
 
-exports.send_request = {
-    setUp: function(next) {
-        HttpsProxyAgent = Sinon.stub();
+describe("send_request", () => {
+    let mixpanel;
+    let http_emitter;
+    let res;
+    beforeEach(() => {
+        HttpsProxyAgent = vi.fn();
         Mixpanel = proxyquire('../lib/mixpanel-node', {
             'https-proxy-agent': HttpsProxyAgent,
         });
 
-        Sinon.stub(https, 'request');
+        http_emitter = new events.EventEmitter();
+        res = new events.EventEmitter();
+        vi.spyOn(https, 'request')
+            .mockImplementation((_, cb) => {
+                cb(res);
+                return http_emitter;
+            })
+        http_emitter.write = vi.fn();
+        http_emitter.end = vi.fn();
 
-        this.http_emitter = new events.EventEmitter;
-        this.http_end_spy = Sinon.spy();
-        this.http_write_spy = Sinon.spy();
-        this.http_emitter.write = this.http_write_spy;
-        this.http_emitter.end = this.http_end_spy;
-        this.res = new events.EventEmitter;
-        https.request.returns(this.http_emitter);
-        https.request.callsArgWith(1, this.res);
+        mixpanel = Mixpanel.init('token');
 
-        this.mixpanel = Mixpanel.init('token');
+        return () => {
+            https.request.mockRestore();
 
-        next();
-    },
+            // restore proxy variables
+            process.env.HTTP_PROXY = httpProxyOrig;
+            process.env.HTTPS_PROXY = httpsProxyOrig;
+        }
+    });
 
-    tearDown: function(next) {
-        https.request.restore();
-
-        // restore proxy variables
-        process.env.HTTP_PROXY = httpProxyOrig;
-        process.env.HTTPS_PROXY = httpsProxyOrig;
-
-        next();
-    },
-
-    "sends correct data on GET": function(test) {
+    it("sends correct data on GET", () => {
         var endpoint = "/track",
             data = {
                 event: 'test',
@@ -57,17 +54,16 @@ exports.send_request = {
                 path: '/track?ip=0&verbose=0&data=eyJldmVudCI6InRlc3QiLCJwcm9wZXJ0aWVzIjp7ImtleTEiOiJ2YWwxIiwidG9rZW4iOiJ0b2tlbiIsInRpbWUiOjEzNDY4NzY2MjF9fQ%3D%3D'
             };
 
-        this.mixpanel.send_request({ method: 'get', endpoint: endpoint, data: data });
+        mixpanel.send_request({ method: 'get', endpoint: endpoint, data: data });
+        expect(https.request).toHaveBeenCalledWith(
+            expect.objectContaining(expected_http_request),
+            expect.any(Function)
+        );
+        expect(http_emitter.end).toHaveBeenCalledTimes(1);
+        expect(http_emitter.write).toHaveBeenCalledTimes(0);
+    });
 
-        test.expect(3);
-        test.ok(https.request.calledWithMatch(expected_http_request), "send_request didn't call https.request with correct arguments");
-        test.ok(this.http_end_spy.callCount === 1, "send_request didn't end https.request");
-        test.ok(this.http_write_spy.callCount === 0, "send_request called write for a GET");
-
-        test.done();
-    },
-
-    "defaults to GET": function(test) {
+    it("defaults to GET", () => {
         var endpoint = "/track",
             data = {
                 event: 'test',
@@ -84,14 +80,15 @@ exports.send_request = {
                 path: '/track?ip=0&verbose=0&data=eyJldmVudCI6InRlc3QiLCJwcm9wZXJ0aWVzIjp7ImtleTEiOiJ2YWwxIiwidG9rZW4iOiJ0b2tlbiIsInRpbWUiOjEzNDY4NzY2MjF9fQ%3D%3D'
             };
 
-        this.mixpanel.send_request({ endpoint: endpoint, data: data }); // method option not defined
+        mixpanel.send_request({ endpoint: endpoint, data: data }); // method option not defined
 
-        test.ok(https.request.calledWithMatch(expected_http_request), "send_request didn't call https.request with correct method argument");
+        expect(https.request).toHaveBeenCalledWith(
+            expect.objectContaining(expected_http_request),
+            expect.any(Function),
+        );
+    });
 
-        test.done();
-    },
-
-    "sends correct data on POST": function(test) {
+    it("sends correct data on POST", () => {
         var endpoint = "/track",
             data = {
                 event: 'test',
@@ -104,58 +101,58 @@ exports.send_request = {
             expected_http_request = {
                 method: 'POST',
                 host: 'api.mixpanel.com',
-                headers: {},
+                headers: expect.any(Object),
                 path: '/track?ip=0&verbose=0'
             },
             expected_http_request_body = "data=eyJldmVudCI6InRlc3QiLCJwcm9wZXJ0aWVzIjp7ImtleTEiOiJ2YWwxIiwidG9rZW4iOiJ0b2tlbiIsInRpbWUiOjEzNDY4NzY2MjF9fQ==";
 
-        this.mixpanel.send_request({ method: 'post', endpoint: endpoint, data: data });
+        mixpanel.send_request({ method: 'post', endpoint: endpoint, data: data });
 
-        test.expect(3);
-        test.ok(https.request.calledWithMatch(expected_http_request), "send_request didn't call https.request with correct arguments");
-        test.ok(this.http_end_spy.callCount === 1, "send_request didn't end https.request");
-        test.ok(this.http_write_spy.calledWithExactly(expected_http_request_body), "send_request did not write data correctly for a POST");
+        expect(https.request).toHaveBeenCalledWith(
+            expect.objectContaining(expected_http_request),
+            expect.any(Function),
+        );
+        expect(http_emitter.end).toHaveBeenCalledTimes(1);
+        expect(http_emitter.write).toHaveBeenCalledWith(expected_http_request_body);
+    });
 
-        test.done();
-    },
+    it("sets ip=1 when geolocate option is on", () => {
+      mixpanel.set_config({ geolocate: true });
 
-    "sets ip=1 when geolocate option is on": function(test) {
-      this.mixpanel.set_config({ geolocate: true });
+      mixpanel.send_request({ method: "get", endpoint: "/track", event: "test", data: {} });
 
-      this.mixpanel.send_request({ method: "get", endpoint: "/track", event: "test", data: {} });
+      expect(https.request).toHaveBeenCalledWith(
+          expect.objectContaining({
+              path: expect.stringContaining('ip=1'),
+          }),
+          expect.any(Function),
+      );
+    });
 
-      test.ok(https.request.calledWithMatch({ path: Sinon.match('ip=1') }), "send_request didn't call http.get with correct request data");
-
-      test.done();
-    },
-
-    "handles mixpanel errors": function(test) {
-        test.expect(1);
-        this.mixpanel.send_request({ endpoint: "/track", data: { event: "test" } }, function(e) {
-            test.equal(e.message, 'Mixpanel Server Error: 0', "error did not get passed back to callback");
-            test.done();
+    it("handles mixpanel errors", () => {
+        mixpanel.send_request({ endpoint: "/track", data: { event: "test" } }, function(e) {
+            expect(e.message).toBe('Mixpanel Server Error: 0')
         });
 
-        this.res.emit('data', '0');
-        this.res.emit('end');
-    },
+        res.emit('data', '0');
+        res.emit('end');
+    });
 
-    "handles https.request errors": function(test) {
-        test.expect(1);
-        this.mixpanel.send_request({ endpoint: "/track", data: { event: "test" } }, function(e) {
-            test.equal(e, 'error', "error did not get passed back to callback");
-            test.done();
+    it("handles https.request errors", () => {
+        mixpanel.send_request({ endpoint: "/track", data: { event: "test" } }, function(e) {
+            expect(e).toBe('error');
         });
+        http_emitter.emit('error', 'error');
+    });
 
-        this.http_emitter.emit('error', 'error');
-    },
-
-    "default use keepAlive agent": function(test) {
-        test.expect(2);
+    it("default use keepAlive agent", () => {
         var agent = new https.Agent({ keepAlive: false });
         var httpsStub = {
-            request: Sinon.stub().returns(this.http_emitter).callsArgWith(1, this.res),
-            Agent: Sinon.stub().returns(agent),
+            request: vi.fn().mockImplementation((_, cb) => {
+                cb(res)
+                return http_emitter;
+             }),
+            Agent: vi.fn().mockReturnValue(agent),
         };
         // force SDK not use `undefined` string to initialize proxy-agent
         delete process.env.HTTP_PROXY
@@ -166,15 +163,13 @@ exports.send_request = {
         var proxyMixpanel = Mixpanel.init('token');
         proxyMixpanel.send_request({ endpoint: '', data: {} });
 
-        var getConfig = httpsStub.request.firstCall.args[0];
-        var agentOpts = httpsStub.Agent.firstCall.args[0];
-        test.ok(agentOpts.keepAlive === true, "HTTP Agent wasn't initialized with keepAlive by default");
-        test.ok(getConfig.agent === agent, "send_request didn't call https.request with agent");
+        var getConfig = httpsStub.request.mock.calls[0][0];
+        var agentOpts = httpsStub.Agent.mock.calls[0][0];
+        expect(agentOpts.keepAlive).toBe(true);
+        expect(getConfig.agent).toBe(agent);
+    });
 
-        test.done();
-    },
-
-    "uses correct hostname": function(test) {
+    it("uses correct hostname", () => {
         var host = 'testhost.fakedomain';
         var customHostnameMixpanel = Mixpanel.init('token', { host: host });
         var expected_http_request = {
@@ -183,12 +178,13 @@ exports.send_request = {
 
         customHostnameMixpanel.send_request({ endpoint: "", data: {} });
 
-        test.ok(https.request.calledWithMatch(expected_http_request), "send_request didn't call https.request with correct hostname");
+        expect(https.request).toHaveBeenCalledWith(
+            expect.objectContaining(expected_http_request),
+            expect.any(Function),
+        );
+    });
 
-        test.done();
-    },
-
-    "uses correct port": function(test) {
+    it("uses correct port", () => {
         var host = 'testhost.fakedomain:1337';
         var customHostnameMixpanel = Mixpanel.init('token', { host: host });
         var expected_http_request = {
@@ -198,12 +194,13 @@ exports.send_request = {
 
         customHostnameMixpanel.send_request({ endpoint: "", data: {} });
 
-        test.ok(https.request.calledWithMatch(expected_http_request), "send_request didn't call https.request with correct hostname and port");
+        expect(https.request).toHaveBeenCalledWith(
+            expect.objectContaining(expected_http_request),
+            expect.any(Function),
+        );
+    });
 
-        test.done();
-    },
-
-    "uses correct path": function(test) {
+    it("uses correct path", () => {
         var host = 'testhost.fakedomain';
         var customPath = '/mypath';
         var customHostnameMixpanel = Mixpanel.init('token', {
@@ -216,12 +213,13 @@ exports.send_request = {
         };
 
         customHostnameMixpanel.send_request({endpoint: "", data: {}});
-        test.ok(https.request.calledWithMatch(expected_http_request), "send_request didn't call https.request with correct hostname and port");
+        expect(https.request).toHaveBeenCalledWith(
+            expect.objectContaining(expected_http_request),
+            expect.any(Function),
+        );
+    });
 
-        test.done();
-    },
-
-    "combines custom path and endpoint": function(test) {
+    it("combines custom path and endpoint", () => {
         var host = 'testhost.fakedomain';
         var customPath = '/mypath';
         var customHostnameMixpanel = Mixpanel.init('token', {
@@ -234,87 +232,79 @@ exports.send_request = {
         };
 
         customHostnameMixpanel.send_request({endpoint: '/track', data: {}});
-        test.ok(https.request.calledWithMatch(expected_http_request), "send_request didn't call https.request with correct hostname and port");
+        expect(https.request).toHaveBeenCalledWith(
+            expect.objectContaining(expected_http_request),
+            expect.any(Function),
+        );
+    });
 
-        test.done();
-    },
-
-    "uses HTTP_PROXY if set": function(test) {
-        HttpsProxyAgent.reset(); // Mixpanel is instantiated in setup, need to reset callcount
+    it("uses HTTP_PROXY if set", () => {
+        HttpsProxyAgent.mockReset(); // Mixpanel is instantiated in setup, need to reset callcount
         delete process.env.HTTPS_PROXY;
         process.env.HTTP_PROXY = 'this.aint.real.https';
 
         var proxyMixpanel = Mixpanel.init('token');
         proxyMixpanel.send_request({ endpoint: '', data: {} });
 
-        test.ok(HttpsProxyAgent.calledOnce, "HttpsProxyAgent was not called when process.env.HTTP_PROXY was set");
+        expect(HttpsProxyAgent).toHaveBeenCalledTimes(1);
 
-        var agentOpts = HttpsProxyAgent.firstCall.args[0];
-        test.ok(agentOpts.pathname === "this.aint.real.https", "HttpsProxyAgent was not called with the correct proxy path");
-        test.ok(agentOpts.keepAlive === true, "HttpsProxyAgent was not called with the correct proxy path");
+        var agentOpts = HttpsProxyAgent.mock.calls[0][0];
+        expect(agentOpts.pathname).toBe('this.aint.real.https');
+        expect(agentOpts.keepAlive).toBe(true);
 
-        var getConfig = https.request.firstCall.args[0];
-        test.ok(getConfig.agent !== undefined, "send_request didn't call https.request with agent");
+        var getConfig = https.request.mock.calls[0][0];
+        expect(getConfig.agent).toBeTruthy();
+    });
 
-        test.done();
-    },
-
-    "uses HTTPS_PROXY if set": function(test) {
-        HttpsProxyAgent.reset(); // Mixpanel is instantiated in setup, need to reset callcount
+    it("uses HTTPS_PROXY if set", () => {
+        HttpsProxyAgent.mockReset(); // Mixpanel is instantiated in setup, need to reset callcount
         delete process.env.HTTP_PROXY;
         process.env.HTTPS_PROXY = 'this.aint.real.https';
 
         var proxyMixpanel = Mixpanel.init('token');
         proxyMixpanel.send_request({ endpoint: '', data: {} });
 
-        test.ok(HttpsProxyAgent.calledOnce, "HttpsProxyAgent was not called when process.env.HTTPS_PROXY was set");
+        expect(HttpsProxyAgent).toHaveBeenCalledTimes(1);
 
-        var proxyOpts = HttpsProxyAgent.firstCall.args[0];
-        test.ok(proxyOpts.pathname === 'this.aint.real.https', "HttpsProxyAgent was not called with the correct proxy path");
+        var proxyOpts = HttpsProxyAgent.mock.calls[0][0];
+        expect(proxyOpts.pathname).toBe('this.aint.real.https');
 
-        var getConfig = https.request.firstCall.args[0];
-        test.ok(getConfig.agent !== undefined, "send_request didn't call https.request with agent");
+        var getConfig = https.request.mock.calls[0][0];
+        expect(getConfig.agent).toBeTruthy();
+    });
 
-        test.done();
-    },
-
-    "requires credentials for import requests": function(test) {
-        test.throws(
-            this.mixpanel.send_request.bind(this, {
+    it("requires credentials for import requests", () => {
+        expect(() => {
+            mixpanel.send_request({
                 endpoint: `/import`,
                 data: {event: `test event`},
-            }),
+            })
+        }).toThrowError(
             /The Mixpanel Client needs a Mixpanel API Secret when importing old events/,
-            "import request didn't throw error when no credentials provided"
-        );
-        test.done();
-    },
+        )
+    });
 
-    "sets basic auth header if API secret is provided": function(test) {
-        this.mixpanel.set_config({secret: `foobar`});
-        this.mixpanel.send_request({
+    it("sets basic auth header if API secret is provided", () => {
+        mixpanel.set_config({secret: `foobar`});
+        mixpanel.send_request({
             endpoint: `/import`,
             data: {event: `test event`},
         });
-        test.ok(https.request.calledOnce);
-        test.deepEqual(https.request.args[0][0].headers, {
+        expect(https.request).toHaveBeenCalledTimes(1);
+        expect(https.request.mock.calls[0][0].headers).toEqual({
             'Authorization': `Basic Zm9vYmFyOg==`, // base64 of "foobar:"
-        }, "send_request didn't pass correct auth header to https.request");
-        test.done();
-    },
+        })
+    });
 
-    "still supports import with api_key (legacy)": function(test) {
-        this.mixpanel.set_config({key: `barbaz`});
-        this.mixpanel.send_request({
+    it("still supports import with api_key (legacy)", () => {
+        mixpanel.set_config({key: `barbaz`});
+        mixpanel.send_request({
             endpoint: `/import`,
             data: {},
         });
-        test.ok(https.request.calledOnce);
-        test.equal(
-            https.request.args[0][0].path,
+        expect(https.request).toHaveBeenCalledTimes(1);
+        expect(https.request.mock.calls[0][0].path).toBe(
             `/import?ip=0&verbose=0&data=e30%3D&api_key=barbaz`,
-            "send_request didn't pass correct query params to https.request"
         );
-        test.done();
-    },
-};
+    });
+});
