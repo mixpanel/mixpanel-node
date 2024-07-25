@@ -19,6 +19,7 @@ declare namespace mixpanel {
     debug: boolean;
     verbose: boolean;
     host: string;
+    port: number;
     protocol: string;
     path: string;
     keepAlive: boolean;
