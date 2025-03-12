@@ -1,3 +1,7 @@
+0.18.1 / 2025-03-12
+==================
+* add secret to config types (thanks gierschv)
+
 0.18.0 / 2023-09-12
 ==================
 * custom logger support (thanks iatsiuk)
