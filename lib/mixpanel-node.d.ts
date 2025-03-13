@@ -81,6 +81,8 @@ declare namespace mixpanel {
 
     alias(distinctId: string, alias: string, callback?: Callback): void;
 
+    merge(distinctIds: string, distinctId2: string, callback?: Callback): void;
+
     people: People;
 
     groups: Groups;
