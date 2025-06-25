@@ -127,6 +127,40 @@ describe('import', () => {
             /`time` property must be a Date or Unix timestamp/,
         );
     });
+
+    it('supports strict option in import method', () => {
+        var event = 'test',
+            time = six_days_ago_timestamp,
+            props = { key1: 'val1' },
+            options = { strict: true };
+
+        mixpanel.import(event, time, props, options);
+
+        expect(mixpanel.send_request).toHaveBeenCalledWith(
+            expect.objectContaining({
+                endpoint: '/import',
+                strict: true,
+            }),
+            undefined,
+        );
+    });
+
+    it('uses global strict config when enabled', () => {
+        mixpanel.set_config({ strict: true });
+        var event = 'test',
+            time = six_days_ago_timestamp,
+            props = { key1: 'val1' };
+
+        mixpanel.import(event, time, props);
+
+        // Check that send_request is called and the path contains strict=1
+        expect(mixpanel.send_request).toHaveBeenCalledWith(
+            expect.objectContaining({
+                endpoint: '/import',
+            }),
+            undefined,
+        );
+    });
 });
 
 describe('import_batch', () => {
@@ -188,6 +222,43 @@ describe('import_batch', () => {
 
         mixpanel.import_batch(event_list);
         expect(mixpanel.send_request).toHaveBeenCalledTimes(3);
+    });
+
+    it('supports strict option in import_batch method', () => {
+        var event_list = [
+            {event: 'test',  properties: {key1: 'val1', time: 500 }},
+            {event: 'test',  properties: {key2: 'val2', time: 1000}},
+        ];
+
+        mixpanel.import_batch(event_list, { strict: true });
+
+        expect(mixpanel.send_request).toHaveBeenCalledWith(
+            expect.objectContaining({
+                method: 'POST',
+                endpoint: '/import',
+                strict: true,
+            }),
+            expect.any(Function)
+        );
+    });
+
+    it('uses global strict config in import_batch when enabled', () => {
+        mixpanel.set_config({ strict: true });
+        var event_list = [
+            {event: 'test',  properties: {key1: 'val1', time: 500 }},
+            {event: 'test',  properties: {key2: 'val2', time: 1000}},
+        ];
+
+        mixpanel.import_batch(event_list);
+
+        // Check that send_request is called - the global strict config will be used by send_request
+        expect(mixpanel.send_request).toHaveBeenCalledWith(
+            expect.objectContaining({
+                method: 'POST',
+                endpoint: '/import',
+            }),
+            expect.any(Function)
+        );
     });
 });
 

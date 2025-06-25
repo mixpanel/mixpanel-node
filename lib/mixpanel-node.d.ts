@@ -25,6 +25,7 @@ declare namespace mixpanel {
     keepAlive: boolean;
     geolocate: boolean;
     logger: CustomLogger;
+    strict: boolean;
   }
 
   export interface PropertyDict {
@@ -51,6 +52,11 @@ declare namespace mixpanel {
   export interface BatchOptions {
     max_concurrent_requests?: number;
     max_batch_size?: number;
+    strict?: boolean;
+  }
+
+  export interface ImportOptions {
+    strict?: boolean;
   }
 
   export interface UnionData {
@@ -74,6 +80,7 @@ declare namespace mixpanel {
 
     import(eventName: string, time: Date | number, properties?: PropertyDict, callback?: Callback): void;
     import(eventName: string, time: Date | number, callback: Callback): void;
+    import(eventName: string, time: Date | number, properties: PropertyDict, options: ImportOptions, callback?: Callback): void;
 
     import_batch(eventNames: string[], options?: BatchOptions, callback?: BatchCallback): void;
     import_batch(eventNames: string[], callback?: BatchCallback): void;

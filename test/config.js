@@ -16,6 +16,7 @@ describe('config', () => {
             keepAlive: true,
             geolocate: false,
             logger: console,
+            strict: false,
         });
     });
 
@@ -31,6 +32,12 @@ describe('config', () => {
         var mp = Mixpanel.init('token', { test: true });
 
         expect(mp.config.test).toBe(true);
+    });
+
+    it("supports strict config option", () => {
+        var mp = Mixpanel.init('token', { strict: true });
+
+        expect(mp.config.strict).toBe(true);
     });
 
     it("host config is split into host and port", () => {

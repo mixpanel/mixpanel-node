@@ -307,4 +307,41 @@ describe("send_request", () => {
             `/import?ip=0&verbose=0&data=e30%3D&api_key=barbaz`,
         );
     });
+
+    it("adds strict=1 parameter to import requests when strict option is true", () => {
+        mixpanel.set_config({secret: 'test-secret'});
+        mixpanel.send_request({
+            endpoint: `/import`,
+            data: {},
+            strict: true,
+        });
+        expect(https.request).toHaveBeenCalledTimes(1);
+        expect(https.request.mock.calls[0][0].path).toBe(
+            `/import?ip=0&verbose=0&data=e30%3D&strict=1`,
+        );
+    });
+
+    it("adds strict=1 parameter to import requests when global strict config is true", () => {
+        mixpanel.set_config({secret: 'test-secret', strict: true});
+        mixpanel.send_request({
+            endpoint: `/import`,
+            data: {},
+        });
+        expect(https.request).toHaveBeenCalledTimes(1);
+        expect(https.request.mock.calls[0][0].path).toBe(
+            `/import?ip=0&verbose=0&data=e30%3D&strict=1`,
+        );
+    });
+
+    it("does not add strict parameter to non-import endpoints", () => {
+        mixpanel.set_config({strict: true});
+        mixpanel.send_request({
+            endpoint: `/track`,
+            data: {},
+        });
+        expect(https.request).toHaveBeenCalledTimes(1);
+        expect(https.request.mock.calls[0][0].path).toBe(
+            `/track?ip=0&verbose=0&data=e30%3D`,
+        );
+    });
 });
