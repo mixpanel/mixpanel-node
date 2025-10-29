@@ -27,9 +27,9 @@
   },
   "types": "./lib/mixpanel-node.d.ts",
   "devDependencies": {
-    "@vitest/coverage-v8": "^1.6.0",
+    "@vitest/coverage-v8": "^4.0.5",
     "proxyquire": "^1.7.11",
-    "vitest": "^1.6.0"
+    "vitest": "^4.0.5"
   },
   "dependencies": {
     "https-proxy-agent": "5.0.0"
