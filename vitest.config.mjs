@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     include: [
-      'test/**.js'
+      'test/**/*.js'
     ],
     coverage: {
       exclude: [

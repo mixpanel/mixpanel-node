@@ -28,6 +28,7 @@
   "types": "./lib/mixpanel-node.d.ts",
   "devDependencies": {
     "@vitest/coverage-v8": "^1.6.0",
+    "nock": "^14.0.10",
     "proxyquire": "^1.7.11",
     "vitest": "^1.6.0"
   },

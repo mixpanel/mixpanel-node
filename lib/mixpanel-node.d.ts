@@ -1,3 +1,7 @@
+import LocalFeatureFlagsProvider from './flags/local_flags';
+import RemoteFeatureFlagsProvider from './flags/remote_flags';
+import { LocalFlagsConfig, RemoteFlagsConfig } from './flags/types';
+
 declare const mixpanel: mixpanel.Mixpanel;
 
 declare namespace mixpanel {
@@ -25,6 +29,8 @@ declare namespace mixpanel {
     keepAlive: boolean;
     geolocate: boolean;
     logger: CustomLogger;
+    local_flags_config?: LocalFlagsConfig;
+    remote_flags_config?: RemoteFlagsConfig;
   }
 
   export interface PropertyDict {
@@ -84,6 +90,10 @@ declare namespace mixpanel {
     people: People;
 
     groups: Groups;
+
+    local_flags?: LocalFeatureFlagsProvider;
+
+    remote_flags?: RemoteFeatureFlagsProvider;
   }
 
   interface People {
@@ -152,6 +162,11 @@ declare namespace mixpanel {
     delete_group(groupKey: string, groupId: string, modifiers?: Modifiers, callback?: Callback): void;
     delete_group(groupKey: string, groupId: string, callback: Callback): void;
   }
+
+  // Export feature flags types for convenience
+  export { LocalFlagsConfig, RemoteFlagsConfig, FlagContext, SelectedVariant } from './flags/types';
+  export { default as LocalFeatureFlagsProvider } from './flags/local_flags';
+  export { default as RemoteFeatureFlagsProvider } from './flags/remote_flags';
 }
 
 export = mixpanel;
