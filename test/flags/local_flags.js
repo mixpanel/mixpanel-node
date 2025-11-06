@@ -96,10 +96,9 @@ describe('LocalFeatureFlagsProvider', () => {
             const config = {
                 api_host: 'localhost',
                 enable_polling: false,
-                logger: mockLogger,
             };
 
-            provider = new LocalFeatureFlagsProvider(TEST_TOKEN, config, mockTracker);
+            provider = new LocalFeatureFlagsProvider(TEST_TOKEN, config, mockTracker, mockLogger);
         });
 
         afterEach(() => {
@@ -369,10 +368,9 @@ describe('LocalFeatureFlagsProvider', () => {
             const config = {
                 api_host: 'localhost',
                 enable_polling: false,
-                logger: mockLogger,
             };
 
-            provider = new LocalFeatureFlagsProvider(TEST_TOKEN, config, mockTracker);
+            provider = new LocalFeatureFlagsProvider(TEST_TOKEN, config, mockTracker, mockLogger);
         });
 
         afterEach(() => {
@@ -424,10 +422,9 @@ describe('LocalFeatureFlagsProvider', () => {
             const config = {
                 api_host: 'localhost',
                 enable_polling: false,
-                logger: mockLogger,
             };
 
-            provider = new LocalFeatureFlagsProvider(TEST_TOKEN, config, mockTracker);
+            provider = new LocalFeatureFlagsProvider(TEST_TOKEN, config, mockTracker, mockLogger);
         });
 
         afterEach(() => {
@@ -465,10 +462,9 @@ describe('LocalFeatureFlagsProvider', () => {
             const config = {
                 api_host: 'localhost',
                 enable_polling: false,
-                logger: mockLogger,
             };
 
-            provider = new LocalFeatureFlagsProvider(TEST_TOKEN, config, mockTracker);
+            provider = new LocalFeatureFlagsProvider(TEST_TOKEN, config, mockTracker, mockLogger);
         });
 
         afterEach(() => {

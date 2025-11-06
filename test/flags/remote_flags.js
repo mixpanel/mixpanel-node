@@ -37,7 +37,7 @@ describe('RemoteFeatureFlagProvider', () => {
             api_host: flagsEndpointHostName,
         };
 
-        provider = new RemoteFeatureFlagsProvider(TEST_TOKEN, config, mockLogger, mockTracker);
+        provider = new RemoteFeatureFlagsProvider(TEST_TOKEN, config, mockTracker, mockLogger);
     });
 
     afterEach(() => {
