@@ -139,9 +139,9 @@ describe('RemoteFeatureFlagProvider', () => {
             expect(mockTracker).toHaveBeenCalledTimes(1);
 
             expect(mockTracker).toHaveBeenCalledWith(
-                'test-user',
                 '$experiment_started',
                 expect.objectContaining({
+                    'distinct_id': 'test-user',
                     'Experiment name': 'test-flag',
                     'Variant name': 'treatment',
                     '$experiment_type': 'feature_flag',
@@ -191,7 +191,6 @@ describe('RemoteFeatureFlagProvider', () => {
 
             expect(mockTracker).toHaveBeenCalledTimes(1);
             expect(mockTracker).toHaveBeenCalledWith(
-                'test-user',
                 '$experiment_started',
                 expect.objectContaining({
                     'Experiment name': 'test-flag',
@@ -421,7 +420,6 @@ describe('RemoteFeatureFlagProvider', () => {
 
             expect(mockTracker).toHaveBeenCalledTimes(1);
             expect(mockTracker).toHaveBeenCalledWith(
-                'test-user',
                 '$experiment_started',
                 expect.objectContaining({
                     'Experiment name': 'test-flag',

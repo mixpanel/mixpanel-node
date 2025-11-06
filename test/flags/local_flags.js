@@ -336,7 +336,7 @@ describe('LocalFeatureFlagsProvider', () => {
             expect(mockTracker).toHaveBeenCalledTimes(1);
 
             const call = mockTracker.mock.calls[0];
-            const properties = call[2];
+            const properties = call[1];
 
             expect(properties['$experiment_id']).toBe('exp-123');
             expect(properties['$is_experiment_active']).toBe(true);
