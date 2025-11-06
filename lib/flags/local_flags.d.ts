@@ -3,6 +3,7 @@
  */
 
 import { LocalFlagsConfig, FlagContext, SelectedVariant } from './types';
+import { CustomLogger } from '../mixpanel-node';
 
 /**
  * Local Feature Flags Provider
@@ -12,53 +13,23 @@ export default class LocalFeatureFlagsProvider {
     constructor(
         token: string,
         config: LocalFlagsConfig,
-        tracker: (distinct_id: string, event: string, properties: object, callback: (err?: Error) => void) => void
+        tracker: (distinct_id: string, event: string, properties: object, callback: (err?: Error) => void) => void,
+        logger: CustomLogger
     );
 
     /**
      * Start polling for flag definitions
      * Fetches immediately and then at regular intervals if polling is enabled
-     * @param callback - Optional callback (err)
      */
-    startPolling(callback?: (err: Error | null) => void): void;
+    startPollingForDefinitions(): Promise<void>;
 
     /**
      * Stop polling for flag definitions
      */
-    stopPolling(): void;
+    stopPollingForDefinitions(): void;
 
     /**
-     * Get the variant value for a feature flag (callback mode)
-     * @param flagKey - Feature flag key
-     * @param fallbackValue - Value to return if flag evaluation fails
-     * @param context - Evaluation context (must include distinct_id)
-     * @param reportExposure - Whether to track exposure event (default: true)
-     * @param callback - Callback function (err, value)
-     */
-    getVariantValue<T>(
-        flagKey: string,
-        fallbackValue: T,
-        context: FlagContext,
-        reportExposure: boolean,
-        callback: (err: Error | null, value: T) => void
-    ): void;
-
-    /**
-     * Get the variant value for a feature flag (callback mode without reportExposure)
-     * @param flagKey - Feature flag key
-     * @param fallbackValue - Value to return if flag evaluation fails
-     * @param context - Evaluation context (must include distinct_id)
-     * @param callback - Callback function (err, value)
-     */
-    getVariantValue<T>(
-        flagKey: string,
-        fallbackValue: T,
-        context: FlagContext,
-        callback: (err: Error | null, value: T) => void
-    ): void;
-
-    /**
-     * Get the variant value for a feature flag (synchronous mode)
+     * Get the variant value for a feature flag
      * @param flagKey - Feature flag key
      * @param fallbackValue - Value to return if flag evaluation fails
      * @param context - Evaluation context (must include distinct_id)
@@ -72,37 +43,7 @@ export default class LocalFeatureFlagsProvider {
     ): T;
 
     /**
-     * Get the complete variant information for a feature flag (callback mode)
-     * @param flagKey - Feature flag key
-     * @param fallbackVariant - Variant to return if flag evaluation fails
-     * @param context - Evaluation context (must include distinct_id)
-     * @param reportExposure - Whether to track exposure event (default: true)
-     * @param callback - Callback function (err, selectedVariant)
-     */
-    getVariant(
-        flagKey: string,
-        fallbackVariant: SelectedVariant,
-        context: FlagContext,
-        reportExposure: boolean,
-        callback: (err: Error | null, variant: SelectedVariant) => void
-    ): void;
-
-    /**
-     * Get the complete variant information for a feature flag (callback mode without reportExposure)
-     * @param flagKey - Feature flag key
-     * @param fallbackVariant - Variant to return if flag evaluation fails
-     * @param context - Evaluation context (must include distinct_id)
-     * @param callback - Callback function (err, selectedVariant)
-     */
-    getVariant(
-        flagKey: string,
-        fallbackVariant: SelectedVariant,
-        context: FlagContext,
-        callback: (err: Error | null, variant: SelectedVariant) => void
-    ): void;
-
-    /**
-     * Get the complete variant information for a feature flag (synchronous mode)
+     * Get the complete variant information for a feature flag
      * @param flagKey - Feature flag key
      * @param fallbackVariant - Variant to return if flag evaluation fails
      * @param context - Evaluation context (must include distinct_id)
@@ -116,19 +57,7 @@ export default class LocalFeatureFlagsProvider {
     ): SelectedVariant;
 
     /**
-     * Check if a feature flag is enabled (callback mode)
-     * @param flagKey - Feature flag key
-     * @param context - Evaluation context (must include distinct_id)
-     * @param callback - Callback function (err, isEnabled)
-     */
-    isEnabled(
-        flagKey: string,
-        context: FlagContext,
-        callback: (err: Error | null, isEnabled: boolean) => void
-    ): void;
-
-    /**
-     * Check if a feature flag is enabled (synchronous mode)
+     * Check if a feature flag is enabled
      * @param flagKey - Feature flag key
      * @param context - Evaluation context (must include distinct_id)
      */
