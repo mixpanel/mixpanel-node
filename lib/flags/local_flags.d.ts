@@ -58,6 +58,9 @@ export default class LocalFeatureFlagsProvider {
 
     /**
      * Check if a feature flag is enabled
+     * This method is intended only for flags defined as Mixpanel Feature Gates (boolean flags)
+     * This checks that the variant value of a selected variant is concretely the boolean 'true'
+     * It does not coerce other truthy values.
      * @param flagKey - Feature flag key
      * @param context - Evaluation context (must include distinct_id)
      */

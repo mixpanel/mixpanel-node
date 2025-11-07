@@ -48,7 +48,9 @@ export default class RemoteFeatureFlagsProvider {
     ): Promise<SelectedVariant>;
 
     /**
-     * Check if a feature flag is enabled
+     * Check if a feature flag is enabled.
+     * This checks that the variant value of a selected variant is concretely the boolean 'true', which will be the case for flags setup as FeatureGates 
+     * It does not coerce other truthy values.
      * @param flagKey - Feature flag key
      * @param context - Evaluation context (must include distinct_id)
      * @returns Promise resolving to whether the flag is enabled
