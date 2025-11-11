@@ -152,7 +152,9 @@ describe("send_request", () => {
                 cb(res)
                 return http_emitter;
              }),
-            Agent: vi.fn().mockReturnValue(agent),
+            Agent: vi.fn().mockImplementation(function() {
+              return agent;
+            }),
         };
         // force SDK not use `undefined` string to initialize proxy-agent
         delete process.env.HTTP_PROXY
