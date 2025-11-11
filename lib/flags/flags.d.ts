@@ -18,7 +18,7 @@ export interface FeatureFlagsConfig {
  * Contains common methods for feature flag evaluation
  */
 export class FeatureFlagsProvider {
-    config: FeatureFlagsConfig;
+    providerConfig: FeatureFlagsConfig;
     endpoint: string;
     logger: CustomLogger | null;
 
