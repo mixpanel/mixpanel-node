@@ -1,8 +1,4 @@
 const Mixpanel = require('../lib/mixpanel-node');
-const {create_group_funcs} = require('../lib/groups');
-const {create_profile_helpers} = require('../lib/profile_helpers');
-
-
 
 describe("groups", () => {
     const endpoint = '/groups';
