@@ -1,3 +1,7 @@
+0.19.0 / 2025-11-12
+==================
+* initial support for Feature Flags
+
 0.18.1 / 2025-03-12
 ==================
 * add secret to config types (thanks gierschv)
