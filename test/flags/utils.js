@@ -94,7 +94,7 @@ describe('Utils', function() {
                 });
             });
 
-            it('different special characters should produce different results', function() {
+            it('produces different results for different special characters', function() {
                 const hashes = testCases.map(tc => normalizedHash(tc.key, "salt"));
 
                 for (let i = 0; i < hashes.length; i++) {

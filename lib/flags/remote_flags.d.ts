@@ -69,17 +69,4 @@ export default class RemoteFeatureFlagsProvider {
     getAllVariants(
         context: FlagContext
     ): Promise<{[key: string]: SelectedVariant} | null>;
-
-    /**
-     * Manually tracks a feature flag exposure event to Mixpanel
-     * This provides flexibility for reporting individual exposure events when using getAllVariants
-     * @param flagKey - The key of the feature flag
-     * @param variant - The selected variant for the feature flag
-     * @param context - The user context used to evaluate the feature flag
-     */
-    trackExposureEvent(
-        flagKey: string,
-        variant: SelectedVariant,
-        context: FlagContext
-    ): void;
 }

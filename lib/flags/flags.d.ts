@@ -3,6 +3,7 @@
  */
 
 import { CustomLogger } from '../mixpanel-node';
+import { SelectedVariant, FlagContext } from './types';
 
 /**
  * Configuration for feature flags API requests
@@ -35,4 +36,15 @@ export class FeatureFlagsProvider {
      * @returns Parsed JSON response
      */
     callFlagsEndpoint(additionalParams?: Record<string, any> | null): Promise<any>;
+
+    /**
+     * Manually tracks a feature flag exposure event to Mixpanel
+     * This provides flexibility for reporting individual exposure events when using getAllVariants
+     * If using getVariantValue or getVariant, exposure events are tracked automatically by default.
+     * @param {string} flagKey - The key of the feature flag
+     * @param {SelectedVariant} variant - The selected variant for the feature flag
+     * @param {FlagContext} context - The user context used to evaluate the feature flag
+     * @param {number|null} latencyMs - Optionally included latency in milliseconds that assignment took.
+     */
+    trackExposureEvent(flagKey: string, variant: SelectedVariant, context: FlagContext, latencyMs?: number | null): void;
 }
