@@ -162,11 +162,6 @@ declare namespace mixpanel {
     delete_group(groupKey: string, groupId: string, modifiers?: Modifiers, callback?: Callback): void;
     delete_group(groupKey: string, groupId: string, callback: Callback): void;
   }
-
-  // Export feature flags types for convenience
-  export { LocalFlagsConfig, RemoteFlagsConfig, FlagContext, SelectedVariant } from './flags/types';
-  export { default as LocalFeatureFlagsProvider } from './flags/local_flags';
-  export { default as RemoteFeatureFlagsProvider } from './flags/remote_flags';
 }
 
 export = mixpanel;
