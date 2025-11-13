@@ -11,7 +11,7 @@ describe("alias", () => {
   });
 
   it("calls send_request with correct endpoint and data", () => {
-    var alias = "test",
+    const alias = "test",
       distinct_id = "old_id",
       expected_endpoint = "/track",
       expected_data = {

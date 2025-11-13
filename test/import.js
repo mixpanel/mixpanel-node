@@ -1,9 +1,9 @@
-var proxyquire = require("proxyquire"),
+const proxyquire = require("proxyquire"),
   https = require("https"),
   events = require("events"),
   Mixpanel = require("../lib/mixpanel-node");
 
-var mock_now_time = new Date(2016, 1, 1).getTime(),
+const mock_now_time = new Date(2016, 1, 1).getTime(),
   six_days_ago_timestamp = mock_now_time - 1000 * 60 * 60 * 24 * 6;
 
 describe("import", () => {
@@ -19,7 +19,7 @@ describe("import", () => {
   });
 
   it("calls send_request with correct endpoint and data", () => {
-    var event = "test",
+    const event = "test",
       time = six_days_ago_timestamp,
       props = { key1: "val1" },
       expected_endpoint = "/import",
@@ -44,7 +44,7 @@ describe("import", () => {
   });
 
   it("supports a Date instance greater than 5 days old", () => {
-    var event = "test",
+    const event = "test",
       time = new Date(six_days_ago_timestamp),
       props = { key1: "val1" },
       expected_endpoint = "/import",
@@ -69,7 +69,7 @@ describe("import", () => {
   });
 
   it("supports a Date instance less than 5 days old", () => {
-    var event = "test",
+    const event = "test",
       time = new Date(mock_now_time),
       props = { key1: "val1" },
       expected_endpoint = "/import",
@@ -94,7 +94,7 @@ describe("import", () => {
   });
 
   it("supports a unix timestamp", () => {
-    var event = "test",
+    const event = "test",
       time = mock_now_time,
       props = { key1: "val1" },
       expected_endpoint = "/import",
@@ -142,7 +142,7 @@ describe("import_batch", () => {
   });
 
   it("calls send_request with correct endpoint, data, and method", () => {
-    var expected_endpoint = "/import",
+    const expected_endpoint = "/import",
       event_list = [
         { event: "test", properties: { key1: "val1", time: 500 } },
         { event: "test", properties: { key2: "val2", time: 1000 } },
@@ -176,7 +176,7 @@ describe("import_batch", () => {
   });
 
   it("requires the time argument for every event", () => {
-    var event_list = [
+    const event_list = [
       { event: "test", properties: { key1: "val1", time: 500 } },
       { event: "test", properties: { key2: "val2", time: 1000 } },
       { event: "test2", properties: { key2: "val2" } },
@@ -187,8 +187,8 @@ describe("import_batch", () => {
   });
 
   it("batches 50 events at a time", () => {
-    var event_list = [];
-    for (var ei = 0; ei < 130; ei++) {
+    const event_list = [];
+    for (let ei = 0; ei < 130; ei++) {
       // 3 batches: 50 + 50 + 30
       event_list.push({
         event: "test",
@@ -228,7 +228,7 @@ describe("import_batch_integration", () => {
     }
 
     event_list = [];
-    for (var ei = 0; ei < 130; ei++) {
+    for (let ei = 0; ei < 130; ei++) {
       // 3 batches: 50 + 50 + 30
       event_list.push({
         event: "test",
@@ -246,7 +246,7 @@ describe("import_batch_integration", () => {
       expect(https.request).toHaveBeenCalledTimes(3);
       expect(error_list).toBe(null);
     });
-    for (var ri = 0; ri < 3; ri++) {
+    for (let ri = 0; ri < 3; ri++) {
       res[ri].emit("data", "1");
       res[ri].emit("end");
     }
@@ -256,7 +256,7 @@ describe("import_batch_integration", () => {
     mixpanel.import_batch(event_list, function (error_list) {
       expect(error_list.length).toBe(3);
     });
-    for (var ri = 0; ri < 3; ri++) {
+    for (let ri = 0; ri < 3; ri++) {
       res[ri].emit("data", "0");
       res[ri].emit("end");
     }
@@ -271,7 +271,7 @@ describe("import_batch_integration", () => {
         expect(error_list).toBe(null);
       },
     );
-    for (var ri = 0; ri < 3; ri++) {
+    for (let ri = 0; ri < 3; ri++) {
       res[ri].emit("data", "1");
       res[ri].emit("end");
     }
@@ -286,15 +286,15 @@ describe("import_batch_integration", () => {
         expect(error_list).toBe(null);
       },
     );
-    for (var ri = 0; ri < 5; ri++) {
+    for (let ri = 0; ri < 5; ri++) {
       res[ri].emit("data", "1");
       res[ri].emit("end");
     }
   });
 
   it("can set max concurrent requests", () => {
-    var async_all_stub = vi.fn();
-    var PatchedMixpanel = proxyquire("../lib/mixpanel-node", {
+    const async_all_stub = vi.fn();
+    const PatchedMixpanel = proxyquire("../lib/mixpanel-node", {
       "./utils": { async_all: async_all_stub },
     });
     async_all_stub.mockImplementationOnce((_, __, cb) => cb(null));
@@ -312,7 +312,7 @@ describe("import_batch_integration", () => {
         expect(error_list).toBe(null);
       },
     );
-    for (var ri = 0; ri < 5; ri++) {
+    for (let ri = 0; ri < 5; ri++) {
       res[ri].emit("data", "1");
       res[ri].emit("end");
     }

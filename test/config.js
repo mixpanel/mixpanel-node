@@ -28,7 +28,7 @@ describe("config", () => {
   });
 
   it("can be set during init", () => {
-    var mp = Mixpanel.init("token", { test: true });
+    const mp = Mixpanel.init("token", { test: true });
 
     expect(mp.config.test).toBe(true);
   });

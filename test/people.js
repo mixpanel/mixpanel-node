@@ -29,7 +29,7 @@ describe("people", () => {
     args = [distinct_id, ...(args ? args : [])];
 
     if (use_modifiers) {
-      var modifiers = {
+      const modifiers = {
         $ignore_alias: true,
         $ignore_time: true,
         $ip: "1.2.3.4",
@@ -369,7 +369,7 @@ describe("people", () => {
     });
 
     it("supports being called with a property object", () => {
-      var time = new Date("Feb 1 2012");
+      const time = new Date("Feb 1 2012");
       test_send_request_args("track_charge", {
         args: [50, { $time: time, isk: "isk" }],
         expected: {
@@ -393,7 +393,7 @@ describe("people", () => {
     });
 
     it("supports being called with a property object and a modifiers argument", () => {
-      var time = new Date("Feb 1 2012");
+      const time = new Date("Feb 1 2012");
       test_send_request_args("track_charge", {
         args: [50, { $time: time, isk: "isk" }],
         expected: {
@@ -435,7 +435,7 @@ describe("people", () => {
     });
 
     it("supports being called with properties, modifiers and a callback", () => {
-      var time = new Date("Feb 1 2012");
+      const time = new Date("Feb 1 2012");
       test_send_request_args("track_charge", {
         args: [50, { $time: time, isk: "isk" }],
         expected: {

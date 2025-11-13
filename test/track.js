@@ -4,7 +4,7 @@ const proxyquire = require("proxyquire");
 const Mixpanel = require("../lib/mixpanel-node");
 const packageInfo = require("../package.json");
 
-var mock_now_time = new Date(2016, 1, 1).getTime();
+const mock_now_time = new Date(2016, 1, 1).getTime();
 
 describe("track", () => {
   let mixpanel;
@@ -21,7 +21,7 @@ describe("track", () => {
   });
 
   it("calls send_request with correct endpoint and data", () => {
-    var event = "test",
+    const event = "test",
       props = { key1: "val1" },
       expected_endpoint = "/track",
       expected_data = {
@@ -44,7 +44,7 @@ describe("track", () => {
   });
 
   it("can be called with optional properties", () => {
-    var expected_endpoint = "/track",
+    const expected_endpoint = "/track",
       expected_data = {
         event: "test",
         properties: expect.objectContaining({
@@ -72,7 +72,7 @@ describe("track", () => {
   });
 
   it("supports Date object for time", () => {
-    var event = "test",
+    const event = "test",
       time = new Date(mock_now_time),
       props = { time: time },
       expected_endpoint = "/track",
@@ -98,7 +98,7 @@ describe("track", () => {
   });
 
   it("supports unix timestamp for time", () => {
-    var event = "test",
+    const event = "test",
       time = mock_now_time,
       props = { time: time },
       expected_endpoint = "/track",
@@ -124,7 +124,7 @@ describe("track", () => {
   });
 
   it("throws error if time is not a number or Date", () => {
-    var event = "test",
+    const event = "test",
       props = { time: "not a number or Date" };
 
     expect(() => mixpanel.track(event, props)).toThrowError(
@@ -133,7 +133,7 @@ describe("track", () => {
   });
 
   it("does not require time property", () => {
-    var event = "test",
+    const event = "test",
       props = {};
 
     expect(() => mixpanel.track(event, props)).not.toThrowError();
@@ -154,7 +154,7 @@ describe("track_batch", () => {
   });
 
   it("calls send_request with correct endpoint, data, and method", () => {
-    var expected_endpoint = "/track",
+    const expected_endpoint = "/track",
       event_list = [
         { event: "test", properties: { key1: "val1", time: 500 } },
         { event: "test", properties: { key2: "val2", time: 1000 } },
@@ -188,7 +188,7 @@ describe("track_batch", () => {
   });
 
   it("does not require the time argument for every event", () => {
-    var event_list = [
+    const event_list = [
       { event: "test", properties: { key1: "val1", time: 500 } },
       { event: "test", properties: { key2: "val2", time: 1000 } },
       { event: "test2", properties: { key2: "val2" } },
@@ -197,8 +197,8 @@ describe("track_batch", () => {
   });
 
   it("batches 50 events at a time", () => {
-    var event_list = [];
-    for (var ei = 0; ei < 130; ei++) {
+    const event_list = [];
+    for (let ei = 0; ei < 130; ei++) {
       // 3 batches: 50 + 50 + 30
       event_list.push({
         event: "test",
@@ -240,7 +240,7 @@ describe("track_batch_integration", () => {
     }
 
     event_list = [];
-    for (var ei = 0; ei < 130; ei++) {
+    for (let ei = 0; ei < 130; ei++) {
       // 3 batches: 50 + 50 + 30
       event_list.push({
         event: "test",
@@ -256,7 +256,7 @@ describe("track_batch_integration", () => {
   it("calls provided callback after all requests finish", () => {
     const callback = vi.fn();
     mixpanel.track_batch(event_list, callback);
-    for (var ri = 0; ri < 3; ri++) {
+    for (let ri = 0; ri < 3; ri++) {
       res[ri].emit("data", "1");
       res[ri].emit("end");
     }
@@ -272,7 +272,7 @@ describe("track_batch_integration", () => {
   it("passes error list to callback", () => {
     const callback = vi.fn();
     mixpanel.track_batch(event_list, callback);
-    for (var ri = 0; ri < 3; ri++) {
+    for (let ri = 0; ri < 3; ri++) {
       res[ri].emit("data", "0");
       res[ri].emit("end");
     }
@@ -282,7 +282,7 @@ describe("track_batch_integration", () => {
   it("calls provided callback when options are passed", () => {
     const callback = vi.fn();
     mixpanel.track_batch(event_list, { max_batch_size: 100 }, callback);
-    for (var ri = 0; ri < 3; ri++) {
+    for (let ri = 0; ri < 3; ri++) {
       res[ri].emit("data", "1");
       res[ri].emit("end");
     }
@@ -294,7 +294,7 @@ describe("track_batch_integration", () => {
   it("sends more requests when max_batch_size < 50", () => {
     const callback = vi.fn();
     mixpanel.track_batch(event_list, { max_batch_size: 30 }, callback);
-    for (var ri = 0; ri < 5; ri++) {
+    for (let ri = 0; ri < 5; ri++) {
       res[ri].emit("data", "1");
       res[ri].emit("end");
     }
@@ -324,7 +324,7 @@ describe("track_batch_integration", () => {
       { max_batch_size: 30, max_concurrent_requests: 2 },
       callback,
     );
-    for (var ri = 0; ri < 3; ri++) {
+    for (let ri = 0; ri < 3; ri++) {
       res[ri].emit("data", "1");
       res[ri].emit("end");
     }

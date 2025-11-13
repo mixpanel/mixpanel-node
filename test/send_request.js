@@ -37,7 +37,7 @@ describe("send_request", () => {
   });
 
   it("sends correct data on GET", () => {
-    var endpoint = "/track",
+    const endpoint = "/track",
       data = {
         event: "test",
         properties: {
@@ -63,7 +63,7 @@ describe("send_request", () => {
   });
 
   it("defaults to GET", () => {
-    var endpoint = "/track",
+    const endpoint = "/track",
       data = {
         event: "test",
         properties: {
@@ -88,7 +88,7 @@ describe("send_request", () => {
   });
 
   it("sends correct data on POST", () => {
-    var endpoint = "/track",
+    const endpoint = "/track",
       data = {
         event: "test",
         properties: {
@@ -157,8 +157,8 @@ describe("send_request", () => {
   });
 
   it("default use keepAlive agent", () => {
-    var agent = new https.Agent({ keepAlive: false });
-    var httpsStub = {
+    const agent = new https.Agent({ keepAlive: false });
+    const httpsStub = {
       request: vi.fn().mockImplementation((_, cb) => {
         cb(res);
         return http_emitter;
@@ -173,19 +173,19 @@ describe("send_request", () => {
     Mixpanel = proxyquire("../lib/mixpanel-node", {
       https: httpsStub,
     });
-    var proxyMixpanel = Mixpanel.init("token");
+    const proxyMixpanel = Mixpanel.init("token");
     proxyMixpanel.send_request({ endpoint: "", data: {} });
 
-    var getConfig = httpsStub.request.mock.calls[0][0];
-    var agentOpts = httpsStub.Agent.mock.calls[0][0];
+    const getConfig = httpsStub.request.mock.calls[0][0];
+    const agentOpts = httpsStub.Agent.mock.calls[0][0];
     expect(agentOpts.keepAlive).toBe(true);
     expect(getConfig.agent).toBe(agent);
   });
 
   it("uses correct hostname", () => {
-    var host = "testhost.fakedomain";
-    var customHostnameMixpanel = Mixpanel.init("token", { host: host });
-    var expected_http_request = {
+    const host = "testhost.fakedomain";
+    const customHostnameMixpanel = Mixpanel.init("token", { host: host });
+    const expected_http_request = {
       host: host,
     };
 
@@ -198,9 +198,9 @@ describe("send_request", () => {
   });
 
   it("uses correct port", () => {
-    var host = "testhost.fakedomain:1337";
-    var customHostnameMixpanel = Mixpanel.init("token", { host: host });
-    var expected_http_request = {
+    const host = "testhost.fakedomain:1337";
+    const customHostnameMixpanel = Mixpanel.init("token", { host: host });
+    const expected_http_request = {
       host: "testhost.fakedomain",
       port: 1337,
     };
@@ -214,13 +214,13 @@ describe("send_request", () => {
   });
 
   it("uses correct path", () => {
-    var host = "testhost.fakedomain";
-    var customPath = "/mypath";
-    var customHostnameMixpanel = Mixpanel.init("token", {
+    const host = "testhost.fakedomain";
+    const customPath = "/mypath";
+    const customHostnameMixpanel = Mixpanel.init("token", {
       host,
       path: customPath,
     });
-    var expected_http_request = {
+    const expected_http_request = {
       host,
       path: "/mypath?ip=0&verbose=0&data=e30%3D",
     };
@@ -233,13 +233,13 @@ describe("send_request", () => {
   });
 
   it("combines custom path and endpoint", () => {
-    var host = "testhost.fakedomain";
-    var customPath = "/mypath";
-    var customHostnameMixpanel = Mixpanel.init("token", {
+    const host = "testhost.fakedomain";
+    const customPath = "/mypath";
+    const customHostnameMixpanel = Mixpanel.init("token", {
       host,
       path: customPath,
     });
-    var expected_http_request = {
+    const expected_http_request = {
       host,
       path: "/mypath/track?ip=0&verbose=0&data=e30%3D",
     };
@@ -256,16 +256,16 @@ describe("send_request", () => {
     delete process.env.HTTPS_PROXY;
     process.env.HTTP_PROXY = "this.aint.real.https";
 
-    var proxyMixpanel = Mixpanel.init("token");
+    const proxyMixpanel = Mixpanel.init("token");
     proxyMixpanel.send_request({ endpoint: "", data: {} });
 
     expect(HttpsProxyAgent).toHaveBeenCalledTimes(1);
 
-    var agentOpts = HttpsProxyAgent.mock.calls[0][0];
+    const agentOpts = HttpsProxyAgent.mock.calls[0][0];
     expect(agentOpts.pathname).toBe("this.aint.real.https");
     expect(agentOpts.keepAlive).toBe(true);
 
-    var getConfig = https.request.mock.calls[0][0];
+    const getConfig = https.request.mock.calls[0][0];
     expect(getConfig.agent).toBeTruthy();
   });
 
@@ -274,15 +274,15 @@ describe("send_request", () => {
     delete process.env.HTTP_PROXY;
     process.env.HTTPS_PROXY = "this.aint.real.https";
 
-    var proxyMixpanel = Mixpanel.init("token");
+    const proxyMixpanel = Mixpanel.init("token");
     proxyMixpanel.send_request({ endpoint: "", data: {} });
 
     expect(HttpsProxyAgent).toHaveBeenCalledTimes(1);
 
-    var proxyOpts = HttpsProxyAgent.mock.calls[0][0];
+    const proxyOpts = HttpsProxyAgent.mock.calls[0][0];
     expect(proxyOpts.pathname).toBe("this.aint.real.https");
 
-    var getConfig = https.request.mock.calls[0][0];
+    const getConfig = https.request.mock.calls[0][0];
     expect(getConfig.agent).toBeTruthy();
   });
 

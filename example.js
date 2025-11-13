@@ -1,8 +1,8 @@
 // grab the Mixpanel factory
-var Mixpanel = require("./lib/mixpanel-node");
+const Mixpanel = require("./lib/mixpanel-node");
 
 // create an instance of the mixpanel client
-var mixpanel = Mixpanel.init("962dbca1bbc54701d402c94d65b4a20e");
+const mixpanel = Mixpanel.init("962dbca1bbc54701d402c94d65b4a20e");
 mixpanel.set_config({ debug: true });
 
 // track an event with optional properties
@@ -83,7 +83,7 @@ mixpanel.track("test", function (err) {
 });
 
 // import an old event
-var mixpanel_importer = Mixpanel.init("valid mixpanel token", {
+const mixpanel_importer = Mixpanel.init("valid mixpanel token", {
   secret: "valid api secret for project",
 });
 mixpanel_importer.set_config({ debug: true });
