@@ -3,7 +3,6 @@ const events = require("events");
 const proxyquire = require("proxyquire");
 const Mixpanel = require("../lib/mixpanel-node");
 const packageInfo = require("../package.json");
-const utils = require("../lib/utils");
 
 var mock_now_time = new Date(2016, 1, 1).getTime();
 
@@ -64,15 +63,7 @@ describe("track", () => {
     );
   });
 
-  it("can be called with optional callback", (test) => {
-    var expected_endpoint = "/track",
-      expected_data = {
-        event: "test",
-        properties: {
-          token: "token",
-        },
-      };
-
+  it("can be called with optional callback", () => {
     mixpanel.send_request.mockImplementationOnce((_, cb) => cb(undefined));
 
     const callback = vi.fn();
@@ -80,7 +71,7 @@ describe("track", () => {
     expect(callback).toHaveBeenCalledWith(undefined);
   });
 
-  it("supports Date object for time", (test) => {
+  it("supports Date object for time", () => {
     var event = "test",
       time = new Date(mock_now_time),
       props = { time: time },
@@ -106,7 +97,7 @@ describe("track", () => {
     );
   });
 
-  it("supports unix timestamp for time", (test) => {
+  it("supports unix timestamp for time", () => {
     var event = "test",
       time = mock_now_time,
       props = { time: time },
@@ -141,7 +132,7 @@ describe("track", () => {
     );
   });
 
-  it("does not require time property", (test) => {
+  it("does not require time property", () => {
     var event = "test",
       props = {};
 
@@ -223,7 +214,7 @@ describe("track_batch", () => {
 
 describe("track_batch_integration", () => {
   let mixpanel;
-  let http_emitter;
+  let _http_emitter;
   let res;
   let event_list;
   beforeEach(() => {
@@ -232,7 +223,7 @@ describe("track_batch_integration", () => {
 
     vi.spyOn(https, "request");
 
-    http_emitter = new events.EventEmitter();
+    _http_emitter = new events.EventEmitter();
 
     // stub sequence of https responses
     res = [];
@@ -243,7 +234,7 @@ describe("track_batch_integration", () => {
         return {
           write: function () {},
           end: function () {},
-          on: function (event) {},
+          on: function () {},
         };
       });
     }
@@ -300,7 +291,7 @@ describe("track_batch_integration", () => {
     expect(callback).toHaveBeenCalledWith(null, [undefined]);
   });
 
-  it("sends more requests when max_batch_size < 50", (test) => {
+  it("sends more requests when max_batch_size < 50", () => {
     const callback = vi.fn();
     mixpanel.track_batch(event_list, { max_batch_size: 30 }, callback);
     for (var ri = 0; ri < 5; ri++) {
@@ -318,7 +309,7 @@ describe("track_batch_integration", () => {
     ]);
   });
 
-  it("can set max concurrent requests", (test) => {
+  it("can set max concurrent requests", () => {
     const async_all_stub = vi.fn();
     async_all_stub.mockImplementation((_, __, cb) => cb(null));
     const PatchedMixpanel = proxyquire("../lib/mixpanel-node", {

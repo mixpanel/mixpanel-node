@@ -2,8 +2,6 @@ import LocalFeatureFlagsProvider from "./flags/local_flags";
 import RemoteFeatureFlagsProvider from "./flags/remote_flags";
 import { LocalFlagsConfig, RemoteFlagsConfig } from "./flags/types";
 
-declare const mixpanel: mixpanel.Mixpanel;
-
 declare namespace mixpanel {
   export type Callback = (err: Error | undefined) => any;
   export type BatchCallback = (errors: [Error] | undefined) => any;

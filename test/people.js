@@ -1,5 +1,4 @@
 const Mixpanel = require("../lib/mixpanel-node");
-const { create_profile_helpers } = require("../lib/profile_helpers");
 
 describe("people", () => {
   const endpoint = "/engage";

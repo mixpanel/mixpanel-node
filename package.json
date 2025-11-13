@@ -24,9 +24,9 @@
   },
   "scripts": {
     "test": "vitest",
-    "format": "prettier --write '**/*.{js,ts}'",
-    "check-format": "prettier --check '**/*.{js,ts}'",
-    "lint": "oxlint '**/*.{js,ts}'"
+    "format": "prettier --write .",
+    "check-format": "prettier --check .",
+    "lint": "oxlint ."
   },
   "types": "./lib/mixpanel-node.d.ts",
   "devDependencies": {

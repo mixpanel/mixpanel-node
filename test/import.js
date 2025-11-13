@@ -203,7 +203,7 @@ describe("import_batch", () => {
 
 describe("import_batch_integration", () => {
   let mixpanel;
-  let http_emitter;
+  let _http_emitter;
   let event_list;
   let res;
   beforeEach(() => {
@@ -211,7 +211,7 @@ describe("import_batch_integration", () => {
 
     vi.spyOn(https, "request");
 
-    http_emitter = new events.EventEmitter();
+    _http_emitter = new events.EventEmitter();
 
     // stub sequence of https responses
     res = [];
@@ -222,7 +222,7 @@ describe("import_batch_integration", () => {
         return {
           write: () => {},
           end: () => {},
-          on: (event) => {},
+          on: () => {},
         };
       });
     }

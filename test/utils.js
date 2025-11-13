@@ -1,7 +1,7 @@
 const async_all = require("../lib/utils").async_all;
 
 describe("async_all", () => {
-  it("calls callback with empty results if no requests", (done) => {
+  it("calls callback with empty results if no requests", () => {
     const requests = [];
     const handler_fn = vi.fn((_, cb) => cb());
     const callback = vi.fn();

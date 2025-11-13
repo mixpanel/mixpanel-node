@@ -69,7 +69,7 @@ describe("logger", () => {
     let mixpanel;
     let customLogger;
     let consoleDebugFn;
-    beforeAll((cb) => {
+    beforeAll(() => {
       /**
        * Custom logger must be an object with the following methods:
        *
@@ -125,7 +125,7 @@ describe("logger", () => {
       expect(message).toMatch(/Sending the following data/);
     });
 
-    it("writes log for remove() method", (test) => {
+    it("writes log for remove() method", () => {
       mixpanel.set_config({ debug: true });
 
       mixpanel.people.remove("bob", { browsers: "firefox" });

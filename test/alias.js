@@ -2,7 +2,6 @@ const Mixpanel = require("../lib/mixpanel-node");
 
 describe("alias", () => {
   let mixpanel;
-  let sendRequestMock;
   beforeEach(() => {
     mixpanel = Mixpanel.init("token", { key: "key" });
     vi.spyOn(mixpanel, "send_request");
