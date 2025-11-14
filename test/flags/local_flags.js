@@ -257,9 +257,9 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(["control", "treatment"]).toContain(result.variant_value);
     });
 
-    it("should respect runtime evaluation when satisfied", async () => {
-      const runtimeEval = { plan: "premium", region: "US" };
-      const flag = createTestFlag({ runtimeEvaluation: runtimeEval });
+    it("should respect legacy runtime evaluation when satisfied", async () => {
+      const legacyRuntimeRule = { plan: "premium", region: "US" };
+      const flag = createTestFlag({ runtimeEvaluation: legacyRuntimeRule });
       mockFlagDefinitionsResponse([flag]);
       await provider.startPollingForDefinitions();
 
@@ -276,9 +276,9 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(result.variant_value).not.toBe("fallback");
     });
 
-    it("should return fallback when runtime evaluation not satisfied", async () => {
-      const runtimeEval = { plan: "premium", region: "US" };
-      const flag = createTestFlag({ runtimeEvaluation: runtimeEval });
+    it("should return fallback when legacy runtime evaluation not satisfied", async () => {
+      const legacyRuntimeRule = { plan: "premium", region: "US" };
+      const flag = createTestFlag({ runtimeEvaluation: legacyRuntimeRule });
 
       mockFlagDefinitionsResponse([flag]);
       await provider.startPollingForDefinitions();
