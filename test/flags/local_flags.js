@@ -68,7 +68,37 @@ const createTestFlag = ({
     },
   };
 };
-
+async function createFlagAndLoadItIntoSDK({
+    flagKey = "test_flag",
+    context = "distinct_id",
+    variants = null,
+    variantOverride = null,
+    rolloutPercentage = 100.0,
+    runtimeEvaluation = null,
+    testUsers = null,
+    experimentId = null,
+    isExperimentActive = null,
+    variantSplits = null,
+    hashSalt = null,
+} = {},
+    provider
+) {
+    const flag = createTestFlag({ 
+        flagKey,
+        context,
+        variants,
+        variantOverride,
+        rolloutPercentage,
+        runtimeEvaluation,
+        testUsers,
+        experimentId,
+        isExperimentActive,
+        variantSplits,
+        hashSalt,
+    });
+    mockFlagDefinitionsResponse([flag]);
+    await provider.startPollingForDefinitions();
+}
 
 describe("LocalFeatureFlagsProvider", () => {
 
@@ -259,9 +289,7 @@ describe("LocalFeatureFlagsProvider", () => {
 
     it("should respect legacy runtime evaluation when satisfied", async () => {
       const legacyRuntimeRule = { plan: "premium", region: "US" };
-      const flag = createTestFlag({ runtimeEvaluation: legacyRuntimeRule });
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluation: legacyRuntimeRule}, provider);
 
       const context = userContextWithRuntimeParameters({
           plan: "premium",
@@ -278,10 +306,7 @@ describe("LocalFeatureFlagsProvider", () => {
 
     it("should return fallback when legacy runtime evaluation not satisfied", async () => {
       const legacyRuntimeRule = { plan: "premium", region: "US" };
-      const flag = createTestFlag({ runtimeEvaluation: legacyRuntimeRule });
-
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluation: legacyRuntimeRule}, provider);
 
       const context = {
         distinct_id: USER_ID,
