@@ -1,3 +1,7 @@
+0.19.1 / 2025-11-13
+==================
+* fix for .d.ts issue introduced in v0.19.0
+
 0.19.0 / 2025-11-12
 ==================
 * initial support for Feature Flags
