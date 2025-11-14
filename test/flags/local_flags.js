@@ -329,6 +329,114 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(result.variant_value).not.toBe(FALLBACK_NAME);
     });
 
+    it("should return variant when string contains substring (in operator)", async () => {
+      const runtimeEvaluationRule = {"in": ["Springfield", {"var": "url"}]};
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
+
+      const context = userContextWithRuntimeParameters({
+        url: "https://helloworld.com/Springfield/all-about-it",
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).not.toBe(FALLBACK_NAME);
+    });
+
+    it("should return fallback when string does not contain substring (in operator)", async () => {
+      const runtimeEvaluationRule = {"in": ["Springfield", {"var": "url"}]};
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
+
+      const context = userContextWithRuntimeParameters({
+        url: "https://helloworld.com/Boston/all-about-it",
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).toBe(FALLBACK_NAME);
+    });
+
+    it("should return variant when value exists in array (multi-value)", async () => {
+      const runtimeEvaluationRule = {"in": [{"var": "name"}, ["a", "b", "c", "all-from-the-ui"]]};
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
+
+      const context = userContextWithRuntimeParameters({
+        name: "b",
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).not.toBe(FALLBACK_NAME);
+    });
+
+    it("should return fallback when value does not exist in array (multi-value)", async () => {
+      const runtimeEvaluationRule = {"in": [{"var": "name"}, ["a", "b", "c", "all-from-the-ui"]]};
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
+
+      const context = userContextWithRuntimeParameters({
+        name: "d",
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).toBe(FALLBACK_NAME);
+    });
+
+    it("should return variant when multiple conditions satisfied (and operator)", async () => {
+      const runtimeEvaluationRule = {
+        "and": [
+          {"==": [{"var": "name"}, "Johannes"]},
+          {"==": [{"var": "country"}, "Deutschland"]}
+        ]
+      };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
+
+      const context = userContextWithRuntimeParameters({
+        name: "Johannes",
+        country: "Deutschland",
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).not.toBe(FALLBACK_NAME);
+    });
+
+    it("should return fallback when one condition fails (and operator)", async () => {
+      const runtimeEvaluationRule = {
+        "and": [
+          {"==": [{"var": "name"}, "Johannes"]},
+          {"==": [{"var": "country"}, "Deutschland"]}
+        ]
+      };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
+
+      const context = userContextWithRuntimeParameters({
+        name: "Johannes",
+        country: "USA",
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).toBe(FALLBACK_NAME);
+    });
+
+    it("should return variant when numeric comparison satisfied (greater than)", async () => {
+      const runtimeEvaluationRule = {">": [{"var": "queries_ran"}, 25]};
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
+
+      const context = userContextWithRuntimeParameters({
+        queries_ran: 27,
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).not.toBe(FALLBACK_NAME);
+    });
+
+    it("should return fallback when numeric comparison not satisfied (greater than)", async () => {
+      const runtimeEvaluationRule = {">": [{"var": "queries_ran"}, 25]};
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
+
+      const context = userContextWithRuntimeParameters({
+        queries_ran: 20,
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).toBe(FALLBACK_NAME);
+    });
+
     it("should respect legacy runtime evaluation when satisfied", async () => {
       const legacyRuntimeRule = { plan: "premium", region: "US" };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluation: legacyRuntimeRule}, provider);
