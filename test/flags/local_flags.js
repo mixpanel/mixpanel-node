@@ -20,6 +20,8 @@ const mockFailedFlagDefinitionsResponse = (statusCode) => {
     .reply(statusCode);
 };
 
+const USER_ID = "user123";
+
 const createTestFlag = ({
   flagKey = "test_flag",
   context = "distinct_id",
@@ -67,11 +69,21 @@ const createTestFlag = ({
   };
 };
 
+
 describe("LocalFeatureFlagsProvider", () => {
+
   const TEST_TOKEN = "test-token";
   const TEST_CONTEXT = {
     distinct_id: "test-user",
   };
+  const FLAG_KEY = "test_flag";
+
+    function userContextWithRuntimeParameters(custom_properties) {
+        return {
+            ...TEST_CONTEXT,
+            custom_properties: custom_properties,
+        };
+    }
 
   let mockTracker;
   let mockLogger;
@@ -156,7 +168,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await provider.startPollingForDefinitions();
 
       const result = provider.getVariant(
-        "test_flag",
+        FLAG_KEY,
         { variant_value: "fallback" },
         {},
       );
@@ -169,9 +181,9 @@ describe("LocalFeatureFlagsProvider", () => {
       await provider.startPollingForDefinitions();
 
       const result = provider.getVariant(
-        "test_flag",
+        FLAG_KEY,
         { variant_value: "fallback" },
-        { distinct_id: "user123" },
+        { distinct_id: USER_ID },
       );
       expect(result.variant_value).toBe("fallback");
     });
@@ -190,7 +202,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await provider.startPollingForDefinitions();
 
       const result = provider.getVariant(
-        "test_flag",
+        FLAG_KEY,
         { variant_value: "control" },
         { distinct_id: "test_user" },
       );
@@ -211,7 +223,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await provider.startPollingForDefinitions();
 
       const result = provider.getVariant(
-        "test_flag",
+        FLAG_KEY,
         { variant_value: "fallback" },
         { distinct_id: "test_user" },
       );
@@ -224,7 +236,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await provider.startPollingForDefinitions();
 
       const result = provider.getVariant(
-        "test_flag",
+        FLAG_KEY,
         { variant_value: "fallback" },
         TEST_CONTEXT,
       );
@@ -237,7 +249,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await provider.startPollingForDefinitions();
 
       const result = provider.getVariant(
-        "test_flag",
+        FLAG_KEY,
         { variant_value: "fallback" },
         TEST_CONTEXT,
       );
@@ -248,20 +260,16 @@ describe("LocalFeatureFlagsProvider", () => {
     it("should respect runtime evaluation when satisfied", async () => {
       const runtimeEval = { plan: "premium", region: "US" };
       const flag = createTestFlag({ runtimeEvaluation: runtimeEval });
-
       mockFlagDefinitionsResponse([flag]);
       await provider.startPollingForDefinitions();
 
-      const context = {
-        distinct_id: "user123",
-        custom_properties: {
+      const context = userContextWithRuntimeParameters({
           plan: "premium",
           region: "US",
-        },
-      };
+      });
 
       const result = provider.getVariant(
-        "test_flag",
+        FLAG_KEY,
         { variant_value: "fallback" },
         context,
       );
@@ -276,7 +284,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await provider.startPollingForDefinitions();
 
       const context = {
-        distinct_id: "user123",
+        distinct_id: USER_ID,
         custom_properties: {
           plan: "basic",
           region: "US",
@@ -284,7 +292,7 @@ describe("LocalFeatureFlagsProvider", () => {
       };
 
       const result = provider.getVariant(
-        "test_flag",
+        FLAG_KEY,
         { variant_value: "fallback" },
         context,
       );
@@ -306,7 +314,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await provider.startPollingForDefinitions();
 
       const result = provider.getVariant(
-        "test_flag",
+        FLAG_KEY,
         { variant_value: "fallback" },
         TEST_CONTEXT,
       );
@@ -330,7 +338,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await provider.startPollingForDefinitions();
 
       const result = provider.getVariant(
-        "test_flag",
+        FLAG_KEY,
         { variant_value: "fallback" },
         TEST_CONTEXT,
       );
@@ -354,7 +362,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await provider.startPollingForDefinitions();
 
       const result = provider.getVariant(
-        "test_flag",
+        FLAG_KEY,
         { variant_value: "fallback" },
         TEST_CONTEXT,
       );
@@ -375,7 +383,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await provider.startPollingForDefinitions();
 
       const result = provider.getVariant(
-        "test_flag",
+        FLAG_KEY,
         { variant_value: "control" },
         TEST_CONTEXT,
       );
@@ -388,7 +396,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await provider.startPollingForDefinitions();
 
       provider.getVariant(
-        "test_flag",
+        FLAG_KEY,
         { variant_value: "fallback" },
         TEST_CONTEXT,
       );
@@ -406,7 +414,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await provider.startPollingForDefinitions();
 
       provider.getVariant(
-        "test_flag",
+        FLAG_KEY,
         { variant_value: "fallback" },
         { distinct_id: "qa_user" },
       );
@@ -439,7 +447,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await provider.startPollingForDefinitions();
 
       provider.getVariant(
-        "test_flag",
+        FLAG_KEY,
         { variant_value: "fallback" },
         { company_id: "company123" },
       );
@@ -552,7 +560,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await provider.startPollingForDefinitions();
 
       const result = provider.getVariantValue(
-        "test_flag",
+        FLAG_KEY,
         "default",
         TEST_CONTEXT,
       );
@@ -607,7 +615,7 @@ describe("LocalFeatureFlagsProvider", () => {
       mockFlagDefinitionsResponse([flag]);
       await provider.startPollingForDefinitions();
 
-      const result = provider.isEnabled("test_flag", TEST_CONTEXT);
+      const result = provider.isEnabled(FLAG_KEY, TEST_CONTEXT);
 
       expect(result).toBe(true);
     });
@@ -624,7 +632,7 @@ describe("LocalFeatureFlagsProvider", () => {
       mockFlagDefinitionsResponse([flag]);
       await provider.startPollingForDefinitions();
 
-      const result = provider.isEnabled("test_flag", TEST_CONTEXT);
+      const result = provider.isEnabled(FLAG_KEY, TEST_CONTEXT);
 
       expect(result).toBe(false);
     });
