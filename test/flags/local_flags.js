@@ -34,7 +34,8 @@ const createTestFlag = ({
   variants = null,
   variantOverride = null,
   rolloutPercentage = 100.0,
-  runtimeEvaluation = null,
+  legacyRuntimeRule = null,
+  runtimeEvaluationRule = null,
   testUsers = null,
   experimentId = null,
   isExperimentActive = null,
@@ -49,7 +50,8 @@ const createTestFlag = ({
   const rollout = [
     {
       rollout_percentage: rolloutPercentage,
-      runtime_evaluation_definition: runtimeEvaluation,
+      runtime_evaluation_definition: legacyRuntimeRule,
+      runtime_evaluation_rule: runtimeEvaluationRule,
       variant_override: variantOverride,
       variant_splits: variantSplits,
     },
@@ -80,7 +82,8 @@ async function createFlagAndLoadItIntoSDK({
     variants = null,
     variantOverride = null,
     rolloutPercentage = 100.0,
-    runtimeEvaluation = null,
+    legacyRuntimeRule = null,
+    runtimeEvaluationRule = null,
     testUsers = null,
     experimentId = null,
     isExperimentActive = null,
@@ -95,7 +98,8 @@ async function createFlagAndLoadItIntoSDK({
         variants,
         variantOverride,
         rolloutPercentage,
-        runtimeEvaluation,
+        legacyRuntimeRule,
+        runtimeEvaluationRule,
         testUsers,
         experimentId,
         isExperimentActive,
@@ -277,6 +281,19 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(["control", "treatment"]).toContain(result.variant_value);
     });
 
+    // TODO
+    it("should return fallback when runtime evaluation not satisfied", async () => {
+      const runtimeEvaluationRule = { "==": [ { var: "plan" }, "premium" ] };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule}, provider);
+
+      const context = userContextWithRuntimeParameters({
+          plan: randomString(),
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).toBe(FALLBACK_NAME);
+    });
+
     it("should respect legacy runtime evaluation when satisfied", async () => {
       const legacyRuntimeRule = { plan: "premium", region: "US" };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluation: legacyRuntimeRule}, provider);
@@ -296,7 +313,7 @@ describe("LocalFeatureFlagsProvider", () => {
 
     it("should return fallback when legacy runtime evaluation not satisfied", async () => {
       const legacyRuntimeRule = { plan: "premium", region: "US" };
-      await createFlagAndLoadItIntoSDK({ runtimeEvaluation: legacyRuntimeRule}, provider);
+      await createFlagAndLoadItIntoSDK({ legacyRuntimeRule}, provider);
 
       const context = userContextWithRuntimeParameters({
           plan: randomString(),
