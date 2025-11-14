@@ -305,12 +305,24 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
-    it("should return variant when runtime evaluation case-insensitively satisfied", async () => {
+    it("should return variant when runtime evaluation parameters case-insensitively satisfied", async () => {
       const runtimeEvaluationRule = { "==": [ { var: "plan" }, "premium" ] };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule}, provider);
 
       const context = userContextWithRuntimeParameters({
           plan: "PREMIUM",
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).not.toBe(FALLBACK_NAME);
+    });
+
+    it("should return variant when runtime evaluation rule case-insensitively satisfied", async () => {
+      const runtimeEvaluationRule = { "==": [ { var: "plan" }, "PREMIUM" ] };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule}, provider);
+
+      const context = userContextWithRuntimeParameters({
+          plan: "premium",
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
