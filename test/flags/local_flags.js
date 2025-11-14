@@ -296,7 +296,7 @@ describe("LocalFeatureFlagsProvider", () => {
 
     // TODO
     it("should return fallback when runtime evaluation not satisfied", async () => {
-      const runtimeEvaluationRule = { "==": [ { var: "plan" }, "premium" ] };
+      const runtimeEvaluationRule = { "==": [ { var: "plan" }, "Premium" ] };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule}, provider);
 
       const context = userContextWithRuntimeParameters({
