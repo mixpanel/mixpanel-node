@@ -25,6 +25,8 @@ function randomString() {
 }
 
 const USER_ID = "user123";
+const FALLBACK_NAME = "fallback";
+const FALLBACK = { variant_value: FALLBACK_NAME }
 
 const createTestFlag = ({
   flagKey = "test_flag",
@@ -199,10 +201,10 @@ describe("LocalFeatureFlagsProvider", () => {
 
       const result = provider.getVariant(
         FLAG_KEY,
-        { variant_value: "fallback" },
+        FALLBACK,
         {},
       );
-      expect(result.variant_value).toBe("fallback");
+      expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
     it("should return fallback when wrong context key", async () => {
@@ -210,10 +212,10 @@ describe("LocalFeatureFlagsProvider", () => {
 
       const result = provider.getVariant(
         FLAG_KEY,
-        { variant_value: "fallback" },
+        FALLBACK,
         { distinct_id: USER_ID },
       );
-      expect(result.variant_value).toBe("fallback");
+      expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
     it("should return test user variant when configured", async () => {
@@ -246,7 +248,7 @@ describe("LocalFeatureFlagsProvider", () => {
 
       const result = provider.getVariant(
         FLAG_KEY,
-        { variant_value: "fallback" },
+        FALLBACK,
         { distinct_id: "test_user" },
       );
       expect(["false", "true"]).toContain(result.variant_value);
@@ -257,10 +259,10 @@ describe("LocalFeatureFlagsProvider", () => {
 
       const result = provider.getVariant(
         FLAG_KEY,
-        { variant_value: "fallback" },
+        FALLBACK,
         TEST_CONTEXT,
       );
-      expect(result.variant_value).toBe("fallback");
+      expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
     it("should return variant when rollout percentage hundred", async () => {
@@ -268,10 +270,10 @@ describe("LocalFeatureFlagsProvider", () => {
 
       const result = provider.getVariant(
         FLAG_KEY,
-        { variant_value: "fallback" },
+        FALLBACK,
         TEST_CONTEXT,
       );
-      expect(result.variant_value).not.toBe("fallback");
+      expect(result.variant_value).not.toBe(FALLBACK_NAME);
       expect(["control", "treatment"]).toContain(result.variant_value);
     });
 
@@ -286,10 +288,10 @@ describe("LocalFeatureFlagsProvider", () => {
 
       const result = provider.getVariant(
         FLAG_KEY,
-        { variant_value: "fallback" },
+        FALLBACK,
         context,
       );
-      expect(result.variant_value).not.toBe("fallback");
+      expect(result.variant_value).not.toBe(FALLBACK_NAME);
     });
 
     it("should return fallback when legacy runtime evaluation not satisfied", async () => {
@@ -303,10 +305,10 @@ describe("LocalFeatureFlagsProvider", () => {
 
       const result = provider.getVariant(
         FLAG_KEY,
-        { variant_value: "fallback" },
+        FALLBACK,
         context,
       );
-      expect(result.variant_value).toBe("fallback");
+      expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
     it("should pick correct variant with hundred percent split", async () => {
@@ -322,7 +324,7 @@ describe("LocalFeatureFlagsProvider", () => {
 
       const result = provider.getVariant(
         FLAG_KEY,
-        { variant_value: "fallback" },
+        FALLBACK,
         TEST_CONTEXT,
       );
       expect(result.variant_value).toBe("variant_a");
@@ -343,7 +345,7 @@ describe("LocalFeatureFlagsProvider", () => {
 
       const result = provider.getVariant(
         FLAG_KEY,
-        { variant_value: "fallback" },
+        FALLBACK,
         TEST_CONTEXT,
       );
       expect(result.variant_value).toBe("variant_b");
@@ -364,7 +366,7 @@ describe("LocalFeatureFlagsProvider", () => {
 
       const result = provider.getVariant(
         FLAG_KEY,
-        { variant_value: "fallback" },
+        FALLBACK,
         TEST_CONTEXT,
       );
       expect(result.variant_value).toBe("variant_c");
@@ -393,7 +395,7 @@ describe("LocalFeatureFlagsProvider", () => {
 
       provider.getVariant(
         FLAG_KEY,
-        { variant_value: "fallback" },
+        FALLBACK,
         TEST_CONTEXT,
       );
       expect(mockTracker).toHaveBeenCalledTimes(1);
@@ -408,7 +410,7 @@ describe("LocalFeatureFlagsProvider", () => {
 
       provider.getVariant(
         FLAG_KEY,
-        { variant_value: "fallback" },
+        FALLBACK,
         { distinct_id: "qa_user" },
       );
 
@@ -428,7 +430,7 @@ describe("LocalFeatureFlagsProvider", () => {
 
       provider.getVariant(
         "nonexistent_flag",
-        { variant_value: "fallback" },
+        FALLBACK,
         TEST_CONTEXT,
       );
       expect(mockTracker).not.toHaveBeenCalled();
@@ -439,7 +441,7 @@ describe("LocalFeatureFlagsProvider", () => {
 
       provider.getVariant(
         FLAG_KEY,
-        { variant_value: "fallback" },
+        FALLBACK,
         { company_id: "company123" },
       );
       expect(mockTracker).not.toHaveBeenCalled();
