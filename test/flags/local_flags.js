@@ -281,7 +281,6 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(["control", "treatment"]).toContain(result.variant_value);
     });
 
-    // Stopgap
     it("should return variant when runtime evaluation satisfied", async () => {
       const runtimeEvaluationRule = { "==": [ { var: "plan" }, "Premium" ] };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule}, provider);
@@ -294,7 +293,6 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(result.variant_value).not.toBe(FALLBACK_NAME);
     });
 
-    // TODO
     it("should return fallback when runtime evaluation not satisfied", async () => {
       const runtimeEvaluationRule = { "==": [ { var: "plan" }, "Premium" ] };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule}, provider);
@@ -305,6 +303,18 @@ describe("LocalFeatureFlagsProvider", () => {
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
       expect(result.variant_value).toBe(FALLBACK_NAME);
+    });
+
+    it("should return variant when runtime evaluation case-insensitively satisfied", async () => {
+      const runtimeEvaluationRule = { "==": [ { var: "plan" }, "premium" ] };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule}, provider);
+
+      const context = userContextWithRuntimeParameters({
+          plan: "PREMIUM",
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).not.toBe(FALLBACK_NAME);
     });
 
     it("should respect legacy runtime evaluation when satisfied", async () => {
