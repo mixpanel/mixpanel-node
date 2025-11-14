@@ -329,7 +329,7 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(result.variant_value).not.toBe(FALLBACK_NAME);
     });
 
-    it("should return variant when string contains substring (in operator)", async () => {
+    it("should return variant when runtime evaluation with in operator satisfied", async () => {
       const runtimeEvaluationRule = {"in": ["Springfield", {"var": "url"}]};
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
@@ -341,7 +341,7 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(result.variant_value).not.toBe(FALLBACK_NAME);
     });
 
-    it("should return fallback when string does not contain substring (in operator)", async () => {
+    it("should return fallback when runtime evaluation with in operator not satisfied", async () => {
       const runtimeEvaluationRule = {"in": ["Springfield", {"var": "url"}]};
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
@@ -353,7 +353,7 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
-    it("should return variant when value exists in array (multi-value)", async () => {
+    it("should return variant when runtime evaluation with in operator for array satisfied", async () => {
       const runtimeEvaluationRule = {"in": [{"var": "name"}, ["a", "b", "c", "all-from-the-ui"]]};
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
@@ -365,7 +365,7 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(result.variant_value).not.toBe(FALLBACK_NAME);
     });
 
-    it("should return fallback when value does not exist in array (multi-value)", async () => {
+    it("should return fallback when runtime evaluation with in operator for array not satisfied", async () => {
       const runtimeEvaluationRule = {"in": [{"var": "name"}, ["a", "b", "c", "all-from-the-ui"]]};
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
@@ -377,7 +377,7 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
-    it("should return variant when multiple conditions satisfied (and operator)", async () => {
+    it("should return variant when runtime evaluation with and operator satisfied", async () => {
       const runtimeEvaluationRule = {
         "and": [
           {"==": [{"var": "name"}, "Johannes"]},
@@ -395,7 +395,7 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(result.variant_value).not.toBe(FALLBACK_NAME);
     });
 
-    it("should return fallback when one condition fails (and operator)", async () => {
+    it("should return fallback when runtime evaluation with and operator not satisfied", async () => {
       const runtimeEvaluationRule = {
         "and": [
           {"==": [{"var": "name"}, "Johannes"]},
@@ -413,7 +413,7 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
-    it("should return variant when numeric comparison satisfied (greater than)", async () => {
+    it("should return variant when runtime evaluation with greater than operator satisfied", async () => {
       const runtimeEvaluationRule = {">": [{"var": "queries_ran"}, 25]};
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
@@ -425,7 +425,7 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(result.variant_value).not.toBe(FALLBACK_NAME);
     });
 
-    it("should return fallback when numeric comparison not satisfied (greater than)", async () => {
+    it("should return fallback when runtime evaluation with greater than operator not satisfied", async () => {
       const runtimeEvaluationRule = {">": [{"var": "queries_ran"}, 25]};
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
