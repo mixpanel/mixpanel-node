@@ -20,6 +20,10 @@ const mockFailedFlagDefinitionsResponse = (statusCode) => {
     .reply(statusCode);
 };
 
+function randomString() {
+    Math.random().toString(36).substring(7)
+}
+
 const USER_ID = "user123";
 
 const createTestFlag = ({
@@ -293,7 +297,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await createFlagAndLoadItIntoSDK({ runtimeEvaluation: legacyRuntimeRule}, provider);
 
       const context = userContextWithRuntimeParameters({
-          plan: "basic",
+          plan: randomString(),
           region: "US",
       });
 
