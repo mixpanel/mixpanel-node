@@ -292,13 +292,10 @@ describe("LocalFeatureFlagsProvider", () => {
       const legacyRuntimeRule = { plan: "premium", region: "US" };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluation: legacyRuntimeRule}, provider);
 
-      const context = {
-        distinct_id: USER_ID,
-        custom_properties: {
+      const context = userContextWithRuntimeParameters({
           plan: "basic",
           region: "US",
-        },
-      };
+      });
 
       const result = provider.getVariant(
         FLAG_KEY,
