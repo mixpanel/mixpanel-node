@@ -180,9 +180,7 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should return fallback when flag does not exist", async () => {
-      const otherFlag = createTestFlag({ flagKey: "other_flag" });
-      mockFlagDefinitionsResponse([otherFlag]);
-      await provider.startPollingForDefinitions();
+      await createFlagAndLoadItIntoSDK({ flagKey: "other_flag" }, provider);
 
       const result = provider.getVariant(
         "nonexistent_flag",
@@ -193,9 +191,7 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should return fallback when no context", async () => {
-      const flag = createTestFlag({ context: "distinct_id" });
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      await createFlagAndLoadItIntoSDK({ context: "distinct_id" }, provider);
 
       const result = provider.getVariant(
         FLAG_KEY,
@@ -206,9 +202,7 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should return fallback when wrong context key", async () => {
-      const flag = createTestFlag({ context: "user_id" });
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      await createFlagAndLoadItIntoSDK({ context: "user_id" }, provider);
 
       const result = provider.getVariant(
         FLAG_KEY,
@@ -223,13 +217,10 @@ describe("LocalFeatureFlagsProvider", () => {
         { key: "control", value: "false", is_control: true, split: 50.0 },
         { key: "treatment", value: "true", is_control: false, split: 50.0 },
       ];
-      const flag = createTestFlag({
+      await createFlagAndLoadItIntoSDK({
         variants: variants,
         testUsers: { test_user: "treatment" },
-      });
-
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      }, provider);
 
       const result = provider.getVariant(
         FLAG_KEY,
@@ -244,13 +235,10 @@ describe("LocalFeatureFlagsProvider", () => {
         { key: "control", value: "false", is_control: true, split: 50.0 },
         { key: "treatment", value: "true", is_control: false, split: 50.0 },
       ];
-      const flag = createTestFlag({
+      await createFlagAndLoadItIntoSDK({
         variants: variants,
         testUsers: { test_user: "nonexistent_variant" },
-      });
-
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      }, provider);
 
       const result = provider.getVariant(
         FLAG_KEY,
@@ -261,9 +249,7 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should return fallback when rollout percentage zero", async () => {
-      const flag = createTestFlag({ rolloutPercentage: 0.0 });
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      await createFlagAndLoadItIntoSDK({ rolloutPercentage: 0.0 }, provider);
 
       const result = provider.getVariant(
         FLAG_KEY,
@@ -274,9 +260,7 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should return variant when rollout percentage hundred", async () => {
-      const flag = createTestFlag({ rolloutPercentage: 100.0 });
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      await createFlagAndLoadItIntoSDK({ rolloutPercentage: 100.0 }, provider);
 
       const result = provider.getVariant(
         FLAG_KEY,
@@ -330,13 +314,10 @@ describe("LocalFeatureFlagsProvider", () => {
         { key: "B", value: "variant_b", is_control: false, split: 0.0 },
         { key: "C", value: "variant_c", is_control: false, split: 0.0 },
       ];
-      const flag = createTestFlag({
+      await createFlagAndLoadItIntoSDK({
         variants: variants,
         rolloutPercentage: 100.0,
-      });
-
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      }, provider);
 
       const result = provider.getVariant(
         FLAG_KEY,
@@ -353,14 +334,11 @@ describe("LocalFeatureFlagsProvider", () => {
         { key: "C", value: "variant_c", is_control: false, split: 0.0 },
       ];
       const variantSplits = { A: 0.0, B: 100.0, C: 0.0 };
-      const flag = createTestFlag({
+      await createFlagAndLoadItIntoSDK({
         variants: variants,
         rolloutPercentage: 100.0,
         variantSplits: variantSplits,
-      });
-
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      }, provider);
 
       const result = provider.getVariant(
         FLAG_KEY,
@@ -377,14 +355,11 @@ describe("LocalFeatureFlagsProvider", () => {
         { key: "C", value: "variant_c", is_control: false },
       ];
       const variantSplits = { A: 0.0, B: 0.0, C: 100.0 };
-      const flag = createTestFlag({
+      await createFlagAndLoadItIntoSDK({
         variants: variants,
         rolloutPercentage: 100.0,
         variantSplits: variantSplits,
-      });
-
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      }, provider);
 
       const result = provider.getVariant(
         FLAG_KEY,
@@ -399,13 +374,10 @@ describe("LocalFeatureFlagsProvider", () => {
         { key: "A", value: "variant_a", is_control: false, split: 100.0 },
         { key: "B", value: "variant_b", is_control: false, split: 0.0 },
       ];
-      const flag = createTestFlag({
+      await createFlagAndLoadItIntoSDK({
         variants: variants,
         variantOverride: { key: "B" },
-      });
-
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      }, provider);
 
       const result = provider.getVariant(
         FLAG_KEY,
@@ -416,9 +388,7 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should track exposure when variant selected", async () => {
-      const flag = createTestFlag();
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      await createFlagAndLoadItIntoSDK({}, provider);
 
       provider.getVariant(
         FLAG_KEY,
@@ -429,14 +399,11 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should track exposure with correct properties", async () => {
-      const flag = createTestFlag({
+      await createFlagAndLoadItIntoSDK({
         experimentId: "exp-123",
         isExperimentActive: true,
         testUsers: { qa_user: "treatment" },
-      });
-
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      }, provider);
 
       provider.getVariant(
         FLAG_KEY,
@@ -467,9 +434,7 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should not track exposure without distinct_id", async () => {
-      const flag = createTestFlag({ context: "company" });
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      await createFlagAndLoadItIntoSDK({ context: "company" }, provider);
 
       provider.getVariant(
         FLAG_KEY,
@@ -576,13 +541,10 @@ describe("LocalFeatureFlagsProvider", () => {
       const variants = [
         { key: "treatment", value: "blue", is_control: false, split: 100.0 },
       ];
-      const flag = createTestFlag({
+      await createFlagAndLoadItIntoSDK({
         variants: variants,
         rolloutPercentage: 100.0,
-      });
-
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      }, provider);
 
       const result = provider.getVariantValue(
         FLAG_KEY,
@@ -632,13 +594,10 @@ describe("LocalFeatureFlagsProvider", () => {
       const variants = [
         { key: "treatment", value: true, is_control: false, split: 100.0 },
       ];
-      const flag = createTestFlag({
+      await createFlagAndLoadItIntoSDK({
         variants: variants,
         rolloutPercentage: 100.0,
-      });
-
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      }, provider);
 
       const result = provider.isEnabled(FLAG_KEY, TEST_CONTEXT);
 
@@ -649,13 +608,10 @@ describe("LocalFeatureFlagsProvider", () => {
       const variants = [
         { key: "control", value: false, is_control: true, split: 100.0 },
       ];
-      const flag = createTestFlag({
+      await createFlagAndLoadItIntoSDK({
         variants: variants,
         rolloutPercentage: 100.0,
-      });
-
-      mockFlagDefinitionsResponse([flag]);
-      await provider.startPollingForDefinitions();
+      }, provider);
 
       const result = provider.isEnabled(FLAG_KEY, TEST_CONTEXT);
 
