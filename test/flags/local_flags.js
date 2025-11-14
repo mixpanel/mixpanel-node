@@ -281,6 +281,19 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(["control", "treatment"]).toContain(result.variant_value);
     });
 
+    // Stopgap
+    it("should return variant when runtime evaluation satisfied", async () => {
+      const runtimeEvaluationRule = { "==": [ { var: "plan" }, "Premium" ] };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule}, provider);
+
+      const context = userContextWithRuntimeParameters({
+          plan: "Premium",
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).not.toBe(FALLBACK_NAME);
+    });
+
     // TODO
     it("should return fallback when runtime evaluation not satisfied", async () => {
       const runtimeEvaluationRule = { "==": [ { var: "plan" }, "premium" ] };
