@@ -21,12 +21,12 @@ const mockFailedFlagDefinitionsResponse = (statusCode) => {
 };
 
 function randomString() {
-    Math.random().toString(36).substring(7)
+  Math.random().toString(36).substring(7);
 }
 
 const USER_ID = "user123";
 const FALLBACK_NAME = "fallback";
-const FALLBACK = { variant_value: FALLBACK_NAME }
+const FALLBACK = { variant_value: FALLBACK_NAME };
 
 const createTestFlag = ({
   flagKey = "test_flag",
@@ -76,7 +76,8 @@ const createTestFlag = ({
     },
   };
 };
-async function createFlagAndLoadItIntoSDK({
+async function createFlagAndLoadItIntoSDK(
+  {
     flagKey = "test_flag",
     context = "distinct_id",
     variants = null,
@@ -89,41 +90,40 @@ async function createFlagAndLoadItIntoSDK({
     isExperimentActive = null,
     variantSplits = null,
     hashSalt = null,
-} = {},
-    provider
+  } = {},
+  provider,
 ) {
-    const flag = createTestFlag({ 
-        flagKey,
-        context,
-        variants,
-        variantOverride,
-        rolloutPercentage,
-        legacyRuntimeRule,
-        runtimeEvaluationRule,
-        testUsers,
-        experimentId,
-        isExperimentActive,
-        variantSplits,
-        hashSalt,
-    });
-    mockFlagDefinitionsResponse([flag]);
-    await provider.startPollingForDefinitions();
+  const flag = createTestFlag({
+    flagKey,
+    context,
+    variants,
+    variantOverride,
+    rolloutPercentage,
+    legacyRuntimeRule,
+    runtimeEvaluationRule,
+    testUsers,
+    experimentId,
+    isExperimentActive,
+    variantSplits,
+    hashSalt,
+  });
+  mockFlagDefinitionsResponse([flag]);
+  await provider.startPollingForDefinitions();
 }
 
 describe("LocalFeatureFlagsProvider", () => {
-
   const TEST_TOKEN = "test-token";
   const TEST_CONTEXT = {
     distinct_id: "test-user",
   };
   const FLAG_KEY = "test_flag";
 
-    function userContextWithRuntimeParameters(custom_properties) {
-        return {
-            ...TEST_CONTEXT,
-            custom_properties: custom_properties,
-        };
-    }
+  function userContextWithRuntimeParameters(custom_properties) {
+    return {
+      ...TEST_CONTEXT,
+      custom_properties: custom_properties,
+    };
+  }
 
   let mockTracker;
   let mockLogger;
@@ -203,22 +203,16 @@ describe("LocalFeatureFlagsProvider", () => {
     it("should return fallback when no context", async () => {
       await createFlagAndLoadItIntoSDK({ context: "distinct_id" }, provider);
 
-      const result = provider.getVariant(
-        FLAG_KEY,
-        FALLBACK,
-        {},
-      );
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, {});
       expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
     it("should return fallback when wrong context key", async () => {
       await createFlagAndLoadItIntoSDK({ context: "user_id" }, provider);
 
-      const result = provider.getVariant(
-        FLAG_KEY,
-        FALLBACK,
-        { distinct_id: USER_ID },
-      );
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, {
+        distinct_id: USER_ID,
+      });
       expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
@@ -227,10 +221,13 @@ describe("LocalFeatureFlagsProvider", () => {
         { key: "control", value: "false", is_control: true, split: 50.0 },
         { key: "treatment", value: "true", is_control: false, split: 50.0 },
       ];
-      await createFlagAndLoadItIntoSDK({
-        variants: variants,
-        testUsers: { test_user: "treatment" },
-      }, provider);
+      await createFlagAndLoadItIntoSDK(
+        {
+          variants: variants,
+          testUsers: { test_user: "treatment" },
+        },
+        provider,
+      );
 
       const result = provider.getVariant(
         FLAG_KEY,
@@ -245,48 +242,41 @@ describe("LocalFeatureFlagsProvider", () => {
         { key: "control", value: "false", is_control: true, split: 50.0 },
         { key: "treatment", value: "true", is_control: false, split: 50.0 },
       ];
-      await createFlagAndLoadItIntoSDK({
-        variants: variants,
-        testUsers: { test_user: "nonexistent_variant" },
-      }, provider);
-
-      const result = provider.getVariant(
-        FLAG_KEY,
-        FALLBACK,
-        { distinct_id: "test_user" },
+      await createFlagAndLoadItIntoSDK(
+        {
+          variants: variants,
+          testUsers: { test_user: "nonexistent_variant" },
+        },
+        provider,
       );
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, {
+        distinct_id: "test_user",
+      });
       expect(["false", "true"]).toContain(result.variant_value);
     });
 
     it("should return fallback when rollout percentage zero", async () => {
       await createFlagAndLoadItIntoSDK({ rolloutPercentage: 0.0 }, provider);
 
-      const result = provider.getVariant(
-        FLAG_KEY,
-        FALLBACK,
-        TEST_CONTEXT,
-      );
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, TEST_CONTEXT);
       expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
     it("should return variant when rollout percentage hundred", async () => {
       await createFlagAndLoadItIntoSDK({ rolloutPercentage: 100.0 }, provider);
 
-      const result = provider.getVariant(
-        FLAG_KEY,
-        FALLBACK,
-        TEST_CONTEXT,
-      );
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, TEST_CONTEXT);
       expect(result.variant_value).not.toBe(FALLBACK_NAME);
       expect(["control", "treatment"]).toContain(result.variant_value);
     });
 
     it("should return variant when runtime evaluation satisfied", async () => {
-      const runtimeEvaluationRule = { "==": [ { var: "plan" }, "Premium" ] };
-      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule}, provider);
+      const runtimeEvaluationRule = { "==": [{ var: "plan" }, "Premium"] };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
       const context = userContextWithRuntimeParameters({
-          plan: "Premium",
+        plan: "Premium",
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
@@ -294,11 +284,11 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should return fallback when runtime evaluation not satisfied", async () => {
-      const runtimeEvaluationRule = { "==": [ { var: "plan" }, "Premium" ] };
-      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule}, provider);
+      const runtimeEvaluationRule = { "==": [{ var: "plan" }, "Premium"] };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
       const context = userContextWithRuntimeParameters({
-          plan: randomString(),
+        plan: randomString(),
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
@@ -306,31 +296,31 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should return fallback when no runtime parameters are provided", async () => {
-      const runtimeEvaluationRule = { "==": [ { var: "plan" }, "Premium" ] };
-      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule}, provider);
+      const runtimeEvaluationRule = { "==": [{ var: "plan" }, "Premium"] };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
-      const context = userContextWithRuntimeParameters(null)
+      const context = userContextWithRuntimeParameters(null);
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
       expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
     it("should return fallback when runtime rule is invalid", async () => {
-      const runtimeEvaluationRule = { "=oops=": [ { var: "plan" }, "Premium" ] };
-      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule}, provider);
+      const runtimeEvaluationRule = { "=oops=": [{ var: "plan" }, "Premium"] };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
-      const context = userContextWithRuntimeParameters(null)
+      const context = userContextWithRuntimeParameters(null);
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
       expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
     it("should return variant when runtime evaluation parameters case-insensitively satisfied", async () => {
-      const runtimeEvaluationRule = { "==": [ { var: "plan" }, "premium" ] };
-      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule}, provider);
+      const runtimeEvaluationRule = { "==": [{ var: "plan" }, "premium"] };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
       const context = userContextWithRuntimeParameters({
-          plan: "PREMIUM",
+        plan: "PREMIUM",
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
@@ -338,12 +328,17 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should return variant when runtime evaluation parameters case-insensitively satisfied - multi-condition", async () => {
-      const runtimeEvaluationRule = { "and": [{ "==": [ { var: "plan" }, "prEmium" ] }, { ">=": [ {var: "date"}, "2025-11-24T09:23"]}] };
-      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule}, provider);
+      const runtimeEvaluationRule = {
+        and: [
+          { "==": [{ var: "plan" }, "prEmium"] },
+          { ">=": [{ var: "date" }, "2025-11-24T09:23"] },
+        ],
+      };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
       const context = userContextWithRuntimeParameters({
-          plan: "PReMIuM",
-          date: "2025-11-24t09:23",
+        plan: "PReMIuM",
+        date: "2025-11-24t09:23",
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
@@ -351,11 +346,11 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should return variant when runtime evaluation rule case-insensitively satisfied", async () => {
-      const runtimeEvaluationRule = { "==": [ { var: "plan" }, "PREMIUM" ] };
-      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule}, provider);
+      const runtimeEvaluationRule = { "==": [{ var: "plan" }, "PREMIUM"] };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
       const context = userContextWithRuntimeParameters({
-          plan: "premium",
+        plan: "premium",
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
@@ -363,7 +358,7 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should return variant when runtime evaluation with in operator satisfied", async () => {
-      const runtimeEvaluationRule = {"in": ["Springfield", {"var": "url"}]};
+      const runtimeEvaluationRule = { in: ["Springfield", { var: "url" }] };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
       const context = userContextWithRuntimeParameters({
@@ -375,7 +370,7 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should return fallback when runtime evaluation with in operator not satisfied", async () => {
-      const runtimeEvaluationRule = {"in": ["Springfield", {"var": "url"}]};
+      const runtimeEvaluationRule = { in: ["Springfield", { var: "url" }] };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
       const context = userContextWithRuntimeParameters({
@@ -387,7 +382,9 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should return variant when runtime evaluation with in operator for array satisfied", async () => {
-      const runtimeEvaluationRule = {"in": [{"var": "name"}, ["a", "b", "c", "all-from-the-ui"]]};
+      const runtimeEvaluationRule = {
+        in: [{ var: "name" }, ["a", "b", "c", "all-from-the-ui"]],
+      };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
       const context = userContextWithRuntimeParameters({
@@ -399,7 +396,9 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should return fallback when runtime evaluation with in operator for array not satisfied", async () => {
-      const runtimeEvaluationRule = {"in": [{"var": "name"}, ["a", "b", "c", "all-from-the-ui"]]};
+      const runtimeEvaluationRule = {
+        in: [{ var: "name" }, ["a", "b", "c", "all-from-the-ui"]],
+      };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
       const context = userContextWithRuntimeParameters({
@@ -412,10 +411,10 @@ describe("LocalFeatureFlagsProvider", () => {
 
     it("should return variant when runtime evaluation with and operator satisfied", async () => {
       const runtimeEvaluationRule = {
-        "and": [
-          {"==": [{"var": "name"}, "Johannes"]},
-          {"==": [{"var": "country"}, "Deutschland"]}
-        ]
+        and: [
+          { "==": [{ var: "name" }, "Johannes"] },
+          { "==": [{ var: "country" }, "Deutschland"] },
+        ],
       };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
@@ -430,10 +429,10 @@ describe("LocalFeatureFlagsProvider", () => {
 
     it("should return fallback when runtime evaluation with and operator not satisfied", async () => {
       const runtimeEvaluationRule = {
-        "and": [
-          {"==": [{"var": "name"}, "Johannes"]},
-          {"==": [{"var": "country"}, "Deutschland"]}
-        ]
+        and: [
+          { "==": [{ var: "name" }, "Johannes"] },
+          { "==": [{ var: "country" }, "Deutschland"] },
+        ],
       };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
@@ -447,7 +446,7 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should return variant when runtime evaluation with greater than operator satisfied", async () => {
-      const runtimeEvaluationRule = {">": [{"var": "queries_ran"}, 25]};
+      const runtimeEvaluationRule = { ">": [{ var: "queries_ran" }, 25] };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
       const context = userContextWithRuntimeParameters({
@@ -459,7 +458,7 @@ describe("LocalFeatureFlagsProvider", () => {
     });
 
     it("should return fallback when runtime evaluation with greater than operator not satisfied", async () => {
-      const runtimeEvaluationRule = {">": [{"var": "queries_ran"}, 25]};
+      const runtimeEvaluationRule = { ">": [{ var: "queries_ran" }, 25] };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
       const context = userContextWithRuntimeParameters({
@@ -472,35 +471,30 @@ describe("LocalFeatureFlagsProvider", () => {
 
     it("should respect legacy runtime evaluation when satisfied", async () => {
       const legacyRuntimeRule = { plan: "premium", region: "US" };
-      await createFlagAndLoadItIntoSDK({ runtimeEvaluation: legacyRuntimeRule}, provider);
+      await createFlagAndLoadItIntoSDK(
+        { runtimeEvaluation: legacyRuntimeRule },
+        provider,
+      );
 
       const context = userContextWithRuntimeParameters({
-          plan: "premium",
-          region: "US",
+        plan: "premium",
+        region: "US",
       });
 
-      const result = provider.getVariant(
-        FLAG_KEY,
-        FALLBACK,
-        context,
-      );
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
       expect(result.variant_value).not.toBe(FALLBACK_NAME);
     });
 
     it("should return fallback when legacy runtime evaluation not satisfied", async () => {
       const legacyRuntimeRule = { plan: "premium", region: "US" };
-      await createFlagAndLoadItIntoSDK({ legacyRuntimeRule}, provider);
+      await createFlagAndLoadItIntoSDK({ legacyRuntimeRule }, provider);
 
       const context = userContextWithRuntimeParameters({
-          plan: randomString(),
-          region: "US",
+        plan: randomString(),
+        region: "US",
       });
 
-      const result = provider.getVariant(
-        FLAG_KEY,
-        FALLBACK,
-        context,
-      );
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
       expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
@@ -510,16 +504,15 @@ describe("LocalFeatureFlagsProvider", () => {
         { key: "B", value: "variant_b", is_control: false, split: 0.0 },
         { key: "C", value: "variant_c", is_control: false, split: 0.0 },
       ];
-      await createFlagAndLoadItIntoSDK({
-        variants: variants,
-        rolloutPercentage: 100.0,
-      }, provider);
-
-      const result = provider.getVariant(
-        FLAG_KEY,
-        FALLBACK,
-        TEST_CONTEXT,
+      await createFlagAndLoadItIntoSDK(
+        {
+          variants: variants,
+          rolloutPercentage: 100.0,
+        },
+        provider,
       );
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, TEST_CONTEXT);
       expect(result.variant_value).toBe("variant_a");
     });
 
@@ -530,17 +523,16 @@ describe("LocalFeatureFlagsProvider", () => {
         { key: "C", value: "variant_c", is_control: false, split: 0.0 },
       ];
       const variantSplits = { A: 0.0, B: 100.0, C: 0.0 };
-      await createFlagAndLoadItIntoSDK({
-        variants: variants,
-        rolloutPercentage: 100.0,
-        variantSplits: variantSplits,
-      }, provider);
-
-      const result = provider.getVariant(
-        FLAG_KEY,
-        FALLBACK,
-        TEST_CONTEXT,
+      await createFlagAndLoadItIntoSDK(
+        {
+          variants: variants,
+          rolloutPercentage: 100.0,
+          variantSplits: variantSplits,
+        },
+        provider,
       );
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, TEST_CONTEXT);
       expect(result.variant_value).toBe("variant_b");
     });
 
@@ -551,17 +543,16 @@ describe("LocalFeatureFlagsProvider", () => {
         { key: "C", value: "variant_c", is_control: false },
       ];
       const variantSplits = { A: 0.0, B: 0.0, C: 100.0 };
-      await createFlagAndLoadItIntoSDK({
-        variants: variants,
-        rolloutPercentage: 100.0,
-        variantSplits: variantSplits,
-      }, provider);
-
-      const result = provider.getVariant(
-        FLAG_KEY,
-        FALLBACK,
-        TEST_CONTEXT,
+      await createFlagAndLoadItIntoSDK(
+        {
+          variants: variants,
+          rolloutPercentage: 100.0,
+          variantSplits: variantSplits,
+        },
+        provider,
       );
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, TEST_CONTEXT);
       expect(result.variant_value).toBe("variant_c");
     });
 
@@ -570,10 +561,13 @@ describe("LocalFeatureFlagsProvider", () => {
         { key: "A", value: "variant_a", is_control: false, split: 100.0 },
         { key: "B", value: "variant_b", is_control: false, split: 0.0 },
       ];
-      await createFlagAndLoadItIntoSDK({
-        variants: variants,
-        variantOverride: { key: "B" },
-      }, provider);
+      await createFlagAndLoadItIntoSDK(
+        {
+          variants: variants,
+          variantOverride: { key: "B" },
+        },
+        provider,
+      );
 
       const result = provider.getVariant(
         FLAG_KEY,
@@ -586,26 +580,21 @@ describe("LocalFeatureFlagsProvider", () => {
     it("should track exposure when variant selected", async () => {
       await createFlagAndLoadItIntoSDK({}, provider);
 
-      provider.getVariant(
-        FLAG_KEY,
-        FALLBACK,
-        TEST_CONTEXT,
-      );
+      provider.getVariant(FLAG_KEY, FALLBACK, TEST_CONTEXT);
       expect(mockTracker).toHaveBeenCalledTimes(1);
     });
 
     it("should track exposure with correct properties", async () => {
-      await createFlagAndLoadItIntoSDK({
-        experimentId: "exp-123",
-        isExperimentActive: true,
-        testUsers: { qa_user: "treatment" },
-      }, provider);
-
-      provider.getVariant(
-        FLAG_KEY,
-        FALLBACK,
-        { distinct_id: "qa_user" },
+      await createFlagAndLoadItIntoSDK(
+        {
+          experimentId: "exp-123",
+          isExperimentActive: true,
+          testUsers: { qa_user: "treatment" },
+        },
+        provider,
       );
+
+      provider.getVariant(FLAG_KEY, FALLBACK, { distinct_id: "qa_user" });
 
       expect(mockTracker).toHaveBeenCalledTimes(1);
 
@@ -621,22 +610,14 @@ describe("LocalFeatureFlagsProvider", () => {
       mockFlagDefinitionsResponse([]);
       await provider.startPollingForDefinitions();
 
-      provider.getVariant(
-        "nonexistent_flag",
-        FALLBACK,
-        TEST_CONTEXT,
-      );
+      provider.getVariant("nonexistent_flag", FALLBACK, TEST_CONTEXT);
       expect(mockTracker).not.toHaveBeenCalled();
     });
 
     it("should not track exposure without distinct_id", async () => {
       await createFlagAndLoadItIntoSDK({ context: "company" }, provider);
 
-      provider.getVariant(
-        FLAG_KEY,
-        FALLBACK,
-        { company_id: "company123" },
-      );
+      provider.getVariant(FLAG_KEY, FALLBACK, { company_id: "company123" });
       expect(mockTracker).not.toHaveBeenCalled();
     });
   });
@@ -737,10 +718,13 @@ describe("LocalFeatureFlagsProvider", () => {
       const variants = [
         { key: "treatment", value: "blue", is_control: false, split: 100.0 },
       ];
-      await createFlagAndLoadItIntoSDK({
-        variants: variants,
-        rolloutPercentage: 100.0,
-      }, provider);
+      await createFlagAndLoadItIntoSDK(
+        {
+          variants: variants,
+          rolloutPercentage: 100.0,
+        },
+        provider,
+      );
 
       const result = provider.getVariantValue(
         FLAG_KEY,
@@ -790,10 +774,13 @@ describe("LocalFeatureFlagsProvider", () => {
       const variants = [
         { key: "treatment", value: true, is_control: false, split: 100.0 },
       ];
-      await createFlagAndLoadItIntoSDK({
-        variants: variants,
-        rolloutPercentage: 100.0,
-      }, provider);
+      await createFlagAndLoadItIntoSDK(
+        {
+          variants: variants,
+          rolloutPercentage: 100.0,
+        },
+        provider,
+      );
 
       const result = provider.isEnabled(FLAG_KEY, TEST_CONTEXT);
 
@@ -804,10 +791,13 @@ describe("LocalFeatureFlagsProvider", () => {
       const variants = [
         { key: "control", value: false, is_control: true, split: 100.0 },
       ];
-      await createFlagAndLoadItIntoSDK({
-        variants: variants,
-        rolloutPercentage: 100.0,
-      }, provider);
+      await createFlagAndLoadItIntoSDK(
+        {
+          variants: variants,
+          rolloutPercentage: 100.0,
+        },
+        provider,
+      );
 
       const result = provider.isEnabled(FLAG_KEY, TEST_CONTEXT);
 
