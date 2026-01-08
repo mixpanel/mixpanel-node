@@ -356,6 +356,18 @@ describe("LocalFeatureFlagsProvider", () => {
       assertVariantReturned(result);
     });
 
+    it("should return variant when runtime parameter key case-insensitively satisfied", async () => {
+      const runtimeEvaluationRule = { "==": [{ var: "plan" }, "premium"] };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
+
+      const context = userContextWithRuntimeParameters({
+        Plan: "premium",  // Capital P instead of lowercase p
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      assertVariantReturned(result);
+    });
+
     it("should return variant when runtime evaluation with in operator satisfied", async () => {
       const runtimeEvaluationRule = { in: ["Springfield", { var: "url" }] };
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
