@@ -267,8 +267,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await createFlagAndLoadItIntoSDK({ rolloutPercentage: 100.0 }, provider);
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, TEST_CONTEXT);
-      expect(result.variant_value).not.toBe(FALLBACK_NAME);
-      expect(["control", "treatment"]).toContain(result.variant_value);
+      assertVariantReturned(result);
     });
 
     it("should return variant when runtime evaluation satisfied", async () => {
@@ -280,8 +279,7 @@ describe("LocalFeatureFlagsProvider", () => {
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
-      expect(result.variant_value).not.toBe(FALLBACK_NAME);
-      expect(["control", "treatment"]).toContain(result.variant_value);
+      assertVariantReturned(result);
     });
 
     it("should return fallback when runtime evaluation not satisfied", async () => {
@@ -325,8 +323,7 @@ describe("LocalFeatureFlagsProvider", () => {
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
-      expect(result.variant_value).not.toBe(FALLBACK_NAME);
-      expect(["control", "treatment"]).toContain(result.variant_value);
+      assertVariantReturned(result);
     });
 
     it("should return variant when runtime evaluation parameters case-insensitively satisfied - multi-condition", async () => {
@@ -344,8 +341,7 @@ describe("LocalFeatureFlagsProvider", () => {
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
-      expect(result.variant_value).not.toBe(FALLBACK_NAME);
-      expect(["control", "treatment"]).toContain(result.variant_value);
+      assertVariantReturned(result);
     });
 
     it("should return variant when runtime evaluation rule case-insensitively satisfied", async () => {
@@ -357,8 +353,7 @@ describe("LocalFeatureFlagsProvider", () => {
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
-      expect(result.variant_value).not.toBe(FALLBACK_NAME);
-      expect(["control", "treatment"]).toContain(result.variant_value);
+      assertVariantReturned(result);
     });
 
     it("should return variant when runtime evaluation with in operator satisfied", async () => {
@@ -370,8 +365,7 @@ describe("LocalFeatureFlagsProvider", () => {
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
-      expect(result.variant_value).not.toBe(FALLBACK_NAME);
-      expect(["control", "treatment"]).toContain(result.variant_value);
+      assertVariantReturned(result);
     });
 
     it("should return fallback when runtime evaluation with in operator not satisfied", async () => {
@@ -397,8 +391,7 @@ describe("LocalFeatureFlagsProvider", () => {
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
-      expect(result.variant_value).not.toBe(FALLBACK_NAME);
-      expect(["control", "treatment"]).toContain(result.variant_value);
+      assertVariantReturned(result);
     });
 
     it("should return fallback when runtime evaluation with in operator for array not satisfied", async () => {
@@ -430,8 +423,7 @@ describe("LocalFeatureFlagsProvider", () => {
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
-      expect(result.variant_value).not.toBe(FALLBACK_NAME);
-      expect(["control", "treatment"]).toContain(result.variant_value);
+      assertVariantReturned(result);
     });
 
     it("should return fallback when runtime evaluation with and operator not satisfied", async () => {
@@ -461,8 +453,7 @@ describe("LocalFeatureFlagsProvider", () => {
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
-      expect(result.variant_value).not.toBe(FALLBACK_NAME);
-      expect(["control", "treatment"]).toContain(result.variant_value);
+      assertVariantReturned(result);
     });
 
     it("should return fallback when runtime evaluation with greater than operator not satisfied", async () => {
@@ -490,8 +481,7 @@ describe("LocalFeatureFlagsProvider", () => {
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
-      expect(result.variant_value).not.toBe(FALLBACK_NAME);
-      expect(["control", "treatment"]).toContain(result.variant_value);
+      assertVariantReturned(result);
     });
 
     it("should return fallback when legacy runtime evaluation not satisfied", async () => {
@@ -814,3 +804,8 @@ describe("LocalFeatureFlagsProvider", () => {
     });
   });
 });
+
+function assertVariantReturned(result) {
+  expect(result.variant_value).not.toBe(FALLBACK_NAME);
+  expect(["control", "treatment"]).toContain(result.variant_value);
+}
