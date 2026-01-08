@@ -21,7 +21,7 @@ const mockFailedFlagDefinitionsResponse = (statusCode) => {
 };
 
 function randomString() {
-  Math.random().toString(36).substring(7);
+  return Math.random().toString(36).substring(7) + "x";
 }
 
 const USER_ID = "user123";
