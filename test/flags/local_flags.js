@@ -409,7 +409,7 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
-    it("should return variant when runtime evaluation with and operator satisfied", async () => {
+    it("should return variant when runtime evaluation with AND operator satisfied", async () => {
       const runtimeEvaluationRule = {
         and: [
           { "==": [{ var: "name" }, "Johannes"] },
