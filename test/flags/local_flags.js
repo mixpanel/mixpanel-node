@@ -420,6 +420,34 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
+    it("should return fallback when runtime evaluation with in operator for array not satisfied because only substring match", async () => {
+      const runtimeEvaluationRule = {
+        in: [{ var: "name" }, ["a", "b", "c", "all-from-the-ui"]],
+      };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
+
+      const context = userContextWithRuntimeParameters({
+        name: "all",
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).toBe(FALLBACK_NAME);
+    });
+
+    it("should return fallback when runtime evaluation with in operator for array not satisfied because only superstring match", async () => {
+      const runtimeEvaluationRule = {
+        in: [{ var: "name" }, ["a", "b", "c", "all-from-the-ui"]],
+      };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
+
+      const context = userContextWithRuntimeParameters({
+        name: "all-from-the-ui-and-more",
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).toBe(FALLBACK_NAME);
+    });
+
     it("should return variant when runtime evaluation with AND operator satisfied", async () => {
       const runtimeEvaluationRule = {
         and: [
