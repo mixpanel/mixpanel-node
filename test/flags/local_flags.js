@@ -361,7 +361,7 @@ describe("LocalFeatureFlagsProvider", () => {
       await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
 
       const context = userContextWithRuntimeParameters({
-        Plan: "premium",  // Capital P instead of lowercase p
+        Plan: "premium", // Capital P instead of lowercase p
       });
 
       const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
