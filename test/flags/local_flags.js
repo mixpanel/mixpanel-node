@@ -111,6 +111,11 @@ async function createFlagAndLoadItIntoSDK(
   await provider.startPollingForDefinitions();
 }
 
+function assertVariantReturned(result) {
+  expect(result.variant_value).not.toBe(FALLBACK_NAME);
+  expect(["control", "treatment"]).toContain(result.variant_value);
+}
+
 describe("LocalFeatureFlagsProvider", () => {
   const TEST_TOKEN = "test-token";
   const TEST_CONTEXT = {
@@ -844,8 +849,3 @@ describe("LocalFeatureFlagsProvider", () => {
     });
   });
 });
-
-function assertVariantReturned(result) {
-  expect(result.variant_value).not.toBe(FALLBACK_NAME);
-  expect(["control", "treatment"]).toContain(result.variant_value);
-}
