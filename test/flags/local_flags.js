@@ -471,7 +471,7 @@ describe("LocalFeatureFlagsProvider", () => {
       assertVariantReturned(result);
     });
 
-    it("should return fallback when runtime evaluation with and operator not satisfied", async () => {
+    it("should return fallback when runtime evaluation with AND operator not satisfied", async () => {
       const runtimeEvaluationRule = {
         and: [
           { "==": [{ var: "name" }, "Johannes"] },
