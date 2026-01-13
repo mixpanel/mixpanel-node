@@ -1,3 +1,7 @@
+0.20.0 / 2026-01-12
+==================
+* support for advanced Feature Flag local-evaluation runtime rules
+
 0.19.1 / 2025-11-13
 ==================
 * fix for .d.ts issue introduced in v0.19.0
