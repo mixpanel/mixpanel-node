@@ -1,4 +1,4 @@
-import { IncomingMessage } from 'http';
+import { IncomingMessage } from "http";
 
 export interface BotClassificationOptions {
   user_agent_property?: string;
@@ -7,7 +7,7 @@ export interface BotClassificationOptions {
     pattern: RegExp;
     name: string;
     provider: string;
-    category: 'indexing' | 'retrieval' | 'agent';
+    category: "indexing" | "retrieval" | "agent";
   }>;
 }
 
@@ -18,7 +18,7 @@ export interface BotClassificationController {
 
 export function enable_bot_classification(
   mixpanel: any,
-  options?: BotClassificationOptions
+  options?: BotClassificationOptions,
 ): BotClassificationController;
 
 export function track_request(
@@ -26,5 +26,5 @@ export function track_request(
   req: IncomingMessage,
   eventName: string,
   properties?: Record<string, any>,
-  callback?: (err?: Error) => void
+  callback?: (err?: Error) => void,
 ): void;

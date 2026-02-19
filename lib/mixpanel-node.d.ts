@@ -407,10 +407,10 @@ declare namespace mixpanel {
 
 export = mixpanel;
 
-import * as AiBotMiddleware from './ai_bot_middleware';
-import * as AiBotClassifier from './ai_bot_classifier';
+import * as AiBotMiddleware from "./ai_bot_middleware";
+import * as AiBotClassifier from "./ai_bot_classifier";
 
-declare module 'mixpanel' {
+declare module "mixpanel" {
   export const ai: typeof AiBotMiddleware;
   export const AiBotClassifier: typeof AiBotClassifier;
 }
