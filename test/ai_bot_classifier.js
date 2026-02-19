@@ -93,6 +93,7 @@ describe("AiBotClassifier", () => {
       expect(result.$is_ai_bot).toBe(true);
       expect(result.$ai_bot_name).toBe("Bytespider");
       expect(result.$ai_bot_provider).toBe("ByteDance");
+      expect(result.$ai_bot_category).toBe("indexing");
     });
 
     // --- Common Crawl ---
@@ -102,6 +103,7 @@ describe("AiBotClassifier", () => {
       expect(result.$is_ai_bot).toBe(true);
       expect(result.$ai_bot_name).toBe("CCBot");
       expect(result.$ai_bot_provider).toBe("Common Crawl");
+      expect(result.$ai_bot_category).toBe("indexing");
     });
 
     // --- Apple ---
@@ -113,6 +115,7 @@ describe("AiBotClassifier", () => {
       expect(result.$is_ai_bot).toBe(true);
       expect(result.$ai_bot_name).toBe("Applebot-Extended");
       expect(result.$ai_bot_provider).toBe("Apple");
+      expect(result.$ai_bot_category).toBe("indexing");
     });
 
     // --- Meta ---
@@ -124,6 +127,7 @@ describe("AiBotClassifier", () => {
       expect(result.$is_ai_bot).toBe(true);
       expect(result.$ai_bot_name).toBe("Meta-ExternalAgent");
       expect(result.$ai_bot_provider).toBe("Meta");
+      expect(result.$ai_bot_category).toBe("indexing");
     });
 
     // --- Cohere ---
