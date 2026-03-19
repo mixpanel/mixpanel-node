@@ -1,0 +1,609 @@
+const { ErrorCode } = require("@openfeature/server-sdk");
+const { MixpanelProvider } = require("../src/MixpanelProvider");
+
+const FALLBACK_VARIANT = Symbol("fallback");
+
+function createMockFlagsProvider({ flags = new Map(), ready = true } = {}) {
+  return {
+    getVariant: vi.fn((flagKey, fallbackVariant, _context, _reportExposure) => {
+      const variant = flags.get(flagKey);
+      if (!variant) {
+        return fallbackVariant;
+      }
+      return variant;
+    }),
+    _ready: ready,
+  };
+}
+
+function createMockContext() {
+  return { distinct_id: "user-123", plan: "premium" };
+}
+
+const mockLogger = {
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+};
+
+describe("MixpanelProvider", () => {
+  let mockFlags;
+  let mockFlagsProvider;
+
+  beforeEach(() => {
+    mockFlags = new Map();
+    mockFlagsProvider = createMockFlagsProvider({ flags: mockFlags });
+  });
+
+  describe("metadata", () => {
+    it("should have correct provider name", () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      expect(provider.metadata.name).toBe("mixpanel-provider");
+    });
+  });
+
+  describe("constructor", () => {
+    it("should throw when flagsProvider is null", () => {
+      expect(() => new MixpanelProvider(null)).toThrow();
+    });
+
+    it("should throw when flagsProvider is undefined", () => {
+      expect(() => new MixpanelProvider(undefined)).toThrow();
+    });
+
+    it("should throw when flagsProvider is missing getVariant", () => {
+      expect(() => new MixpanelProvider({})).toThrow("missing required method");
+    });
+  });
+
+  describe("initialize", () => {
+    it("should store context for later evaluations", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      const context = { distinct_id: "user-1", plan: "premium" };
+
+      await provider.initialize(context);
+
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+
+      await provider.resolveBooleanEvaluation("flag", false, {}, mockLogger);
+
+      expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
+        "flag",
+        expect.anything(),
+        context,
+        true,
+      );
+    });
+
+    it("should use empty context when none provided", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+
+      await provider.initialize();
+
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+
+      await provider.resolveBooleanEvaluation("flag", false, {}, mockLogger);
+
+      expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
+        "flag",
+        expect.anything(),
+        {},
+        true,
+      );
+    });
+  });
+
+  describe("onClose", () => {
+    it("should resolve without error", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await expect(provider.onClose()).resolves.toBeUndefined();
+    });
+  });
+
+  describe("resolveBooleanEvaluation", () => {
+    it("should return correct value when flag exists with boolean value", async () => {
+      mockFlags.set("feature-enabled", {
+        variant_key: "enabled",
+        variant_value: true,
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveBooleanEvaluation(
+        "feature-enabled",
+        false,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(true);
+      expect(result.variant).toBe("enabled");
+      expect(result.reason).toBe("STATIC");
+      expect(result.errorCode).toBeUndefined();
+    });
+
+    it("should return false boolean value correctly", async () => {
+      mockFlags.set("feature-disabled", {
+        variant_key: "disabled",
+        variant_value: false,
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveBooleanEvaluation(
+        "feature-disabled",
+        true,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(false);
+      expect(result.variant).toBe("disabled");
+    });
+
+    it("should return TYPE_MISMATCH error when value is not boolean", async () => {
+      mockFlags.set("string-flag", {
+        variant_key: "variant-a",
+        variant_value: "not-a-boolean",
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveBooleanEvaluation(
+        "string-flag",
+        false,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(false);
+      expect(result.errorCode).toBe(ErrorCode.TYPE_MISMATCH);
+      expect(result.errorMessage).toContain("not a boolean");
+      expect(result.reason).toBe("ERROR");
+    });
+
+    it("should return FLAG_NOT_FOUND error when flag does not exist", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveBooleanEvaluation(
+        "non-existent-flag",
+        true,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(true);
+      expect(result.errorCode).toBe(ErrorCode.FLAG_NOT_FOUND);
+      expect(result.errorMessage).toContain("not found");
+      expect(result.reason).toBe("ERROR");
+    });
+
+    it("should return PROVIDER_NOT_READY error when flags not loaded", async () => {
+      mockFlagsProvider._ready = false;
+      mockFlagsProvider.getVariant = vi.fn(() => {
+        throw new Error("Flags not ready");
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      // Don't initialize - provider is not ready
+      const result = await provider.resolveBooleanEvaluation(
+        "any-flag",
+        false,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(false);
+      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
+      expect(result.reason).toBe("ERROR");
+    });
+  });
+
+  describe("resolveStringEvaluation", () => {
+    it("should return correct value when flag exists with string value", async () => {
+      mockFlags.set("theme-flag", {
+        variant_key: "dark",
+        variant_value: "dark-mode",
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveStringEvaluation(
+        "theme-flag",
+        "light-mode",
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe("dark-mode");
+      expect(result.variant).toBe("dark");
+      expect(result.reason).toBe("STATIC");
+      expect(result.errorCode).toBeUndefined();
+    });
+
+    it("should return empty string value correctly", async () => {
+      mockFlags.set("empty-string-flag", {
+        variant_key: "empty",
+        variant_value: "",
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveStringEvaluation(
+        "empty-string-flag",
+        "default",
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe("");
+      expect(result.variant).toBe("empty");
+    });
+
+    it("should return TYPE_MISMATCH error when value is not string", async () => {
+      mockFlags.set("bool-flag", {
+        variant_key: "variant-a",
+        variant_value: true,
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveStringEvaluation(
+        "bool-flag",
+        "default",
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe("default");
+      expect(result.errorCode).toBe(ErrorCode.TYPE_MISMATCH);
+      expect(result.errorMessage).toContain("not a string");
+      expect(result.reason).toBe("ERROR");
+    });
+
+    it("should return FLAG_NOT_FOUND error when flag does not exist", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveStringEvaluation(
+        "non-existent-flag",
+        "fallback",
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe("fallback");
+      expect(result.errorCode).toBe(ErrorCode.FLAG_NOT_FOUND);
+    });
+  });
+
+  describe("resolveNumberEvaluation", () => {
+    it("should return correct value when flag exists with number value", async () => {
+      mockFlags.set("percentage-flag", {
+        variant_key: "variant-50",
+        variant_value: 50,
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveNumberEvaluation(
+        "percentage-flag",
+        0,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(50);
+      expect(result.variant).toBe("variant-50");
+      expect(result.reason).toBe("STATIC");
+      expect(result.errorCode).toBeUndefined();
+    });
+
+    it("should return zero value correctly", async () => {
+      mockFlags.set("zero-flag", {
+        variant_key: "zero",
+        variant_value: 0,
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveNumberEvaluation(
+        "zero-flag",
+        100,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(0);
+      expect(result.variant).toBe("zero");
+    });
+
+    it("should return TYPE_MISMATCH error when value is not number", async () => {
+      mockFlags.set("string-flag", {
+        variant_key: "variant-a",
+        variant_value: "42",
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveNumberEvaluation(
+        "string-flag",
+        0,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(0);
+      expect(result.errorCode).toBe(ErrorCode.TYPE_MISMATCH);
+      expect(result.errorMessage).toContain("not a number");
+      expect(result.reason).toBe("ERROR");
+    });
+
+    it("should return FLAG_NOT_FOUND error when flag does not exist", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveNumberEvaluation(
+        "non-existent-flag",
+        99,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(99);
+      expect(result.errorCode).toBe(ErrorCode.FLAG_NOT_FOUND);
+    });
+
+    it("should handle negative and float values", async () => {
+      mockFlags.set("float-flag", {
+        variant_key: "float",
+        variant_value: -3.14,
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveNumberEvaluation(
+        "float-flag",
+        0,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(-3.14);
+    });
+  });
+
+  describe("resolveObjectEvaluation", () => {
+    it("should return correct value when flag exists with object value", async () => {
+      const objectValue = { feature: "enabled", level: 2 };
+      mockFlags.set("config-flag", {
+        variant_key: "variant-full",
+        variant_value: objectValue,
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveObjectEvaluation(
+        "config-flag",
+        {},
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toEqual(objectValue);
+      expect(result.variant).toBe("variant-full");
+      expect(result.reason).toBe("STATIC");
+      expect(result.errorCode).toBeUndefined();
+    });
+
+    it("should return empty object value correctly", async () => {
+      mockFlags.set("empty-object-flag", {
+        variant_key: "empty",
+        variant_value: {},
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveObjectEvaluation(
+        "empty-object-flag",
+        { default: true },
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toEqual({});
+      expect(result.variant).toBe("empty");
+    });
+
+    it("should return TYPE_MISMATCH error when value is not object (string)", async () => {
+      mockFlags.set("string-flag", {
+        variant_key: "variant-a",
+        variant_value: "not-an-object",
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveObjectEvaluation(
+        "string-flag",
+        {},
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toEqual({});
+      expect(result.errorCode).toBe(ErrorCode.TYPE_MISMATCH);
+      expect(result.errorMessage).toContain("not an object");
+      expect(result.reason).toBe("ERROR");
+    });
+
+    it("should return TYPE_MISMATCH error when value is null", async () => {
+      mockFlags.set("null-flag", {
+        variant_key: "variant-a",
+        variant_value: null,
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveObjectEvaluation(
+        "null-flag",
+        { default: true },
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toEqual({ default: true });
+      expect(result.errorCode).toBe(ErrorCode.TYPE_MISMATCH);
+    });
+
+    it("should return TYPE_MISMATCH error when value is an array", async () => {
+      mockFlags.set("array-flag", {
+        variant_key: "variant-a",
+        variant_value: [1, 2, 3],
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveObjectEvaluation(
+        "array-flag",
+        [],
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toEqual([]);
+      expect(result.errorCode).toBe(ErrorCode.TYPE_MISMATCH);
+    });
+
+    it("should return FLAG_NOT_FOUND error when flag does not exist", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveObjectEvaluation(
+        "non-existent-flag",
+        { fallback: true },
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toEqual({ fallback: true });
+      expect(result.errorCode).toBe(ErrorCode.FLAG_NOT_FOUND);
+    });
+  });
+
+  describe("async flags provider (remote)", () => {
+    it("should handle async getVariant from remote provider", async () => {
+      const asyncProvider = {
+        getVariant: vi.fn(async (flagKey) => {
+          return {
+            variant_key: "async-variant",
+            variant_value: "async-value",
+          };
+        }),
+      };
+
+      const provider = new MixpanelProvider(asyncProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveStringEvaluation(
+        "async-flag",
+        "default",
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe("async-value");
+      expect(result.variant).toBe("async-variant");
+      expect(result.reason).toBe("STATIC");
+    });
+  });
+
+  describe("edge cases", () => {
+    it("should ignore per-evaluation context", async () => {
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+
+      const initContext = { distinct_id: "user-1" };
+      const evalContext = { distinct_id: "user-2", targetingKey: "user-2" };
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(initContext);
+      await provider.resolveBooleanEvaluation(
+        "flag",
+        false,
+        evalContext,
+        mockLogger,
+      );
+
+      // Should use init context, not per-evaluation context
+      expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
+        "flag",
+        expect.anything(),
+        initContext,
+        true,
+      );
+    });
+
+    it("should not give targetingKey special treatment", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      const context = { targetingKey: "tk-123", distinct_id: "user-1" };
+      await provider.initialize(context);
+
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+
+      await provider.resolveBooleanEvaluation("flag", false, {}, mockLogger);
+
+      expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
+        "flag",
+        expect.anything(),
+        context,
+        true,
+      );
+    });
+
+    it("should handle variant_key being null", async () => {
+      mockFlags.set("null-key-flag", {
+        variant_key: null,
+        variant_value: "some-value",
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveStringEvaluation(
+        "null-key-flag",
+        "default",
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe("some-value");
+      expect(result.variant).toBeNull();
+      expect(result.reason).toBe("STATIC");
+    });
+
+    it("should handle special characters in flag key", async () => {
+      mockFlags.set("flag-with-special_chars.and/slashes", {
+        variant_key: "variant",
+        variant_value: "special",
+      });
+
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveStringEvaluation(
+        "flag-with-special_chars.and/slashes",
+        "default",
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe("special");
+    });
+  });
+});
