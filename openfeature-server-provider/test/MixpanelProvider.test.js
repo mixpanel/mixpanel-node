@@ -281,6 +281,21 @@ describe("MixpanelProvider", () => {
       expect(result.value).toBe("fallback");
       expect(result.errorCode).toBe(ErrorCode.FLAG_NOT_FOUND);
     });
+
+    it("should return PROVIDER_NOT_READY error when not initialized", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      // Don't initialize - provider is not ready
+      const result = await provider.resolveStringEvaluation(
+        "any-flag",
+        "default-string",
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe("default-string");
+      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
+      expect(result.reason).toBe("ERROR");
+    });
   });
 
   describe("resolveNumberEvaluation", () => {
@@ -357,6 +372,21 @@ describe("MixpanelProvider", () => {
 
       expect(result.value).toBe(99);
       expect(result.errorCode).toBe(ErrorCode.FLAG_NOT_FOUND);
+    });
+
+    it("should return PROVIDER_NOT_READY error when not initialized", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      // Don't initialize - provider is not ready
+      const result = await provider.resolveNumberEvaluation(
+        "any-flag",
+        42,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(42);
+      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
+      expect(result.reason).toBe("ERROR");
     });
 
     it("should handle negative and float values", async () => {
@@ -492,6 +522,21 @@ describe("MixpanelProvider", () => {
       expect(result.value).toEqual({ fallback: true });
       expect(result.errorCode).toBe(ErrorCode.FLAG_NOT_FOUND);
     });
+
+    it("should return PROVIDER_NOT_READY error when not initialized", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      // Don't initialize - provider is not ready
+      const result = await provider.resolveObjectEvaluation(
+        "any-flag",
+        { default: true },
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toEqual({ default: true });
+      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
+      expect(result.reason).toBe("ERROR");
+    });
   });
 
   describe("async flags provider (remote)", () => {
@@ -520,34 +565,119 @@ describe("MixpanelProvider", () => {
     });
   });
 
-  describe("edge cases", () => {
-    it("should ignore per-evaluation context", async () => {
-      mockFlags.set("flag", {
-        variant_key: "on",
-        variant_value: true,
-      });
+  describe("SDK exception handling", () => {
+    it("should return default value with error when getVariant throws", async () => {
+      const throwingProvider = {
+        getVariant: vi.fn(() => {
+          throw new Error("SDK internal error");
+        }),
+      };
 
-      const initContext = { distinct_id: "user-1" };
-      const evalContext = { distinct_id: "user-2", targetingKey: "user-2" };
-
-      const provider = new MixpanelProvider(mockFlagsProvider);
-      await provider.initialize(initContext);
-      await provider.resolveBooleanEvaluation(
-        "flag",
+      const provider = new MixpanelProvider(throwingProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveBooleanEvaluation(
+        "any-flag",
         false,
-        evalContext,
+        {},
         mockLogger,
       );
 
-      // Should use init context, not per-evaluation context
-      expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
-        "flag",
-        expect.anything(),
-        initContext,
-        true,
-      );
+      expect(result.value).toBe(false);
+      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
+      expect(result.errorMessage).toContain("SDK internal error");
+      expect(result.reason).toBe("ERROR");
     });
 
+    it("should return default string value when getVariant throws", async () => {
+      const throwingProvider = {
+        getVariant: vi.fn(() => {
+          throw new Error("Network timeout");
+        }),
+      };
+
+      const provider = new MixpanelProvider(throwingProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveStringEvaluation(
+        "any-flag",
+        "fallback",
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe("fallback");
+      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
+      expect(result.errorMessage).toContain("Network timeout");
+      expect(result.reason).toBe("ERROR");
+    });
+
+    it("should return default number value when getVariant throws", async () => {
+      const throwingProvider = {
+        getVariant: vi.fn(() => {
+          throw new Error("Connection refused");
+        }),
+      };
+
+      const provider = new MixpanelProvider(throwingProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveNumberEvaluation(
+        "any-flag",
+        99,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(99);
+      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
+      expect(result.errorMessage).toContain("Connection refused");
+      expect(result.reason).toBe("ERROR");
+    });
+
+    it("should return default object value when getVariant throws", async () => {
+      const throwingProvider = {
+        getVariant: vi.fn(() => {
+          throw new Error("Parse error");
+        }),
+      };
+
+      const provider = new MixpanelProvider(throwingProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveObjectEvaluation(
+        "any-flag",
+        { fallback: true },
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toEqual({ fallback: true });
+      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
+      expect(result.errorMessage).toContain("Parse error");
+      expect(result.reason).toBe("ERROR");
+    });
+
+    it("should handle async getVariant rejection", async () => {
+      const rejectingProvider = {
+        getVariant: vi.fn(async () => {
+          throw new Error("Async failure");
+        }),
+      };
+
+      const provider = new MixpanelProvider(rejectingProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveBooleanEvaluation(
+        "any-flag",
+        true,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(true);
+      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
+      expect(result.errorMessage).toContain("Async failure");
+      expect(result.reason).toBe("ERROR");
+    });
+  });
+
+  describe("edge cases", () => {
     it("should not give targetingKey special treatment", async () => {
       const provider = new MixpanelProvider(mockFlagsProvider);
       const context = { targetingKey: "tk-123", distinct_id: "user-1" };
