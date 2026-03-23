@@ -30,8 +30,8 @@ class MixpanelProvider {
     // No cleanup needed - Mixpanel SDK manages its own lifecycle
   }
 
-  async resolveBooleanEvaluation(flagKey, defaultValue, _context, _logger) {
-    const result = await this._resolveFlag(flagKey, defaultValue);
+  async resolveBooleanEvaluation(flagKey, defaultValue, context, _logger) {
+    const result = await this._resolveFlag(flagKey, defaultValue, context);
     if (result.errorCode) {
       return result;
     }
@@ -47,8 +47,8 @@ class MixpanelProvider {
     return result;
   }
 
-  async resolveStringEvaluation(flagKey, defaultValue, _context, _logger) {
-    const result = await this._resolveFlag(flagKey, defaultValue);
+  async resolveStringEvaluation(flagKey, defaultValue, context, _logger) {
+    const result = await this._resolveFlag(flagKey, defaultValue, context);
     if (result.errorCode) {
       return result;
     }
@@ -64,8 +64,8 @@ class MixpanelProvider {
     return result;
   }
 
-  async resolveNumberEvaluation(flagKey, defaultValue, _context, _logger) {
-    const result = await this._resolveFlag(flagKey, defaultValue);
+  async resolveNumberEvaluation(flagKey, defaultValue, context, _logger) {
+    const result = await this._resolveFlag(flagKey, defaultValue, context);
     if (result.errorCode) {
       return result;
     }
@@ -81,8 +81,8 @@ class MixpanelProvider {
     return result;
   }
 
-  async resolveObjectEvaluation(flagKey, defaultValue, _context, _logger) {
-    const result = await this._resolveFlag(flagKey, defaultValue);
+  async resolveObjectEvaluation(flagKey, defaultValue, context, _logger) {
+    const result = await this._resolveFlag(flagKey, defaultValue, context);
     if (result.errorCode) {
       return result;
     }
@@ -102,7 +102,17 @@ class MixpanelProvider {
     return result;
   }
 
-  async _resolveFlag(flagKey, defaultValue) {
+  _buildFlagContext(evaluationContext) {
+    const flagContext = { ...this._context };
+    if (evaluationContext && Object.keys(evaluationContext).length > 0) {
+      for (const [key, value] of Object.entries(evaluationContext)) {
+        flagContext[key] = value;
+      }
+    }
+    return flagContext;
+  }
+
+  async _resolveFlag(flagKey, defaultValue, context) {
     if (!this._initialized) {
       return createErrorResolution(
         defaultValue,
@@ -116,12 +126,14 @@ class MixpanelProvider {
       variant_value: defaultValue,
     };
 
+    const flagContext = this._buildFlagContext(context);
+
     let variant;
     try {
       variant = await this._flagsProvider.getVariant(
         flagKey,
         fallbackVariant,
-        this._context,
+        flagContext,
         true,
       );
     } catch (err) {

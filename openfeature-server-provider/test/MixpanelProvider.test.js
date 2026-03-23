@@ -680,20 +680,92 @@ describe("MixpanelProvider", () => {
   describe("edge cases", () => {
     it("should not give targetingKey special treatment", async () => {
       const provider = new MixpanelProvider(mockFlagsProvider);
-      const context = { targetingKey: "tk-123", distinct_id: "user-1" };
-      await provider.initialize(context);
+      await provider.initialize({});
 
       mockFlags.set("flag", {
         variant_key: "on",
         variant_value: true,
       });
 
-      await provider.resolveBooleanEvaluation("flag", false, {}, mockLogger);
+      const evalContext = { targetingKey: "tk-123", distinct_id: "user-1" };
+      await provider.resolveBooleanEvaluation("flag", false, evalContext, mockLogger);
 
       expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
         "flag",
         expect.anything(),
-        context,
+        evalContext,
+        true,
+      );
+    });
+
+    it("should allow per-evaluation context to override init context", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize({ distinct_id: "init-user", plan: "free" });
+
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+
+      await provider.resolveBooleanEvaluation(
+        "flag",
+        false,
+        { distinct_id: "eval-user" },
+        mockLogger,
+      );
+
+      expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
+        "flag",
+        expect.anything(),
+        { distinct_id: "eval-user", plan: "free" },
+        true,
+      );
+    });
+
+    it("should merge per-evaluation context additively with init context", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize({ distinct_id: "user-1" });
+
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+
+      await provider.resolveBooleanEvaluation(
+        "flag",
+        false,
+        { plan: "premium" },
+        mockLogger,
+      );
+
+      expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
+        "flag",
+        expect.anything(),
+        { distinct_id: "user-1", plan: "premium" },
+        true,
+      );
+    });
+
+    it("should use per-evaluation context on string evaluation", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize({ distinct_id: "user-1" });
+
+      mockFlags.set("theme", {
+        variant_key: "dark",
+        variant_value: "dark-mode",
+      });
+
+      await provider.resolveStringEvaluation(
+        "theme",
+        "light-mode",
+        { tier: "enterprise" },
+        mockLogger,
+      );
+
+      expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
+        "theme",
+        expect.anything(),
+        { distinct_id: "user-1", tier: "enterprise" },
         true,
       );
     });
