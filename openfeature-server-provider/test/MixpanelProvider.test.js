@@ -105,6 +105,84 @@ describe("MixpanelProvider", () => {
       const provider = new MixpanelProvider(mockFlagsProvider);
       await expect(provider.onClose()).resolves.toBeUndefined();
     });
+
+    it("should call shutdown on the underlying provider if available", async () => {
+      const shutdownMock = vi.fn();
+      const flagsProviderWithShutdown = {
+        ...mockFlagsProvider,
+        shutdown: shutdownMock,
+      };
+      const provider = new MixpanelProvider(flagsProviderWithShutdown);
+      await provider.onClose();
+      expect(shutdownMock).toHaveBeenCalledOnce();
+    });
+
+    it("should not throw if underlying provider has no shutdown method", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await expect(provider.onClose()).resolves.toBeUndefined();
+    });
+  });
+
+  describe("areFlagsReady", () => {
+    it("should return PROVIDER_NOT_READY when areFlagsReady returns false", async () => {
+      const notReadyProvider = {
+        ...mockFlagsProvider,
+        areFlagsReady: vi.fn(() => false),
+      };
+      const provider = new MixpanelProvider(notReadyProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveBooleanEvaluation(
+        "any-flag",
+        false,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(false);
+      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
+      expect(result.errorMessage).toContain("not been loaded");
+      expect(result.reason).toBe("ERROR");
+    });
+
+    it("should proceed normally when areFlagsReady returns true", async () => {
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+      const readyProvider = {
+        ...mockFlagsProvider,
+        areFlagsReady: vi.fn(() => true),
+      };
+      const provider = new MixpanelProvider(readyProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveBooleanEvaluation(
+        "flag",
+        false,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(true);
+      expect(result.errorCode).toBeUndefined();
+    });
+
+    it("should proceed normally when provider has no areFlagsReady method", async () => {
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveBooleanEvaluation(
+        "flag",
+        false,
+        {},
+        mockLogger,
+      );
+
+      expect(result.value).toBe(true);
+      expect(result.errorCode).toBeUndefined();
+    });
   });
 
   describe("resolveBooleanEvaluation", () => {
@@ -583,7 +661,7 @@ describe("MixpanelProvider", () => {
       );
 
       expect(result.value).toBe(false);
-      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
+      expect(result.errorCode).toBe(ErrorCode.GENERAL);
       expect(result.errorMessage).toContain("SDK internal error");
       expect(result.reason).toBe("ERROR");
     });
@@ -605,7 +683,7 @@ describe("MixpanelProvider", () => {
       );
 
       expect(result.value).toBe("fallback");
-      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
+      expect(result.errorCode).toBe(ErrorCode.GENERAL);
       expect(result.errorMessage).toContain("Network timeout");
       expect(result.reason).toBe("ERROR");
     });
@@ -627,7 +705,7 @@ describe("MixpanelProvider", () => {
       );
 
       expect(result.value).toBe(99);
-      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
+      expect(result.errorCode).toBe(ErrorCode.GENERAL);
       expect(result.errorMessage).toContain("Connection refused");
       expect(result.reason).toBe("ERROR");
     });
@@ -649,7 +727,7 @@ describe("MixpanelProvider", () => {
       );
 
       expect(result.value).toEqual({ fallback: true });
-      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
+      expect(result.errorCode).toBe(ErrorCode.GENERAL);
       expect(result.errorMessage).toContain("Parse error");
       expect(result.reason).toBe("ERROR");
     });
@@ -671,7 +749,7 @@ describe("MixpanelProvider", () => {
       );
 
       expect(result.value).toBe(true);
-      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
+      expect(result.errorCode).toBe(ErrorCode.GENERAL);
       expect(result.errorMessage).toContain("Async failure");
       expect(result.reason).toBe("ERROR");
     });

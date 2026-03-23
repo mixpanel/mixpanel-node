@@ -27,7 +27,9 @@ class MixpanelProvider {
   }
 
   async onClose() {
-    // No cleanup needed - Mixpanel SDK manages its own lifecycle
+    if (typeof this._flagsProvider.shutdown === "function") {
+      this._flagsProvider.shutdown();
+    }
   }
 
   async resolveBooleanEvaluation(flagKey, defaultValue, context, _logger) {
@@ -102,11 +104,41 @@ class MixpanelProvider {
     return result;
   }
 
+  _unwrapValue(value) {
+    if (value === null || value === undefined) {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this._unwrapValue(item));
+    }
+
+    if (typeof value === "object") {
+      if (
+        Object.hasOwn(value, "value") &&
+        Object.keys(value).length <= 2
+      ) {
+        return this._unwrapValue(value.value);
+      }
+      const result = {};
+      for (const [k, v] of Object.entries(value)) {
+        result[k] = this._unwrapValue(v);
+      }
+      return result;
+    }
+
+    if (typeof value === "number" && Number.isFinite(value) && value === Math.floor(value)) {
+      return Math.trunc(value);
+    }
+
+    return value;
+  }
+
   _buildFlagContext(evaluationContext) {
     const flagContext = { ...this._context };
     if (evaluationContext && Object.keys(evaluationContext).length > 0) {
       for (const [key, value] of Object.entries(evaluationContext)) {
-        flagContext[key] = value;
+        flagContext[key] = this._unwrapValue(value);
       }
     }
     return flagContext;
@@ -118,6 +150,17 @@ class MixpanelProvider {
         defaultValue,
         ErrorCode.PROVIDER_NOT_READY,
         "Mixpanel provider has not been initialized",
+      );
+    }
+
+    if (
+      typeof this._flagsProvider.areFlagsReady === "function" &&
+      !this._flagsProvider.areFlagsReady()
+    ) {
+      return createErrorResolution(
+        defaultValue,
+        ErrorCode.PROVIDER_NOT_READY,
+        "Flag definitions have not been loaded yet",
       );
     }
 
@@ -139,7 +182,7 @@ class MixpanelProvider {
     } catch (err) {
       return createErrorResolution(
         defaultValue,
-        ErrorCode.PROVIDER_NOT_READY,
+        ErrorCode.GENERAL,
         `Flag evaluation failed: ${err.message}`,
       );
     }
