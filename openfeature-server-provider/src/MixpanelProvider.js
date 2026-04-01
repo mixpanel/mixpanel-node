@@ -33,71 +33,33 @@ class MixpanelProvider {
   }
 
   async resolveBooleanEvaluation(flagKey, defaultValue, context, _logger) {
-    const result = await this._resolveFlag(flagKey, defaultValue, context);
-    if (result.errorCode) {
-      return result;
-    }
-
-    if (typeof result.value !== "boolean") {
-      return createErrorResolution(
-        defaultValue,
-        ErrorCode.TYPE_MISMATCH,
-        `Flag "${flagKey}" value is not a boolean: ${typeof result.value}`,
-      );
-    }
-
-    return result;
+    return this._resolveTypedFlag(flagKey, defaultValue, context, "boolean");
   }
 
   async resolveStringEvaluation(flagKey, defaultValue, context, _logger) {
-    const result = await this._resolveFlag(flagKey, defaultValue, context);
-    if (result.errorCode) {
-      return result;
-    }
-
-    if (typeof result.value !== "string") {
-      return createErrorResolution(
-        defaultValue,
-        ErrorCode.TYPE_MISMATCH,
-        `Flag "${flagKey}" value is not a string: ${typeof result.value}`,
-      );
-    }
-
-    return result;
+    return this._resolveTypedFlag(flagKey, defaultValue, context, "string");
   }
 
   async resolveNumberEvaluation(flagKey, defaultValue, context, _logger) {
-    const result = await this._resolveFlag(flagKey, defaultValue, context);
-    if (result.errorCode) {
-      return result;
-    }
-
-    if (typeof result.value !== "number") {
-      return createErrorResolution(
-        defaultValue,
-        ErrorCode.TYPE_MISMATCH,
-        `Flag "${flagKey}" value is not a number: ${typeof result.value}`,
-      );
-    }
-
-    return result;
+    return this._resolveTypedFlag(flagKey, defaultValue, context, "number");
   }
 
   async resolveObjectEvaluation(flagKey, defaultValue, context, _logger) {
+    return this._resolveTypedFlag(flagKey, defaultValue, context, "object");
+  }
+
+  async _resolveTypedFlag(flagKey, defaultValue, context, expectedType) {
     const result = await this._resolveFlag(flagKey, defaultValue, context);
     if (result.errorCode) {
       return result;
     }
 
-    if (
-      typeof result.value !== "object" ||
-      result.value === null ||
-      Array.isArray(result.value)
-    ) {
+    if (!isExpectedType(result.value, expectedType)) {
+      const article = expectedType === "object" ? "an" : "a";
       return createErrorResolution(
         defaultValue,
         ErrorCode.TYPE_MISMATCH,
-        `Flag "${flagKey}" value is not an object: ${typeof result.value}`,
+        `Flag "${flagKey}" value is not ${article} ${expectedType}: ${typeof result.value}`,
       );
     }
 
@@ -105,7 +67,7 @@ class MixpanelProvider {
   }
 
   _unwrapValue(value) {
-    if (value === null || value === undefined) {
+    if (value == null) {
       return value;
     }
 
@@ -125,10 +87,6 @@ class MixpanelProvider {
         result[k] = this._unwrapValue(v);
       }
       return result;
-    }
-
-    if (typeof value === "number" && Number.isFinite(value) && value === Math.floor(value)) {
-      return Math.trunc(value);
     }
 
     return value;
@@ -201,6 +159,13 @@ class MixpanelProvider {
       reason: "STATIC",
     };
   }
+}
+
+function isExpectedType(value, expectedType) {
+  if (expectedType === "object") {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+  return typeof value === expectedType;
 }
 
 function createErrorResolution(defaultValue, errorCode, errorMessage) {
