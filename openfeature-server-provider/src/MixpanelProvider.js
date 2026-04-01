@@ -28,7 +28,7 @@ class MixpanelProvider {
 
   async onClose() {
     if (typeof this._flagsProvider.shutdown === "function") {
-      this._flagsProvider.shutdown();
+      await this._flagsProvider.shutdown();
     }
   }
 
@@ -71,17 +71,15 @@ class MixpanelProvider {
       return value;
     }
 
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
     if (Array.isArray(value)) {
       return value.map((item) => this._unwrapValue(item));
     }
 
     if (typeof value === "object") {
-      if (
-        Object.hasOwn(value, "value") &&
-        Object.keys(value).length <= 2
-      ) {
-        return this._unwrapValue(value.value);
-      }
       const result = {};
       for (const [k, v] of Object.entries(value)) {
         result[k] = this._unwrapValue(v);

@@ -886,4 +886,166 @@ describe("MixpanelProvider", () => {
       expect(result.value).toBe("special");
     });
   });
+
+  describe("context building and value unwrapping", () => {
+    it("should pass nested objects in context through to flagsProvider", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize({});
+
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+
+      const evalContext = {
+        distinct_id: "user-1",
+        settings: { theme: "dark", notifications: { email: true } },
+      };
+      await provider.resolveBooleanEvaluation("flag", false, evalContext, mockLogger);
+
+      expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
+        "flag",
+        expect.anything(),
+        {
+          distinct_id: "user-1",
+          settings: { theme: "dark", notifications: { email: true } },
+        },
+        true,
+      );
+    });
+
+    it("should pass arrays in context through to flagsProvider", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize({});
+
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+
+      const evalContext = {
+        distinct_id: "user-1",
+        tags: ["vip", "beta"],
+      };
+      await provider.resolveBooleanEvaluation("flag", false, evalContext, mockLogger);
+
+      expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
+        "flag",
+        expect.anything(),
+        {
+          distinct_id: "user-1",
+          tags: ["vip", "beta"],
+        },
+        true,
+      );
+    });
+
+    it("should convert Date objects to ISO strings in context", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize({});
+
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+
+      const date = new Date("2025-06-15T12:00:00.000Z");
+      const evalContext = {
+        distinct_id: "user-1",
+        created_at: date,
+      };
+      await provider.resolveBooleanEvaluation("flag", false, evalContext, mockLogger);
+
+      expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
+        "flag",
+        expect.anything(),
+        {
+          distinct_id: "user-1",
+          created_at: "2025-06-15T12:00:00.000Z",
+        },
+        true,
+      );
+    });
+
+    it("should not strip objects that happen to have a 'value' property", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize({});
+
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+
+      const evalContext = {
+        distinct_id: "user-1",
+        config: { value: "production", region: "us-east" },
+      };
+      await provider.resolveBooleanEvaluation("flag", false, evalContext, mockLogger);
+
+      expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
+        "flag",
+        expect.anything(),
+        {
+          distinct_id: "user-1",
+          config: { value: "production", region: "us-east" },
+        },
+        true,
+      );
+    });
+
+    it("should handle null and undefined values in context", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize({});
+
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+
+      const evalContext = {
+        distinct_id: "user-1",
+        nullable: null,
+        missing: undefined,
+      };
+      await provider.resolveBooleanEvaluation("flag", false, evalContext, mockLogger);
+
+      expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
+        "flag",
+        expect.anything(),
+        expect.objectContaining({
+          distinct_id: "user-1",
+          nullable: null,
+          missing: undefined,
+        }),
+        true,
+      );
+    });
+
+    it("should convert Dates nested inside arrays and objects", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize({});
+
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+
+      const date = new Date("2025-01-01T00:00:00.000Z");
+      const evalContext = {
+        events: [{ timestamp: date }],
+        meta: { updated: date },
+      };
+      await provider.resolveBooleanEvaluation("flag", false, evalContext, mockLogger);
+
+      expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
+        "flag",
+        expect.anything(),
+        {
+          events: [{ timestamp: "2025-01-01T00:00:00.000Z" }],
+          meta: { updated: "2025-01-01T00:00:00.000Z" },
+        },
+        true,
+      );
+    });
+  });
 });

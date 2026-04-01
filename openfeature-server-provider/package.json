@@ -4,6 +4,9 @@
   "description": "OpenFeature server provider for Mixpanel feature flags",
   "main": "src/index.js",
   "types": "src/index.d.ts",
+  "files": [
+    "src/"
+  ],
   "license": "MIT",
   "scripts": {
     "test": "vitest"

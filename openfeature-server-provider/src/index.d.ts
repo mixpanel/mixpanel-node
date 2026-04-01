@@ -15,6 +15,8 @@ export interface MixpanelFlagsProvider {
     context: FlagContext,
     reportExposure?: boolean,
   ): SelectedVariant | Promise<SelectedVariant>;
+  shutdown?(): void | Promise<void>;
+  areFlagsReady?(): boolean;
 }
 
 export class MixpanelProvider implements Provider {
