@@ -766,7 +766,12 @@ describe("MixpanelProvider", () => {
       });
 
       const evalContext = { targetingKey: "tk-123", distinct_id: "user-1" };
-      await provider.resolveBooleanEvaluation("flag", false, evalContext, mockLogger);
+      await provider.resolveBooleanEvaluation(
+        "flag",
+        false,
+        evalContext,
+        mockLogger,
+      );
 
       expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
         "flag",
@@ -901,7 +906,12 @@ describe("MixpanelProvider", () => {
         distinct_id: "user-1",
         settings: { theme: "dark", notifications: { email: true } },
       };
-      await provider.resolveBooleanEvaluation("flag", false, evalContext, mockLogger);
+      await provider.resolveBooleanEvaluation(
+        "flag",
+        false,
+        evalContext,
+        mockLogger,
+      );
 
       expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
         "flag",
@@ -927,7 +937,12 @@ describe("MixpanelProvider", () => {
         distinct_id: "user-1",
         tags: ["vip", "beta"],
       };
-      await provider.resolveBooleanEvaluation("flag", false, evalContext, mockLogger);
+      await provider.resolveBooleanEvaluation(
+        "flag",
+        false,
+        evalContext,
+        mockLogger,
+      );
 
       expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
         "flag",
@@ -954,7 +969,12 @@ describe("MixpanelProvider", () => {
         distinct_id: "user-1",
         created_at: date,
       };
-      await provider.resolveBooleanEvaluation("flag", false, evalContext, mockLogger);
+      await provider.resolveBooleanEvaluation(
+        "flag",
+        false,
+        evalContext,
+        mockLogger,
+      );
 
       expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
         "flag",
@@ -980,7 +1000,12 @@ describe("MixpanelProvider", () => {
         distinct_id: "user-1",
         config: { value: "production", region: "us-east" },
       };
-      await provider.resolveBooleanEvaluation("flag", false, evalContext, mockLogger);
+      await provider.resolveBooleanEvaluation(
+        "flag",
+        false,
+        evalContext,
+        mockLogger,
+      );
 
       expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
         "flag",
@@ -1007,7 +1032,12 @@ describe("MixpanelProvider", () => {
         nullable: null,
         missing: undefined,
       };
-      await provider.resolveBooleanEvaluation("flag", false, evalContext, mockLogger);
+      await provider.resolveBooleanEvaluation(
+        "flag",
+        false,
+        evalContext,
+        mockLogger,
+      );
 
       expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
         "flag",
@@ -1035,7 +1065,12 @@ describe("MixpanelProvider", () => {
         events: [{ timestamp: date }],
         meta: { updated: date },
       };
-      await provider.resolveBooleanEvaluation("flag", false, evalContext, mockLogger);
+      await provider.resolveBooleanEvaluation(
+        "flag",
+        false,
+        evalContext,
+        mockLogger,
+      );
 
       expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
         "flag",
