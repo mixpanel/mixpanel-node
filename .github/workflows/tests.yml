@@ -28,3 +28,24 @@ jobs:
       - run: npm run lint
       - run: npm test -- run --coverage
       - run: npx tsc
+
+  openfeature:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x, 24.x]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      - name: Install OpenFeature provider dependencies
+        run: npm ci
+        working-directory: openfeature-server-provider
+      - name: Run OpenFeature provider tests
+        run: npx vitest run
+        working-directory: openfeature-server-provider
