@@ -23,6 +23,9 @@ class MixpanelProvider {
     if (context && Object.keys(context).length > 0) {
       this._context = context;
     }
+    if (typeof this._flagsProvider.areFlagsReady === "function") {
+      await this._flagsProvider.areFlagsReady();
+    }
     this._initialized = true;
   }
 
@@ -106,17 +109,6 @@ class MixpanelProvider {
         defaultValue,
         ErrorCode.PROVIDER_NOT_READY,
         "Mixpanel provider has not been initialized",
-      );
-    }
-
-    if (
-      typeof this._flagsProvider.areFlagsReady === "function" &&
-      !this._flagsProvider.areFlagsReady()
-    ) {
-      return createErrorResolution(
-        defaultValue,
-        ErrorCode.PROVIDER_NOT_READY,
-        "Flag definitions have not been loaded yet",
       );
     }
 

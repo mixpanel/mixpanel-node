@@ -124,37 +124,20 @@ describe("MixpanelProvider", () => {
   });
 
   describe("areFlagsReady", () => {
-    it("should return PROVIDER_NOT_READY when areFlagsReady returns false", async () => {
-      const notReadyProvider = {
-        ...mockFlagsProvider,
-        areFlagsReady: vi.fn(() => false),
-      };
-      const provider = new MixpanelProvider(notReadyProvider);
-      await provider.initialize(createMockContext());
-      const result = await provider.resolveBooleanEvaluation(
-        "any-flag",
-        false,
-        {},
-        mockLogger,
-      );
-
-      expect(result.value).toBe(false);
-      expect(result.errorCode).toBe(ErrorCode.PROVIDER_NOT_READY);
-      expect(result.errorMessage).toContain("not been loaded");
-      expect(result.reason).toBe("ERROR");
-    });
-
-    it("should proceed normally when areFlagsReady returns true", async () => {
+    it("should await areFlagsReady promise during initialize", async () => {
       mockFlags.set("flag", {
         variant_key: "on",
         variant_value: true,
       });
       const readyProvider = {
         ...mockFlagsProvider,
-        areFlagsReady: vi.fn(() => true),
+        areFlagsReady: vi.fn(() => Promise.resolve()),
       };
       const provider = new MixpanelProvider(readyProvider);
       await provider.initialize(createMockContext());
+
+      expect(readyProvider.areFlagsReady).toHaveBeenCalled();
+
       const result = await provider.resolveBooleanEvaluation(
         "flag",
         false,
