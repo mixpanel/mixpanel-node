@@ -6,7 +6,13 @@ import type {
   JsonValue,
   Logger,
 } from "@openfeature/server-sdk";
-import type { SelectedVariant, FlagContext } from "../../lib/flags/types";
+import type {
+  SelectedVariant,
+  FlagContext,
+  LocalFlagsConfig,
+  RemoteFlagsConfig,
+} from "../../lib/flags/types";
+import type mixpanel from "../../lib/mixpanel-node";
 
 export interface MixpanelFlagsProvider {
   getVariant(
@@ -21,8 +27,18 @@ export interface MixpanelFlagsProvider {
 
 export class MixpanelProvider implements Provider {
   readonly metadata: ProviderMetadata;
+  mixpanel?: mixpanel.Mixpanel;
 
   constructor(flagsProvider: MixpanelFlagsProvider);
+
+  static createLocal(
+    token: string,
+    config?: LocalFlagsConfig,
+  ): MixpanelProvider;
+  static createRemote(
+    token: string,
+    config?: RemoteFlagsConfig,
+  ): MixpanelProvider;
 
   initialize(context?: EvaluationContext): Promise<void>;
   onClose(): Promise<void>;

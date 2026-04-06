@@ -1,4 +1,5 @@
 const { ErrorCode } = require("@openfeature/server-sdk");
+const Mixpanel = require("mixpanel");
 
 const FALLBACK_SENTINEL = Symbol("mixpanel-openfeature-fallback");
 
@@ -17,6 +18,23 @@ class MixpanelProvider {
     this._flagsProvider = flagsProvider;
     this._context = {};
     this._initialized = false;
+  }
+
+  static createLocal(token, config) {
+    const mixpanel = Mixpanel.init(token, { local_flags_config: config });
+    const flagsProvider = mixpanel.local_flags;
+    flagsProvider.startPollingForDefinitions();
+    const provider = new MixpanelProvider(flagsProvider);
+    provider.mixpanel = mixpanel;
+    return provider;
+  }
+
+  static createRemote(token, config) {
+    const mixpanel = Mixpanel.init(token, { remote_flags_config: config });
+    const flagsProvider = mixpanel.remote_flags;
+    const provider = new MixpanelProvider(flagsProvider);
+    provider.mixpanel = mixpanel;
+    return provider;
   }
 
   async initialize(context) {
