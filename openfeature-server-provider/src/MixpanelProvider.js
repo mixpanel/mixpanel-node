@@ -154,17 +154,18 @@ class MixpanelProvider {
     }
 
     if (variant.variant_key === FALLBACK_SENTINEL) {
-      return createErrorResolution(
-        defaultValue,
-        ErrorCode.FLAG_NOT_FOUND,
-        `Flag "${flagKey}" not found`,
-      );
+      return {
+        value: defaultValue,
+        errorCode: ErrorCode.FLAG_NOT_FOUND,
+        errorMessage: `Flag "${flagKey}" not found`,
+        reason: "DEFAULT",
+      };
     }
 
     return {
       value: variant.variant_value,
       variant: variant.variant_key,
-      reason: "STATIC",
+      reason: "TARGETING_MATCH",
     };
   }
 }

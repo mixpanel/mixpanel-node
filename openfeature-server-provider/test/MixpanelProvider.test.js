@@ -186,7 +186,7 @@ describe("MixpanelProvider", () => {
 
       expect(result.value).toBe(true);
       expect(result.variant).toBe("enabled");
-      expect(result.reason).toBe("STATIC");
+      expect(result.reason).toBe("TARGETING_MATCH");
       expect(result.errorCode).toBeUndefined();
     });
 
@@ -243,7 +243,7 @@ describe("MixpanelProvider", () => {
       expect(result.value).toBe(true);
       expect(result.errorCode).toBe(ErrorCode.FLAG_NOT_FOUND);
       expect(result.errorMessage).toContain("not found");
-      expect(result.reason).toBe("ERROR");
+      expect(result.reason).toBe("DEFAULT");
     });
 
     it("should return PROVIDER_NOT_READY error when flags not loaded", async () => {
@@ -285,7 +285,7 @@ describe("MixpanelProvider", () => {
 
       expect(result.value).toBe("dark-mode");
       expect(result.variant).toBe("dark");
-      expect(result.reason).toBe("STATIC");
+      expect(result.reason).toBe("TARGETING_MATCH");
       expect(result.errorCode).toBeUndefined();
     });
 
@@ -377,7 +377,7 @@ describe("MixpanelProvider", () => {
 
       expect(result.value).toBe(50);
       expect(result.variant).toBe("variant-50");
-      expect(result.reason).toBe("STATIC");
+      expect(result.reason).toBe("TARGETING_MATCH");
       expect(result.errorCode).toBeUndefined();
     });
 
@@ -488,7 +488,7 @@ describe("MixpanelProvider", () => {
 
       expect(result.value).toEqual(objectValue);
       expect(result.variant).toBe("variant-full");
-      expect(result.reason).toBe("STATIC");
+      expect(result.reason).toBe("TARGETING_MATCH");
       expect(result.errorCode).toBeUndefined();
     });
 
@@ -622,7 +622,7 @@ describe("MixpanelProvider", () => {
 
       expect(result.value).toBe("async-value");
       expect(result.variant).toBe("async-variant");
-      expect(result.reason).toBe("STATIC");
+      expect(result.reason).toBe("TARGETING_MATCH");
     });
   });
 
@@ -853,7 +853,7 @@ describe("MixpanelProvider", () => {
 
       expect(result.value).toBe("some-value");
       expect(result.variant).toBeNull();
-      expect(result.reason).toBe("STATIC");
+      expect(result.reason).toBe("TARGETING_MATCH");
     });
 
     it("should handle special characters in flag key", async () => {
