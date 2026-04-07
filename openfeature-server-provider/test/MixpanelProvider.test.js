@@ -226,7 +226,7 @@ describe("MixpanelProvider", () => {
 
       expect(result.value).toBe(false);
       expect(result.errorCode).toBe(ErrorCode.TYPE_MISMATCH);
-      expect(result.errorMessage).toContain("not a boolean");
+      expect(result.errorMessage).toContain("not boolean");
       expect(result.reason).toBe("ERROR");
     });
 
@@ -325,7 +325,7 @@ describe("MixpanelProvider", () => {
 
       expect(result.value).toBe("default");
       expect(result.errorCode).toBe(ErrorCode.TYPE_MISMATCH);
-      expect(result.errorMessage).toContain("not a string");
+      expect(result.errorMessage).toContain("not string");
       expect(result.reason).toBe("ERROR");
     });
 
@@ -417,7 +417,7 @@ describe("MixpanelProvider", () => {
 
       expect(result.value).toBe(0);
       expect(result.errorCode).toBe(ErrorCode.TYPE_MISMATCH);
-      expect(result.errorMessage).toContain("not a number");
+      expect(result.errorMessage).toContain("not number");
       expect(result.reason).toBe("ERROR");
     });
 
@@ -528,7 +528,7 @@ describe("MixpanelProvider", () => {
 
       expect(result.value).toEqual({});
       expect(result.errorCode).toBe(ErrorCode.TYPE_MISMATCH);
-      expect(result.errorMessage).toContain("not an object");
+      expect(result.errorMessage).toContain("not object");
       expect(result.reason).toBe("ERROR");
     });
 

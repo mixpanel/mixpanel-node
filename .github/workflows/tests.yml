@@ -47,5 +47,5 @@ jobs:
         run: npm ci
         working-directory: openfeature-server-provider
       - name: Run OpenFeature provider tests
-        run: npx vitest run
+        run: npm test -- run --coverage
         working-directory: openfeature-server-provider

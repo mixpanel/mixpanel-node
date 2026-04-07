@@ -3,9 +3,16 @@ const Mixpanel = require("mixpanel");
 
 const FALLBACK_SENTINEL = Symbol("mixpanel-openfeature-fallback");
 
+/**
+ * OpenFeature provider for Mixpanel feature flags.
+ * Wraps a Mixpanel flags provider (local or remote) to implement the OpenFeature Provider interface.
+ */
 class MixpanelProvider {
   metadata = { name: "mixpanel-provider" };
 
+  /**
+   * @param {MixpanelFlagsProvider} flagsProvider - A Mixpanel flags provider instance (e.g. mixpanel.local_flags or mixpanel.remote_flags)
+   */
   constructor(flagsProvider) {
     if (!flagsProvider) {
       throw new Error("flagsProvider is required");
@@ -20,6 +27,13 @@ class MixpanelProvider {
     this._initialized = false;
   }
 
+  /**
+   * Create a provider using local flag evaluation.
+   * Initializes a Mixpanel instance, starts polling for flag definitions, and returns a ready provider.
+   * @param {string} token - Mixpanel project token
+   * @param {LocalFlagsConfig} [config] - Local flags configuration
+   * @returns {MixpanelProvider}
+   */
   static createLocal(token, config) {
     const mixpanel = Mixpanel.init(token, { local_flags_config: config });
     const flagsProvider = mixpanel.local_flags;
@@ -29,6 +43,13 @@ class MixpanelProvider {
     return provider;
   }
 
+  /**
+   * Create a provider using remote flag evaluation.
+   * Initializes a Mixpanel instance configured for server-side flag evaluation.
+   * @param {string} token - Mixpanel project token
+   * @param {RemoteFlagsConfig} [config] - Remote flags configuration
+   * @returns {MixpanelProvider}
+   */
   static createRemote(token, config) {
     const mixpanel = Mixpanel.init(token, { remote_flags_config: config });
     const flagsProvider = mixpanel.remote_flags;
@@ -37,6 +58,11 @@ class MixpanelProvider {
     return provider;
   }
 
+  /**
+   * Initialize the provider. Waits for flag definitions to be fetched if using a local provider.
+   * @param {EvaluationContext} [context] - Global evaluation context to use for all flag evaluations
+   * @returns {Promise<void>}
+   */
   async initialize(context) {
     if (context && Object.keys(context).length > 0) {
       this._context = context;
@@ -47,24 +73,32 @@ class MixpanelProvider {
     this._initialized = true;
   }
 
+  /**
+   * Clean up resources. Stops polling for flag definitions if active.
+   * @returns {Promise<void>}
+   */
   async onClose() {
     if (typeof this._flagsProvider.shutdown === "function") {
       await this._flagsProvider.shutdown();
     }
   }
 
+  /** @param {string} flagKey @param {boolean} defaultValue @param {EvaluationContext} context @param {Logger} _logger @returns {Promise<ResolutionDetails<boolean>>} */
   async resolveBooleanEvaluation(flagKey, defaultValue, context, _logger) {
     return this._resolveTypedFlag(flagKey, defaultValue, context, "boolean");
   }
 
+  /** @param {string} flagKey @param {string} defaultValue @param {EvaluationContext} context @param {Logger} _logger @returns {Promise<ResolutionDetails<string>>} */
   async resolveStringEvaluation(flagKey, defaultValue, context, _logger) {
     return this._resolveTypedFlag(flagKey, defaultValue, context, "string");
   }
 
+  /** @param {string} flagKey @param {number} defaultValue @param {EvaluationContext} context @param {Logger} _logger @returns {Promise<ResolutionDetails<number>>} */
   async resolveNumberEvaluation(flagKey, defaultValue, context, _logger) {
     return this._resolveTypedFlag(flagKey, defaultValue, context, "number");
   }
 
+  /** @param {string} flagKey @param {Object} defaultValue @param {EvaluationContext} context @param {Logger} _logger @returns {Promise<ResolutionDetails<Object>>} */
   async resolveObjectEvaluation(flagKey, defaultValue, context, _logger) {
     return this._resolveTypedFlag(flagKey, defaultValue, context, "object");
   }
@@ -76,11 +110,10 @@ class MixpanelProvider {
     }
 
     if (!isExpectedType(result.value, expectedType)) {
-      const article = expectedType === "object" ? "an" : "a";
       return createErrorResolution(
         defaultValue,
         ErrorCode.TYPE_MISMATCH,
-        `Flag "${flagKey}" value is not ${article} ${expectedType}: ${typeof result.value}`,
+        `Flag "${flagKey}" value is not ${expectedType}: ${typeof result.value}`,
       );
     }
 

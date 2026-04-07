@@ -12,7 +12,7 @@
     "test": "vitest"
   },
   "peerDependencies": {
-    "@openfeature/server-sdk": "^1.0.0",
+    "@openfeature/server-sdk": "^1.17.0",
     "mixpanel": ">=0.20.0"
   },
   "devDependencies": {

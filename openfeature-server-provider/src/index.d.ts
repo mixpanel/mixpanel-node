@@ -22,7 +22,7 @@ export interface MixpanelFlagsProvider {
     reportExposure?: boolean,
   ): SelectedVariant | Promise<SelectedVariant>;
   shutdown?(): void | Promise<void>;
-  areFlagsReady?(): boolean;
+  areFlagsReady?(): Promise<void>;
 }
 
 export class MixpanelProvider implements Provider {
