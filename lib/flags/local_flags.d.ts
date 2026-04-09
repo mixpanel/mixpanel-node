@@ -77,4 +77,14 @@ export default class LocalFeatureFlagsProvider {
    * @param context - Evaluation context (must include distinct_id)
    */
   getAllVariants(context: FlagContext): { [key: string]: SelectedVariant };
+
+  /**
+   * Stop polling and clean up resources
+   */
+  shutdown(): void;
+
+  /**
+   * Returns a promise that resolves when flag definitions have been fetched
+   */
+  areFlagsReady(): Promise<void>;
 }
