@@ -1,18 +1,27 @@
-const { ErrorCode } = require("@openfeature/server-sdk");
-const { MixpanelProvider } = require("../src/MixpanelProvider");
+import { ErrorCode } from "@openfeature/server-sdk";
+import { MixpanelProvider } from "../src/MixpanelProvider";
+import type { MixpanelFlagsProvider } from "../src/types";
+import type { SelectedVariant } from "mixpanel/lib/flags/types";
 
-const FALLBACK_VARIANT = Symbol("fallback");
-
-function createMockFlagsProvider({ flags = new Map(), ready = true } = {}) {
+function createMockFlagsProvider({
+  flags = new Map<string, SelectedVariant>(),
+  ready = true,
+} = {}): MixpanelFlagsProvider & { getVariant: ReturnType<typeof vi.fn> } {
   return {
-    getVariant: vi.fn((flagKey, fallbackVariant, _context, _reportExposure) => {
-      const variant = flags.get(flagKey);
-      if (!variant) {
-        return fallbackVariant;
-      }
-      return variant;
-    }),
-    _ready: ready,
+    getVariant: vi.fn(
+      (
+        flagKey: string,
+        fallbackVariant: SelectedVariant,
+        _context: Record<string, unknown>,
+        _reportExposure: boolean,
+      ) => {
+        const variant = flags.get(flagKey);
+        if (!variant) {
+          return fallbackVariant;
+        }
+        return variant;
+      },
+    ),
   };
 }
 
@@ -28,8 +37,8 @@ const mockLogger = {
 };
 
 describe("MixpanelProvider", () => {
-  let mockFlags;
-  let mockFlagsProvider;
+  let mockFlags: Map<string, SelectedVariant>;
+  let mockFlagsProvider: ReturnType<typeof createMockFlagsProvider>;
 
   beforeEach(() => {
     mockFlags = new Map();
@@ -45,15 +54,17 @@ describe("MixpanelProvider", () => {
 
   describe("constructor", () => {
     it("should throw when flagsProvider is null", () => {
-      expect(() => new MixpanelProvider(null)).toThrow();
+      expect(() => new MixpanelProvider(null as any)).toThrow();
     });
 
     it("should throw when flagsProvider is undefined", () => {
-      expect(() => new MixpanelProvider(undefined)).toThrow();
+      expect(() => new MixpanelProvider(undefined as any)).toThrow();
     });
 
     it("should throw when flagsProvider is missing getVariant", () => {
-      expect(() => new MixpanelProvider({})).toThrow("missing required method");
+      expect(() => new MixpanelProvider({} as any)).toThrow(
+        "missing required method",
+      );
     });
   });
 
@@ -247,11 +258,6 @@ describe("MixpanelProvider", () => {
     });
 
     it("should return PROVIDER_NOT_READY error when flags not loaded", async () => {
-      mockFlagsProvider._ready = false;
-      mockFlagsProvider.getVariant = vi.fn(() => {
-        throw new Error("Flags not ready");
-      });
-
       const provider = new MixpanelProvider(mockFlagsProvider);
       // Don't initialize - provider is not ready
       const result = await provider.resolveBooleanEvaluation(
@@ -345,7 +351,6 @@ describe("MixpanelProvider", () => {
 
     it("should return PROVIDER_NOT_READY error when not initialized", async () => {
       const provider = new MixpanelProvider(mockFlagsProvider);
-      // Don't initialize - provider is not ready
       const result = await provider.resolveStringEvaluation(
         "any-flag",
         "default-string",
@@ -437,7 +442,6 @@ describe("MixpanelProvider", () => {
 
     it("should return PROVIDER_NOT_READY error when not initialized", async () => {
       const provider = new MixpanelProvider(mockFlagsProvider);
-      // Don't initialize - provider is not ready
       const result = await provider.resolveNumberEvaluation(
         "any-flag",
         42,
@@ -586,7 +590,6 @@ describe("MixpanelProvider", () => {
 
     it("should return PROVIDER_NOT_READY error when not initialized", async () => {
       const provider = new MixpanelProvider(mockFlagsProvider);
-      // Don't initialize - provider is not ready
       const result = await provider.resolveObjectEvaluation(
         "any-flag",
         { default: true },
@@ -602,8 +605,8 @@ describe("MixpanelProvider", () => {
 
   describe("async flags provider (remote)", () => {
     it("should handle async getVariant from remote provider", async () => {
-      const asyncProvider = {
-        getVariant: vi.fn(async (flagKey) => {
+      const asyncProvider: MixpanelFlagsProvider = {
+        getVariant: vi.fn(async () => {
           return {
             variant_key: "async-variant",
             variant_value: "async-value",
@@ -628,7 +631,7 @@ describe("MixpanelProvider", () => {
 
   describe("SDK exception handling", () => {
     it("should return default value with error when getVariant throws", async () => {
-      const throwingProvider = {
+      const throwingProvider: MixpanelFlagsProvider = {
         getVariant: vi.fn(() => {
           throw new Error("SDK internal error");
         }),
@@ -650,7 +653,7 @@ describe("MixpanelProvider", () => {
     });
 
     it("should return default string value when getVariant throws", async () => {
-      const throwingProvider = {
+      const throwingProvider: MixpanelFlagsProvider = {
         getVariant: vi.fn(() => {
           throw new Error("Network timeout");
         }),
@@ -672,7 +675,7 @@ describe("MixpanelProvider", () => {
     });
 
     it("should return default number value when getVariant throws", async () => {
-      const throwingProvider = {
+      const throwingProvider: MixpanelFlagsProvider = {
         getVariant: vi.fn(() => {
           throw new Error("Connection refused");
         }),
@@ -694,7 +697,7 @@ describe("MixpanelProvider", () => {
     });
 
     it("should return default object value when getVariant throws", async () => {
-      const throwingProvider = {
+      const throwingProvider: MixpanelFlagsProvider = {
         getVariant: vi.fn(() => {
           throw new Error("Parse error");
         }),
@@ -716,7 +719,7 @@ describe("MixpanelProvider", () => {
     });
 
     it("should handle async getVariant rejection", async () => {
-      const rejectingProvider = {
+      const rejectingProvider: MixpanelFlagsProvider = {
         getVariant: vi.fn(async () => {
           throw new Error("Async failure");
         }),
@@ -852,7 +855,7 @@ describe("MixpanelProvider", () => {
       );
 
       expect(result.value).toBe("some-value");
-      expect(result.variant).toBeNull();
+      expect(result.variant).toBeUndefined();
       expect(result.reason).toBe("TARGETING_MATCH");
     });
 

@@ -1,19 +1,35 @@
-const { ErrorCode } = require("@openfeature/server-sdk");
-const Mixpanel = require("mixpanel");
+import {
+  ErrorCode,
+  type Provider,
+  type ResolutionDetails,
+  type EvaluationContext,
+  type ProviderMetadata,
+  type JsonValue,
+  type Logger,
+} from "@openfeature/server-sdk";
+import Mixpanel from "mixpanel";
+import type {
+  SelectedVariant,
+  LocalFlagsConfig,
+  RemoteFlagsConfig,
+} from "mixpanel/lib/flags/types";
+import {
+  type MixpanelFlagsProvider,
+  isExpectedType,
+  createErrorResolution,
+} from "./types";
 
 const FALLBACK_SENTINEL = Symbol("mixpanel-openfeature-fallback");
 
-/**
- * OpenFeature provider for Mixpanel feature flags.
- * Wraps a Mixpanel flags provider (local or remote) to implement the OpenFeature Provider interface.
- */
-class MixpanelProvider {
-  metadata = { name: "mixpanel-provider" };
+export class MixpanelProvider implements Provider {
+  readonly metadata: ProviderMetadata = { name: "mixpanel-provider" };
+  mixpanel?: Mixpanel.Mixpanel;
 
-  /**
-   * @param {MixpanelFlagsProvider} flagsProvider - A Mixpanel flags provider instance (e.g. mixpanel.local_flags or mixpanel.remote_flags)
-   */
-  constructor(flagsProvider) {
+  private _flagsProvider: MixpanelFlagsProvider;
+  private _context: EvaluationContext;
+  private _initialized: boolean;
+
+  constructor(flagsProvider: MixpanelFlagsProvider) {
     if (!flagsProvider) {
       throw new Error("flagsProvider is required");
     }
@@ -30,13 +46,13 @@ class MixpanelProvider {
   /**
    * Create a provider using local flag evaluation.
    * Initializes a Mixpanel instance, starts polling for flag definitions, and returns a ready provider.
-   * @param {string} token - Mixpanel project token
-   * @param {LocalFlagsConfig} [config] - Local flags configuration
-   * @returns {MixpanelProvider}
    */
-  static createLocal(token, config) {
+  static createLocal(
+    token: string,
+    config?: LocalFlagsConfig,
+  ): MixpanelProvider {
     const mixpanel = Mixpanel.init(token, { local_flags_config: config });
-    const flagsProvider = mixpanel.local_flags;
+    const flagsProvider = mixpanel.local_flags!;
     flagsProvider.startPollingForDefinitions();
     const provider = new MixpanelProvider(flagsProvider);
     provider.mixpanel = mixpanel;
@@ -46,24 +62,19 @@ class MixpanelProvider {
   /**
    * Create a provider using remote flag evaluation.
    * Initializes a Mixpanel instance configured for server-side flag evaluation.
-   * @param {string} token - Mixpanel project token
-   * @param {RemoteFlagsConfig} [config] - Remote flags configuration
-   * @returns {MixpanelProvider}
    */
-  static createRemote(token, config) {
+  static createRemote(
+    token: string,
+    config?: RemoteFlagsConfig,
+  ): MixpanelProvider {
     const mixpanel = Mixpanel.init(token, { remote_flags_config: config });
-    const flagsProvider = mixpanel.remote_flags;
+    const flagsProvider = mixpanel.remote_flags!;
     const provider = new MixpanelProvider(flagsProvider);
     provider.mixpanel = mixpanel;
     return provider;
   }
 
-  /**
-   * Initialize the provider. Waits for flag definitions to be fetched if using a local provider.
-   * @param {EvaluationContext} [context] - Global evaluation context to use for all flag evaluations
-   * @returns {Promise<void>}
-   */
-  async initialize(context) {
+  async initialize(context?: EvaluationContext): Promise<void> {
     if (context && Object.keys(context).length > 0) {
       this._context = context;
     }
@@ -73,37 +84,54 @@ class MixpanelProvider {
     this._initialized = true;
   }
 
-  /**
-   * Clean up resources. Stops polling for flag definitions if active.
-   * @returns {Promise<void>}
-   */
-  async onClose() {
+  async onClose(): Promise<void> {
     if (typeof this._flagsProvider.shutdown === "function") {
       await this._flagsProvider.shutdown();
     }
   }
 
-  /** @param {string} flagKey @param {boolean} defaultValue @param {EvaluationContext} context @param {Logger} _logger @returns {Promise<ResolutionDetails<boolean>>} */
-  async resolveBooleanEvaluation(flagKey, defaultValue, context, _logger) {
+  async resolveBooleanEvaluation(
+    flagKey: string,
+    defaultValue: boolean,
+    context: EvaluationContext,
+    _logger: Logger,
+  ): Promise<ResolutionDetails<boolean>> {
     return this._resolveTypedFlag(flagKey, defaultValue, context, "boolean");
   }
 
-  /** @param {string} flagKey @param {string} defaultValue @param {EvaluationContext} context @param {Logger} _logger @returns {Promise<ResolutionDetails<string>>} */
-  async resolveStringEvaluation(flagKey, defaultValue, context, _logger) {
+  async resolveStringEvaluation(
+    flagKey: string,
+    defaultValue: string,
+    context: EvaluationContext,
+    _logger: Logger,
+  ): Promise<ResolutionDetails<string>> {
     return this._resolveTypedFlag(flagKey, defaultValue, context, "string");
   }
 
-  /** @param {string} flagKey @param {number} defaultValue @param {EvaluationContext} context @param {Logger} _logger @returns {Promise<ResolutionDetails<number>>} */
-  async resolveNumberEvaluation(flagKey, defaultValue, context, _logger) {
+  async resolveNumberEvaluation(
+    flagKey: string,
+    defaultValue: number,
+    context: EvaluationContext,
+    _logger: Logger,
+  ): Promise<ResolutionDetails<number>> {
     return this._resolveTypedFlag(flagKey, defaultValue, context, "number");
   }
 
-  /** @param {string} flagKey @param {Object} defaultValue @param {EvaluationContext} context @param {Logger} _logger @returns {Promise<ResolutionDetails<Object>>} */
-  async resolveObjectEvaluation(flagKey, defaultValue, context, _logger) {
+  async resolveObjectEvaluation<T extends JsonValue>(
+    flagKey: string,
+    defaultValue: T,
+    context: EvaluationContext,
+    _logger: Logger,
+  ): Promise<ResolutionDetails<T>> {
     return this._resolveTypedFlag(flagKey, defaultValue, context, "object");
   }
 
-  async _resolveTypedFlag(flagKey, defaultValue, context, expectedType) {
+  private async _resolveTypedFlag<T>(
+    flagKey: string,
+    defaultValue: T,
+    context: EvaluationContext,
+    expectedType: string,
+  ): Promise<ResolutionDetails<T>> {
     const result = await this._resolveFlag(flagKey, defaultValue, context);
     if (result.errorCode) {
       return result;
@@ -120,7 +148,7 @@ class MixpanelProvider {
     return result;
   }
 
-  _unwrapValue(value) {
+  private _unwrapValue(value: unknown): unknown {
     if (value == null) {
       return value;
     }
@@ -130,11 +158,11 @@ class MixpanelProvider {
     }
 
     if (Array.isArray(value)) {
-      return value.map((item) => this._unwrapValue(item));
+      return value.map((item: unknown) => this._unwrapValue(item));
     }
 
     if (typeof value === "object") {
-      const result = {};
+      const result: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(value)) {
         result[k] = this._unwrapValue(v);
       }
@@ -144,8 +172,10 @@ class MixpanelProvider {
     return value;
   }
 
-  _buildFlagContext(evaluationContext) {
-    const flagContext = { ...this._context };
+  private _buildFlagContext(
+    evaluationContext: EvaluationContext,
+  ): Record<string, unknown> {
+    const flagContext: Record<string, unknown> = { ...this._context };
     if (evaluationContext && Object.keys(evaluationContext).length > 0) {
       for (const [key, value] of Object.entries(evaluationContext)) {
         flagContext[key] = this._unwrapValue(value);
@@ -154,7 +184,11 @@ class MixpanelProvider {
     return flagContext;
   }
 
-  async _resolveFlag(flagKey, defaultValue, context) {
+  private async _resolveFlag<T>(
+    flagKey: string,
+    defaultValue: T,
+    context: EvaluationContext,
+  ): Promise<ResolutionDetails<T>> {
     if (!this._initialized) {
       return createErrorResolution(
         defaultValue,
@@ -166,27 +200,28 @@ class MixpanelProvider {
     const fallbackVariant = {
       variant_key: FALLBACK_SENTINEL,
       variant_value: defaultValue,
-    };
+    } as unknown as SelectedVariant;
 
     const flagContext = this._buildFlagContext(context);
 
-    let variant;
+    let variant: SelectedVariant;
     try {
       variant = await this._flagsProvider.getVariant(
         flagKey,
         fallbackVariant,
-        flagContext,
+        flagContext as any,
         true,
       );
-    } catch (err) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
       return createErrorResolution(
         defaultValue,
         ErrorCode.GENERAL,
-        `Flag evaluation failed: ${err.message}`,
+        `Flag evaluation failed: ${message}`,
       );
     }
 
-    if (variant.variant_key === FALLBACK_SENTINEL) {
+    if ((variant.variant_key as unknown) === FALLBACK_SENTINEL) {
       return {
         value: defaultValue,
         errorCode: ErrorCode.FLAG_NOT_FOUND,
@@ -196,27 +231,9 @@ class MixpanelProvider {
     }
 
     return {
-      value: variant.variant_value,
-      variant: variant.variant_key,
+      value: variant.variant_value as T,
+      variant: variant.variant_key ?? undefined,
       reason: "TARGETING_MATCH",
     };
   }
 }
-
-function isExpectedType(value, expectedType) {
-  if (expectedType === "object") {
-    return typeof value === "object" && value !== null && !Array.isArray(value);
-  }
-  return typeof value === expectedType;
-}
-
-function createErrorResolution(defaultValue, errorCode, errorMessage) {
-  return {
-    value: defaultValue,
-    errorCode,
-    errorMessage,
-    reason: "ERROR",
-  };
-}
-
-module.exports = { MixpanelProvider };
