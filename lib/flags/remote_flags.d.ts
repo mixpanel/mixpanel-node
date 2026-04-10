@@ -71,4 +71,9 @@ export default class RemoteFeatureFlagsProvider {
   getAllVariants(
     context: FlagContext,
   ): Promise<{ [key: string]: SelectedVariant } | null>;
+
+  /**
+   * Clean up resources (no-op for remote provider)
+   */
+  shutdown(): void;
 }
