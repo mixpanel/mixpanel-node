@@ -11,6 +11,9 @@
   "homepage": "https://github.com/mixpanel/mixpanel-node",
   "author": "Carl Sverre",
   "license": "MIT",
+  "workspaces": [
+    "packages/openfeature-server-provider"
+  ],
   "main": "lib/mixpanel-node",
   "directories": {
     "lib": "lib"
@@ -24,6 +27,8 @@
   },
   "scripts": {
     "test": "vitest",
+    "test:all": "npm run test && npm run test --workspaces --if-present",
+    "build:workspaces": "npm run build --workspaces --if-present",
     "format": "prettier --write .",
     "check-format": "prettier --check .",
     "lint": "oxlint ."
