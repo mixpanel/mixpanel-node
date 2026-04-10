@@ -1,8 +1,5 @@
 import type { ResolutionDetails, ErrorCode } from "@openfeature/server-sdk";
-import type {
-  SelectedVariant,
-  FlagContext,
-} from "mixpanel/lib/flags/types";
+import type { SelectedVariant, FlagContext } from "mixpanel/lib/flags/types";
 
 export interface MixpanelFlagsProvider {
   getVariant(
@@ -15,10 +12,7 @@ export interface MixpanelFlagsProvider {
   areFlagsReady?(): Promise<void>;
 }
 
-export function isExpectedType(
-  value: unknown,
-  expectedType: string,
-): boolean {
+export function isExpectedType(value: unknown, expectedType: string): boolean {
   if (expectedType === "object") {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }

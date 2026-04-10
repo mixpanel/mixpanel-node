@@ -98,11 +98,9 @@ const provider = new MixpanelProvider(localFlags);
 const client = OpenFeature.getClient();
 
 // Get a boolean flag with a default value
-const isFeatureEnabled = await client.getBooleanValue(
-  "my-feature",
-  false,
-  { distinct_id: "user-123" },
-);
+const isFeatureEnabled = await client.getBooleanValue("my-feature", false, {
+  distinct_id: "user-123",
+});
 
 if (isFeatureEnabled) {
   // Show the new feature
@@ -113,27 +111,39 @@ if (isFeatureEnabled) {
 
 Mixpanel feature flags support three flag types. Use the corresponding OpenFeature evaluation method based on your flag's variant values:
 
-| Mixpanel Flag Type | Variant Values | OpenFeature Method |
-|---|---|---|
-| Feature Gate | `true` / `false` | `getBooleanValue()` |
-| Experiment | boolean, string, number, or JSON object | `getBooleanValue()`, `getStringValue()`, `getNumberValue()`, or `getObjectValue()` |
-| Dynamic Config | JSON object | `getObjectValue()` |
+| Mixpanel Flag Type | Variant Values                          | OpenFeature Method                                                                 |
+| ------------------ | --------------------------------------- | ---------------------------------------------------------------------------------- |
+| Feature Gate       | `true` / `false`                        | `getBooleanValue()`                                                                |
+| Experiment         | boolean, string, number, or JSON object | `getBooleanValue()`, `getStringValue()`, `getNumberValue()`, or `getObjectValue()` |
+| Dynamic Config     | JSON object                             | `getObjectValue()`                                                                 |
 
 ```typescript
 const client = OpenFeature.getClient();
 const context = { distinct_id: "user-123" };
 
 // Feature Gate - boolean variants
-const isFeatureOn = await client.getBooleanValue("new-checkout", false, context);
+const isFeatureOn = await client.getBooleanValue(
+  "new-checkout",
+  false,
+  context,
+);
 
 // Experiment with string variants
-const buttonColor = await client.getStringValue("button-color-test", "blue", context);
+const buttonColor = await client.getStringValue(
+  "button-color-test",
+  "blue",
+  context,
+);
 
 // Experiment with number variants
 const maxItems = await client.getNumberValue("max-items", 10, context);
 
 // Dynamic Config - JSON object variants
-const featureConfig = await client.getObjectValue("homepage-layout", {}, context);
+const featureConfig = await client.getObjectValue(
+  "homepage-layout",
+  {},
+  context,
+);
 ```
 
 ### Getting Full Resolution Details
@@ -147,10 +157,10 @@ const details = await client.getBooleanDetails("my-feature", false, {
   distinct_id: "user-123",
 });
 
-console.log(details.value);       // The resolved value
-console.log(details.variant);     // The variant key from Mixpanel
-console.log(details.reason);      // Why this value was returned
-console.log(details.errorCode);   // Error code if evaluation failed
+console.log(details.value); // The resolved value
+console.log(details.variant); // The variant key from Mixpanel
+console.log(details.reason); // Why this value was returned
+console.log(details.errorCode); // Error code if evaluation failed
 ```
 
 ### Setting Context
@@ -234,7 +244,11 @@ if (details.errorCode === "PROVIDER_NOT_READY") {
 Returned when the requested flag does not exist in Mixpanel.
 
 ```typescript
-const details = await client.getBooleanDetails("nonexistent-flag", false, context);
+const details = await client.getBooleanDetails(
+  "nonexistent-flag",
+  false,
+  context,
+);
 
 if (details.errorCode === "FLAG_NOT_FOUND") {
   console.log("Flag does not exist, using default value");
