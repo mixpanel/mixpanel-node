@@ -182,6 +182,29 @@ describe("send_request", () => {
     expect(getConfig.agent).toBe(agent);
   });
 
+  it("uses custom maxSockets when configured", () => {
+    const agent = new https.Agent({ keepAlive: true });
+    const httpsStub = {
+      request: vi.fn().mockImplementation((_, cb) => {
+        cb(res);
+        return http_emitter;
+      }),
+      Agent: vi.fn().mockImplementation(function () {
+        return agent;
+      }),
+    };
+    delete process.env.HTTP_PROXY;
+    delete process.env.HTTPS_PROXY;
+    Mixpanel = proxyquire("../lib/mixpanel-node", {
+      https: httpsStub,
+    });
+    const proxyMixpanel = Mixpanel.init("token", { maxSockets: 10 });
+    proxyMixpanel.send_request({ endpoint: "", data: {} });
+
+    const agentOpts = httpsStub.Agent.mock.calls[0][0];
+    expect(agentOpts.maxSockets).toBe(10);
+  });
+
   it("uses correct hostname", () => {
     const host = "testhost.fakedomain";
     const customHostnameMixpanel = Mixpanel.init("token", { host: host });

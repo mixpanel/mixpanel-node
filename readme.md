@@ -28,6 +28,11 @@ var mixpanel = Mixpanel.init("<YOUR_TOKEN>", {
   keepAlive: false,
 });
 
+// limit the number of concurrent connections to Mixpanel
+var mixpanel = Mixpanel.init("<YOUR_TOKEN>", {
+  maxSockets: 10,
+});
+
 // pass the custom logger (default is console)
 var mixpanel = Mixpanel.init("<YOUR_TOKEN>", {
   debug: true,
