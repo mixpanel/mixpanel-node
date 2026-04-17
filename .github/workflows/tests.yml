@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  mixpanel:
     runs-on: ubuntu-latest
 
     strategy:
@@ -27,7 +27,9 @@ jobs:
       - run: npm run check-format
       - run: npm run lint
       - run: npm test -- run --coverage
+        working-directory: packages/mixpanel
       - run: npx tsc
+        working-directory: packages/mixpanel
 
   openfeature:
     runs-on: ubuntu-latest
