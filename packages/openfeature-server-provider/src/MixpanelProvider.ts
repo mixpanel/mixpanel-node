@@ -29,6 +29,10 @@ export class MixpanelProvider implements Provider {
   private _context: EvaluationContext;
   private _initialized: boolean;
 
+  /**
+   * Wrap an existing Mixpanel flags provider (local or remote). The caller
+   * owns the underlying Mixpanel instance; `this.mixpanel` remains undefined.
+   */
   constructor(flagsProvider: MixpanelFlagsProvider) {
     if (!flagsProvider) {
       throw new Error("flagsProvider is required");
@@ -74,6 +78,10 @@ export class MixpanelProvider implements Provider {
     return provider;
   }
 
+  /**
+   * Capture global evaluation context and await the flags provider's
+   * readiness (first successful definitions fetch for local evaluation).
+   */
   async initialize(context?: EvaluationContext): Promise<void> {
     if (context && Object.keys(context).length > 0) {
       this._context = context;
@@ -84,12 +92,14 @@ export class MixpanelProvider implements Provider {
     this._initialized = true;
   }
 
+  /** Forward shutdown to the underlying flags provider (stops polling for local). */
   async onClose(): Promise<void> {
     if (typeof this._flagsProvider.shutdown === "function") {
       await this._flagsProvider.shutdown();
     }
   }
 
+  /** Resolve a boolean flag; returns TYPE_MISMATCH if the variant value isn't a boolean. */
   async resolveBooleanEvaluation(
     flagKey: string,
     defaultValue: boolean,
@@ -99,6 +109,7 @@ export class MixpanelProvider implements Provider {
     return this._resolveTypedFlag(flagKey, defaultValue, context, "boolean");
   }
 
+  /** Resolve a string flag; returns TYPE_MISMATCH if the variant value isn't a string. */
   async resolveStringEvaluation(
     flagKey: string,
     defaultValue: string,
@@ -108,6 +119,7 @@ export class MixpanelProvider implements Provider {
     return this._resolveTypedFlag(flagKey, defaultValue, context, "string");
   }
 
+  /** Resolve a number flag; returns TYPE_MISMATCH if the variant value isn't a number. */
   async resolveNumberEvaluation(
     flagKey: string,
     defaultValue: number,
@@ -117,6 +129,7 @@ export class MixpanelProvider implements Provider {
     return this._resolveTypedFlag(flagKey, defaultValue, context, "number");
   }
 
+  /** Resolve a JSON object flag; returns TYPE_MISMATCH if the variant value isn't an object. */
   async resolveObjectEvaluation<T extends JsonValue>(
     flagKey: string,
     defaultValue: T,

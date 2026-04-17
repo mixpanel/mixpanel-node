@@ -31,7 +31,7 @@
     "node": ">=10.0"
   },
   "scripts": {
-    "test": "vitest"
+    "test": "vitest run --coverage"
   },
   "dependencies": {
     "https-proxy-agent": "7.0.6",

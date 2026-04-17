@@ -4,7 +4,11 @@
     "target": "esnext",
     "lib": ["esnext"],
     "types": ["node"],
-    "noEmit": true,
+    "composite": true,
+    "rootDir": "./tscheck",
+    "outDir": "./dist",
+    "declaration": true,
+    "emitDeclarationOnly": true,
     "esModuleInterop": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
@@ -13,5 +17,6 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true
-  }
+  },
+  "include": ["tscheck/**/*"]
 }

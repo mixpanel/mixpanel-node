@@ -9,17 +9,18 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "vitest",
+    "test": "vitest run --coverage",
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "@openfeature/server-sdk": "^1.17.0",
-    "mixpanel": ">=0.21.0"
+    "mixpanel": "^0.21.0"
   },
   "devDependencies": {
     "@openfeature/core": "^1.9.2",
     "@openfeature/server-sdk": "^1.17.0",
-    "mixpanel": ">=0.21.0",
+    "@vitest/coverage-v8": "^4.0.8",
+    "mixpanel": "*",
     "typescript": "^5.9.3",
     "vitest": "^4.0.8"
   },
