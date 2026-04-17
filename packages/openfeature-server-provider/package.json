@@ -1,0 +1,37 @@
+{
+  "name": "@mixpanel/openfeature-server-provider",
+  "version": "0.1.0",
+  "description": "OpenFeature server provider for Mixpanel feature flags",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run --coverage",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@openfeature/server-sdk": "^1.17.0",
+    "mixpanel": "^0.21.0"
+  },
+  "devDependencies": {
+    "@openfeature/core": "^1.9.2",
+    "@openfeature/server-sdk": "^1.17.0",
+    "mixpanel": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mixpanel/mixpanel-node.git",
+    "directory": "packages/openfeature-server-provider"
+  },
+  "license": "MIT",
+  "keywords": [
+    "openfeature",
+    "mixpanel",
+    "feature-flags",
+    "provider",
+    "server"
+  ]
+}

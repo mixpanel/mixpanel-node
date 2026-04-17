@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     strategy:
@@ -26,5 +26,9 @@ jobs:
       - run: npm ci
       - run: npm run check-format
       - run: npm run lint
-      - run: npm test -- run --coverage
-      - run: npx tsc
+      - run: npm run test:all
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5
+        with:
+          files: packages/mixpanel/coverage/coverage-final.json,packages/openfeature-server-provider/coverage/coverage-final.json
+      - run: npx tsc --build
