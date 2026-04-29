@@ -5,9 +5,9 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "npm run test --workspaces --if-present",
-    "test:all": "npm run test --workspaces --if-present",
-    "build:workspaces": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present && npm run tsc",
+    "tsc": "tsc --build",
+    "build": "npm run build --workspaces --if-present",
     "format": "prettier --write .",
     "check-format": "prettier --check .",
     "lint": "oxlint ."

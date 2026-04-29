@@ -8,7 +8,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --build",
     "test": "vitest run --coverage",
     "prepublishOnly": "npm run build"
   },

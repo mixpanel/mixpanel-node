@@ -5,6 +5,13 @@
 This library provides many of the features in the official JavaScript mixpanel library. It is easy to use, and fully async. It is intended to be used on the server (it is not a client module). The in-browser client library is available
 at [https://github.com/mixpanel/mixpanel-js](https://github.com/mixpanel/mixpanel-js).
 
+## Repository structure
+
+This repository is an npm workspace with two packages under `packages/`:
+
+- [`packages/mixpanel`](./) — the `mixpanel` SDK published to npm (this readme).
+- [`packages/openfeature-server-provider`](../openfeature-server-provider) — the `@mixpanel/openfeature-server-provider` package, an [OpenFeature](https://openfeature.dev) server-side provider backed by Mixpanel feature flags.
+
 ## Installation
 
     npm install mixpanel

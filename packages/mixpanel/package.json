@@ -31,7 +31,8 @@
     "node": ">=10.0"
   },
   "scripts": {
-    "test": "vitest run --coverage"
+    "test": "vitest run --coverage",
+    "build": "tsc --build"
   },
   "dependencies": {
     "https-proxy-agent": "7.0.6",
