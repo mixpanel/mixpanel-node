@@ -1,3 +1,8 @@
+0.22.0 / 2026-05-04
+==================
+* add new OpenFeature server provider package
+* split repo into packages (mixpanel and @mixpanel/openfeature-server-provider)
+
 0.20.0 / 2026-01-12
 ==================
 * support for advanced Feature Flag local-evaluation runtime rules

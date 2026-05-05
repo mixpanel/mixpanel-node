@@ -36,7 +36,7 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
     };
 
     const providerConfig = {
-      token: token,
+      token,
       api_host: mergedConfig.api_host,
       request_timeout_in_seconds: mergedConfig.request_timeout_in_seconds,
     };
@@ -46,6 +46,7 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
     this.config = mergedConfig;
     this.flagDefinitions = new Map();
     this.pollingInterval = null;
+    this._initialFetchPromise = null;
   }
 
   /**
@@ -55,7 +56,8 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
    */
   async startPollingForDefinitions() {
     try {
-      await this._fetchFlagDefinitions();
+      this._initialFetchPromise = this._fetchFlagDefinitions();
+      await this._initialFetchPromise;
 
       if (this.config.enable_polling && !this.pollingInterval) {
         this.pollingInterval = setInterval(async () => {
@@ -87,6 +89,22 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
         "stopPollingForDefinitions called but polling was not active",
       );
     }
+  }
+
+  shutdown() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+  }
+
+  areFlagsReady() {
+    if (!this._initialFetchPromise) {
+      this.logger?.warn(
+        "areFlagsReady called before startPollingForDefinitions",
+      );
+    }
+    return this._initialFetchPromise ?? Promise.resolve();
   }
 
   /**
@@ -244,11 +262,11 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
       return null;
     }
 
-    let selected_variant = this._getMatchingVariant(variantKey, flag);
-    if (selected_variant) {
-      selected_variant.is_qa_tester = true;
+    let selectedVariant = this._getMatchingVariant(variantKey, flag);
+    if (selectedVariant) {
+      selectedVariant.is_qa_tester = true;
     }
-    return selected_variant;
+    return selectedVariant;
   }
 
   _getAssignedRollout(flag, contextValue, context) {
@@ -256,7 +274,7 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
       const rollout = flag.ruleset.rollout[index];
 
       let salt;
-      if (flag.hash_salt !== null && flag.hash_salt !== undefined) {
+      if (flag.hash_salt != null) {
         salt = flag.key + flag.hash_salt + index.toString();
       } else {
         salt = flag.key + "rollout";
@@ -286,10 +304,7 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
       }
     }
 
-    const storedSalt =
-      flag.hash_salt !== null && flag.hash_salt !== undefined
-        ? flag.hash_salt
-        : "";
+    const storedSalt = flag.hash_salt != null ? flag.hash_salt : "";
     const salt = flagKey + storedSalt + "variant";
     const variantHash = normalizedHash(String(contextValue), salt);
 
