@@ -22,6 +22,7 @@ const {
   LocalFeatureFlagsProvider,
   RemoteFeatureFlagsProvider,
 } = require("./flags");
+const { ServiceAccountCredentials } = require("./credentials");
 
 const DEFAULT_CONFIG = {
   test: false,
@@ -118,18 +119,15 @@ const create_client = function (token, config) {
     // add auth params
     const credentials = metrics.config.credentials;
 
-    if (credentials && credentials.username) {
+    if (credentials instanceof ServiceAccountCredentials) {
       // Service account auth (ONLY for /import endpoint)
       if (endpoint === "/import") {
         if (request_lib !== https) {
           throw new Error("Must use HTTPS with service account credentials");
         }
-        const encoded = Buffer.from(
-          credentials.username + ":" + credentials.secret,
-        ).toString("base64");
-        request_options.headers["Authorization"] = "Basic " + encoded;
+        request_options.headers["Authorization"] =
+          "Basic " + credentials.toHttpBasicAuth();
         query_params.project_id = credentials.project_id;
-        // Do NOT include api_key in POST body when using service accounts
       }
       // For other endpoints, credentials are ignored (no auth needed)
     } else if (secret) {
@@ -568,8 +566,6 @@ const create_client = function (token, config) {
 };
 
 // module exporting
-const { ServiceAccountCredentials } = require("./credentials");
-
 module.exports = {
   init: create_client,
   ServiceAccountCredentials: ServiceAccountCredentials,

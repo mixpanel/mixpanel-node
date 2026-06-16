@@ -430,4 +430,18 @@ describe("import with service account credentials", () => {
     expect(str).toContain("***");
     expect(str).not.toContain("sa-secret");
   });
+
+  it("rejects plain objects that look like credentials", () => {
+    // Plain object should not be treated as service account credentials
+    const plain_object_mixpanel = Mixpanel.init("token", {
+      credentials: { username: "user", secret: "secret", project_id: "123" },
+    });
+
+    // Should fail because plain object is not ServiceAccountCredentials instance
+    expect(() => {
+      plain_object_mixpanel.import("test", Date.now(), {});
+    }).toThrow(
+      /The Mixpanel Client needs Service Account credentials or API Secret/,
+    );
+  });
 });

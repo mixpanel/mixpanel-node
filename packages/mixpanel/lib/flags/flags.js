@@ -11,6 +11,7 @@ const {
   EXPOSURE_EVENT,
   REQUEST_HEADERS,
 } = require("./utils");
+const { ServiceAccountCredentials } = require("../credentials");
 
 /**
  * @typedef {import('./types').SelectedVariant} SelectedVariant
@@ -52,18 +53,14 @@ class FeatureFlagsProvider {
       let commonParams;
 
       // Determine auth method
-      if (this.credentials && this.credentials.username) {
+      if (this.credentials instanceof ServiceAccountCredentials) {
         // Service account auth
         commonParams = prepareCommonQueryParams(
           null, // No token
           packageInfo.version,
           this.credentials.project_id,
         );
-        authHeader =
-          "Basic " +
-          Buffer.from(
-            this.credentials.username + ":" + this.credentials.secret,
-          ).toString("base64");
+        authHeader = "Basic " + this.credentials.toHttpBasicAuth();
       } else {
         // Token auth (existing)
         commonParams = prepareCommonQueryParams(
