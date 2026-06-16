@@ -44,16 +44,26 @@ function normalizedHash(key, salt) {
 
 /**
  * Prepare common query parameters for feature flags API requests
- * @param {string} token - Mixpanel project token
+ * @param {string} token - Mixpanel project token (or null for service account auth)
  * @param {string} sdkVersion - SDK version string
+ * @param {string} project_id - Optional project ID for service account authentication
  * @returns {Object} - Query parameters object
  */
-function prepareCommonQueryParams(token, sdkVersion) {
-  return {
+function prepareCommonQueryParams(token, sdkVersion, project_id) {
+  const params = {
     mp_lib: "node",
     $lib_version: sdkVersion,
-    token: token,
   };
+
+  if (project_id !== undefined && project_id !== null) {
+    // Service account authentication - use project_id instead of token
+    params.project_id = project_id;
+  } else {
+    // Token authentication
+    params.token = token;
+  }
+
+  return params;
 }
 
 /**

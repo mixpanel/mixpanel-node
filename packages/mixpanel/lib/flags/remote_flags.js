@@ -18,8 +18,9 @@ class RemoteFeatureFlagsProvider extends FeatureFlagsProvider {
    * @param {RemoteFlagsConfig} config - Remote flags configuration
    * @param {Function} tracker - Function to track events (signature: track(distinct_id, event, properties, callback))
    * @param {CustomLogger} logger - Logger instance
+   * @param {Object} credentials - Optional service account credentials
    */
-  constructor(token, config, tracker, logger) {
+  constructor(token, config, tracker, logger, credentials) {
     const mergedConfig = {
       api_host: "api.mixpanel.com",
       request_timeout_in_seconds: 10,
@@ -32,7 +33,7 @@ class RemoteFeatureFlagsProvider extends FeatureFlagsProvider {
       request_timeout_in_seconds: mergedConfig.request_timeout_in_seconds,
     };
 
-    super(providerConfig, "/flags", tracker, "remote", logger);
+    super(providerConfig, "/flags", tracker, "remote", logger, credentials);
   }
 
   /**

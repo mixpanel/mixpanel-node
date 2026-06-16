@@ -293,7 +293,7 @@ describe("send_request", () => {
         data: { event: `test event` },
       });
     }).toThrowError(
-      /The Mixpanel Client needs a Mixpanel API Secret when importing old events/,
+      /The Mixpanel Client needs Service Account credentials or API Secret when importing old events/,
     );
   });
 

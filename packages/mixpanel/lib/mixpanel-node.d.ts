@@ -5,6 +5,15 @@ import { LocalFlagsConfig, RemoteFlagsConfig } from "./flags/types";
 declare const mixpanel: mixpanel.Mixpanel;
 
 declare namespace mixpanel {
+  export class ServiceAccountCredentials {
+    constructor(username: string, secret: string, project_id: string);
+    username: string;
+    secret: string;
+    project_id: string;
+    toHttpBasicAuth(): string;
+    toString(): string;
+  }
+
   export type Callback = (err: Error | undefined) => any;
   export type BatchCallback = (errors: [Error] | undefined) => any;
 
@@ -26,6 +35,7 @@ declare namespace mixpanel {
     protocol: string;
     path: string;
     secret: string;
+    credentials?: ServiceAccountCredentials;
     keepAlive: boolean;
     geolocate: boolean;
     logger: CustomLogger;

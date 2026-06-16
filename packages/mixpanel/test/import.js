@@ -325,3 +325,109 @@ describe("import_batch_integration", () => {
     expect(https.request).toHaveBeenCalledTimes(5);
   });
 });
+
+describe("import with service account credentials", () => {
+  const { ServiceAccountCredentials } = Mixpanel;
+  let mixpanel;
+  let credentials;
+
+  beforeEach(() => {
+    credentials = new ServiceAccountCredentials(
+      "sa-user",
+      "sa-secret",
+      "123456",
+    );
+    mixpanel = Mixpanel.init("token", { credentials });
+    vi.spyOn(mixpanel, "send_request");
+
+    return () => {
+      mixpanel.send_request.mockRestore();
+    };
+  });
+
+  it("validates credentials on construction", () => {
+    expect(
+      () => new ServiceAccountCredentials("", "secret", "123"),
+    ).toThrowError("Service account username cannot be empty");
+    expect(
+      () => new ServiceAccountCredentials("user", "", "123"),
+    ).toThrowError("Service account secret cannot be empty");
+    expect(
+      () => new ServiceAccountCredentials("user", "secret", ""),
+    ).toThrowError("Service account project_id cannot be empty");
+    expect(
+      () => new ServiceAccountCredentials("  ", "secret", "123"),
+    ).toThrowError("Service account username cannot be empty");
+  });
+
+  it("validates credentials types", () => {
+    expect(() => new ServiceAccountCredentials(123, "secret", "123")).toThrow(
+      TypeError,
+    );
+    expect(() => new ServiceAccountCredentials("user", 123, "123")).toThrow(
+      TypeError,
+    );
+    expect(() => new ServiceAccountCredentials("user", "secret", 123)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("trims credential values", () => {
+    const creds = new ServiceAccountCredentials(
+      "  user  ",
+      "  secret  ",
+      "  123  ",
+    );
+    expect(creds.username).toBe("user");
+    expect(creds.secret).toBe("secret");
+    expect(creds.project_id).toBe("123");
+  });
+
+  it("calls send_request with correct endpoint and uses credentials", () => {
+    const event = "test",
+      time = mock_now_time,
+      props = { key1: "val1" };
+
+    mixpanel.import(event, time, props);
+
+    expect(mixpanel.send_request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: "/import",
+        data: expect.objectContaining({
+          event: "test",
+          properties: expect.objectContaining({
+            key1: "val1",
+            token: "token",
+            time: time,
+          }),
+        }),
+      }),
+      undefined,
+    );
+  });
+
+  it("requires HTTPS with service account credentials", () => {
+    const http_mixpanel = Mixpanel.init("token", {
+      credentials,
+      protocol: "http",
+    });
+
+    expect(() => {
+      http_mixpanel.import("test", Date.now(), {});
+    }).toThrow("Must use HTTPS with service account credentials");
+  });
+
+  it("toHttpBasicAuth encodes correctly", () => {
+    const encoded = credentials.toHttpBasicAuth();
+    const expected = Buffer.from("sa-user:sa-secret").toString("base64");
+    expect(encoded).toBe(expected);
+  });
+
+  it("toString masks secret", () => {
+    const str = credentials.toString();
+    expect(str).toContain("sa-user");
+    expect(str).toContain("123456");
+    expect(str).toContain("***");
+    expect(str).not.toContain("sa-secret");
+  });
+});

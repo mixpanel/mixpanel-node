@@ -25,8 +25,9 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
    * @param {LocalFlagsConfig} config - Local flags configuration
    * @param {Function} tracker - Function to track events (signature: track(distinct_id, event, properties, callback))
    * @param {CustomLogger} logger - Logger
+   * @param {Object} credentials - Optional service account credentials
    */
-  constructor(token, config, tracker, logger) {
+  constructor(token, config, tracker, logger, credentials) {
     const mergedConfig = {
       api_host: "api.mixpanel.com",
       request_timeout_in_seconds: 10,
@@ -41,7 +42,14 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
       request_timeout_in_seconds: mergedConfig.request_timeout_in_seconds,
     };
 
-    super(providerConfig, "/flags/definitions", tracker, "local", logger);
+    super(
+      providerConfig,
+      "/flags/definitions",
+      tracker,
+      "local",
+      logger,
+      credentials,
+    );
 
     this.config = mergedConfig;
     this.flagDefinitions = new Map();

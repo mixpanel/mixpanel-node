@@ -23,13 +23,22 @@ class FeatureFlagsProvider {
    * @param {Function} tracker - Function to track events (signature: track(distinct_id, event, properties, callback))
    * @param {string} evaluationMode - The feature flag evaluation mode
    * @param {CustomLogger} logger - Logger instance
+   * @param {Object} credentials - Optional service account credentials
    */
-  constructor(providerConfig, endpoint, tracker, evaluationMode, logger) {
+  constructor(
+    providerConfig,
+    endpoint,
+    tracker,
+    evaluationMode,
+    logger,
+    credentials,
+  ) {
     this.providerConfig = providerConfig;
     this.endpoint = endpoint;
     this.tracker = tracker;
     this.evaluationMode = evaluationMode;
     this.logger = logger;
+    this.credentials = credentials;
   }
 
   /**
@@ -39,10 +48,33 @@ class FeatureFlagsProvider {
    */
   async callFlagsEndpoint(additionalParams = null) {
     return new Promise((resolve, reject) => {
-      const commonParams = prepareCommonQueryParams(
-        this.providerConfig.token,
-        packageInfo.version,
-      );
+      let authHeader;
+      let commonParams;
+
+      // Determine auth method
+      if (this.credentials && this.credentials.username) {
+        // Service account auth
+        commonParams = prepareCommonQueryParams(
+          null, // No token
+          packageInfo.version,
+          this.credentials.project_id,
+        );
+        authHeader =
+          "Basic " +
+          Buffer.from(
+            this.credentials.username + ":" + this.credentials.secret,
+          ).toString("base64");
+      } else {
+        // Token auth (existing)
+        commonParams = prepareCommonQueryParams(
+          this.providerConfig.token,
+          packageInfo.version,
+        );
+        authHeader =
+          "Basic " +
+          Buffer.from(this.providerConfig.token + ":").toString("base64");
+      }
+
       const params = new URLSearchParams(commonParams);
 
       if (additionalParams) {
@@ -60,9 +92,7 @@ class FeatureFlagsProvider {
         method: "GET",
         headers: {
           ...REQUEST_HEADERS,
-          Authorization:
-            "Basic " +
-            Buffer.from(this.providerConfig.token + ":").toString("base64"),
+          Authorization: authHeader,
           traceparent: generateTraceparent(),
         },
         timeout: this.providerConfig.request_timeout_in_seconds * 1000,

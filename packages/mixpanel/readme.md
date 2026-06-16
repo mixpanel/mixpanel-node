@@ -25,6 +25,16 @@ var Mixpanel = require("mixpanel");
 // create an instance of the mixpanel client
 var mixpanel = Mixpanel.init("<YOUR_TOKEN>");
 
+// for server-side integrations requiring authentication (e.g., importing old events),
+// use service account credentials for enhanced security
+const { ServiceAccountCredentials } = Mixpanel;
+const credentials = new ServiceAccountCredentials(
+  "YOUR_SERVICE_ACCOUNT_USERNAME",
+  "YOUR_SERVICE_ACCOUNT_SECRET",
+  "YOUR_PROJECT_ID",
+);
+var mixpanel = Mixpanel.init("<YOUR_TOKEN>", { credentials });
+
 // initialize mixpanel client configured to communicate over http instead of https
 var mixpanel = Mixpanel.init("<YOUR_TOKEN>", {
   protocol: "http",
@@ -184,7 +194,40 @@ mixpanel.track_batch([
   },
 ]);
 
-// import an old event
+// Service Account Authentication (Recommended for server-side integrations)
+// For enhanced security, use service account credentials instead of API secrets
+const { ServiceAccountCredentials } = Mixpanel;
+
+const credentials = new ServiceAccountCredentials(
+  "YOUR_SERVICE_ACCOUNT_USERNAME",
+  "YOUR_SERVICE_ACCOUNT_SECRET",
+  "YOUR_PROJECT_ID",
+);
+
+const mixpanel_with_sa = Mixpanel.init("YOUR_TOKEN", { credentials });
+
+// Import old events (uses service account auth)
+mixpanel_with_sa.import("old event", new Date(2012, 4, 20, 12, 34, 56), {
+  distinct_id: "billybob",
+  gender: "male",
+});
+
+// Regular tracking (uses token in payload, no auth header needed)
+mixpanel_with_sa.track("test event", {
+  distinct_id: "billybob",
+  plan: "premium",
+});
+
+// Service accounts can also be used with feature flags
+const mixpanel_flags = Mixpanel.init("YOUR_TOKEN", {
+  credentials,
+  local_flags_config: {
+    // ... config
+  },
+});
+
+// Legacy: import an old event using API secret (deprecated)
+// Service account credentials are recommended instead
 var mixpanel_importer = Mixpanel.init("valid mixpanel token", {
   secret: "valid api secret for project",
 });

@@ -116,17 +116,50 @@ const create_client = function (token, config) {
     }
 
     // add auth params
-    if (secret) {
+    const credentials = metrics.config.credentials;
+
+    if (credentials && credentials.username) {
+      // Service account auth (ONLY for /import endpoint)
+      if (endpoint === "/import") {
+        if (request_lib !== https) {
+          throw new Error("Must use HTTPS with service account credentials");
+        }
+        const encoded = Buffer.from(
+          credentials.username + ":" + credentials.secret,
+        ).toString("base64");
+        request_options.headers["Authorization"] = "Basic " + encoded;
+        query_params.project_id = credentials.project_id;
+        // Do NOT include api_key in POST body when using service accounts
+      }
+      // For other endpoints, credentials are ignored (no auth needed)
+    } else if (secret) {
+      // Existing API secret logic
+      if (metrics.config.debug) {
+        metrics.config.logger.warn(
+          "api_secret is deprecated and will be removed in a future version. " +
+            "Please migrate to ServiceAccountCredentials for enhanced security. " +
+            "See: https://developer.mixpanel.com/docs/service-accounts",
+        );
+      }
       if (request_lib !== https) {
         throw new Error("Must use HTTPS if authenticating with API Secret");
       }
       const encoded = Buffer.from(secret + ":").toString("base64");
       request_options.headers["Authorization"] = "Basic " + encoded;
     } else if (key) {
+      // Existing API key logic
+      if (metrics.config.debug) {
+        metrics.config.logger.warn(
+          "api_key is deprecated and will be removed in a future version. " +
+            "Please migrate to ServiceAccountCredentials for enhanced security. " +
+            "See: https://developer.mixpanel.com/docs/service-accounts",
+        );
+      }
       query_params.api_key = key;
     } else if (endpoint === "/import") {
       throw new Error(
-        "The Mixpanel Client needs a Mixpanel API Secret when importing old events: `init(token, { secret: ... })`",
+        "The Mixpanel Client needs Service Account credentials or API Secret when importing old events: " +
+          "`init(token, { credentials: new ServiceAccountCredentials(...) })`",
       );
     }
 
@@ -517,6 +550,7 @@ const create_client = function (token, config) {
       config.local_flags_config,
       metrics.track.bind(metrics),
       config.logger,
+      config.credentials,
     );
   }
 
@@ -526,6 +560,7 @@ const create_client = function (token, config) {
       config.remote_flags_config,
       metrics.track.bind(metrics),
       config.logger,
+      config.credentials,
     );
   }
 
@@ -533,6 +568,9 @@ const create_client = function (token, config) {
 };
 
 // module exporting
+const { ServiceAccountCredentials } = require("./credentials");
+
 module.exports = {
   init: create_client,
+  ServiceAccountCredentials: ServiceAccountCredentials,
 };
