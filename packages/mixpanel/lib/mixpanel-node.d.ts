@@ -2,8 +2,6 @@ import LocalFeatureFlagsProvider from "./flags/local_flags";
 import RemoteFeatureFlagsProvider from "./flags/remote_flags";
 import { LocalFlagsConfig, RemoteFlagsConfig } from "./flags/types";
 
-declare const mixpanel: mixpanel.Mixpanel;
-
 declare namespace mixpanel {
   export class ServiceAccountCredentials {
     constructor(username: string, secret: string, project_id: string);

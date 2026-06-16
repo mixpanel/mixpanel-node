@@ -325,7 +325,9 @@ const create_client = function (token, config) {
         cb = function (errors, results) {
           index += 1;
           if (index === total_request_batches) {
-            callback && callback(errors, results);
+            if (callback) {
+              callback(errors, results);
+            }
           } else {
             send_next_request_batch(index);
           }
