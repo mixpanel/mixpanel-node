@@ -349,9 +349,9 @@ describe("import with service account credentials", () => {
     expect(
       () => new ServiceAccountCredentials("", "secret", "123"),
     ).toThrowError("Service account username cannot be empty");
-    expect(
-      () => new ServiceAccountCredentials("user", "", "123"),
-    ).toThrowError("Service account secret cannot be empty");
+    expect(() => new ServiceAccountCredentials("user", "", "123")).toThrowError(
+      "Service account secret cannot be empty",
+    );
     expect(
       () => new ServiceAccountCredentials("user", "secret", ""),
     ).toThrowError("Service account project_id cannot be empty");
