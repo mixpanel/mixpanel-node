@@ -53,14 +53,12 @@ function prepareCommonQueryParams(token, sdkVersion, project_id) {
   const params = {
     mp_lib: "node",
     $lib_version: sdkVersion,
+    token: token,
   };
 
   if (project_id !== undefined && project_id !== null) {
-    // Service account authentication - use project_id instead of token
+    // Service account authentication - add project_id
     params.project_id = project_id;
-  } else {
-    // Token authentication
-    params.token = token;
   }
 
   return params;
