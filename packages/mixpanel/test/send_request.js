@@ -292,9 +292,7 @@ describe("send_request", () => {
         endpoint: `/import`,
         data: { event: `test event` },
       });
-    }).toThrowError(
-      /The \/import endpoint requires authentication/,
-    );
+    }).toThrowError(/The \/import endpoint requires authentication/);
   });
 
   it("sets basic auth header if API secret is provided", () => {

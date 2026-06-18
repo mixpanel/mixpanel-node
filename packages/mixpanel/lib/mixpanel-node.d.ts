@@ -418,5 +418,4 @@ declare namespace mixpanel {
   }
 }
 
-// Re-export the namespace types under the default export name
 export = mixpanel;

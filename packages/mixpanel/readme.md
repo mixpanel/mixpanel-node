@@ -275,10 +275,12 @@ mixpanel_importer.import_batch([
 ### When to Use Service Accounts
 
 Service account credentials are **required** for:
+
 - **Importing historical events** - Events older than 5 days via `/import` endpoint
 - **Server-side feature flags** - Evaluating feature flags with authentication
 
 Service accounts are **NOT needed** for:
+
 - **Regular event tracking** - `track()` uses project token only
 - **People analytics** - `people.set()`, `people.increment()`, etc.
 - **Group analytics** - `groups.set()`, etc.
@@ -288,36 +290,39 @@ Service accounts are **NOT needed** for:
 If you're currently using API secrets (deprecated), here's how to upgrade:
 
 **Before (deprecated):**
+
 ```javascript
 // Old method - still works but deprecated
-var mixpanel = Mixpanel.init('TOKEN', { 
-  secret: 'your-api-secret' 
+var mixpanel = Mixpanel.init("TOKEN", {
+  secret: "your-api-secret",
 });
 
-mixpanel.import('event', new Date(2020, 1, 1), {
-  distinct_id: 'user123'
+mixpanel.import("event", new Date(2020, 1, 1), {
+  distinct_id: "user123",
 });
 ```
 
 **After (recommended):**
+
 ```javascript
 // New method - enhanced security with service accounts
 const { ServiceAccountCredentials } = Mixpanel;
 
 const credentials = new ServiceAccountCredentials(
-  'service-account-username',  // From Mixpanel project settings
-  'service-account-secret',    // From Mixpanel project settings
-  'project-id'                 // Your Mixpanel project ID
+  "service-account-username", // From Mixpanel project settings
+  "service-account-secret", // From Mixpanel project settings
+  "project-id", // Your Mixpanel project ID
 );
 
-var mixpanel = Mixpanel.init('TOKEN', { credentials });
+var mixpanel = Mixpanel.init("TOKEN", { credentials });
 
-mixpanel.import('event', new Date(2020, 1, 1), {
-  distinct_id: 'user123'
+mixpanel.import("event", new Date(2020, 1, 1), {
+  distinct_id: "user123",
 });
 ```
 
 **Key differences:**
+
 - Service accounts use username/secret pairs instead of a single shared secret
 - Project ID is explicitly specified for better security
 - Each service account can have specific permissions

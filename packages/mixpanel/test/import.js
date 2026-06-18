@@ -346,18 +346,18 @@ describe("import with service account credentials", () => {
   });
 
   it("validates credentials on construction", () => {
-    expect(
-      () => new ServiceAccountCredentials("", "secret", "123"),
-    ).toThrow(TypeError);
+    expect(() => new ServiceAccountCredentials("", "secret", "123")).toThrow(
+      TypeError,
+    );
     expect(() => new ServiceAccountCredentials("user", "", "123")).toThrow(
       TypeError,
     );
-    expect(
-      () => new ServiceAccountCredentials("user", "secret", ""),
-    ).toThrow(TypeError);
-    expect(
-      () => new ServiceAccountCredentials("  ", "secret", "123"),
-    ).toThrow(TypeError);
+    expect(() => new ServiceAccountCredentials("user", "secret", "")).toThrow(
+      TypeError,
+    );
+    expect(() => new ServiceAccountCredentials("  ", "secret", "123")).toThrow(
+      TypeError,
+    );
   });
 
   it("validates credentials types", () => {
@@ -440,9 +440,7 @@ describe("import with service account credentials", () => {
     // Should fail because plain object is not ServiceAccountCredentials instance
     expect(() => {
       plain_object_mixpanel.import("test", Date.now(), {});
-    }).toThrow(
-      /The \/import endpoint requires authentication/,
-    );
+    }).toThrow(/The \/import endpoint requires authentication/);
   });
 
   it("does not send auth headers for non-import endpoints", () => {
