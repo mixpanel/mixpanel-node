@@ -44,7 +44,7 @@ function normalizedHash(key, salt) {
 
 /**
  * Prepare common query parameters for feature flags API requests
- * @param {string} token - Mixpanel project token (or null for service account auth)
+ * @param {string} token - Mixpanel project token
  * @param {string} sdkVersion - SDK version string
  * @param {string} project_id - Optional project ID for service account authentication
  * @returns {Object} - Query parameters object

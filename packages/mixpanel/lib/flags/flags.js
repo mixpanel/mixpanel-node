@@ -52,17 +52,14 @@ class FeatureFlagsProvider {
       let authHeader;
       let commonParams;
 
-      // Determine auth method
       if (this.credentials instanceof ServiceAccountCredentials) {
-        // Service account auth
         commonParams = prepareCommonQueryParams(
-          null, // No token
+          this.providerConfig.token,
           packageInfo.version,
           this.credentials.project_id,
         );
         authHeader = "Basic " + this.credentials.toHttpBasicAuth();
       } else {
-        // Token auth (existing)
         commonParams = prepareCommonQueryParams(
           this.providerConfig.token,
           packageInfo.version,

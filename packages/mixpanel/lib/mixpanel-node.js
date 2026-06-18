@@ -120,7 +120,6 @@ const create_client = function (token, config) {
     const credentials = metrics.config.credentials;
 
     if (credentials instanceof ServiceAccountCredentials) {
-      // Service account auth (ONLY for /import endpoint)
       if (endpoint === "/import") {
         if (request_lib !== https) {
           throw new Error("Must use HTTPS with service account credentials");
@@ -129,11 +128,10 @@ const create_client = function (token, config) {
           "Basic " + credentials.toHttpBasicAuth();
         query_params.project_id = credentials.project_id;
       }
-      // For other endpoints, credentials are ignored (no auth needed)
     } else if (secret) {
       // DEPRECATED: API secret auth (use ServiceAccountCredentials instead)
       metrics.config.logger.warn(
-        "⚠️  DEPRECATION WARNING: api_secret is deprecated and will be removed in a future version.\n" +
+        "DEPRECATION WARNING: api_secret is deprecated and will be removed in a future version.\n" +
           "   Please migrate to ServiceAccountCredentials for enhanced security.\n" +
           "   See: https://developer.mixpanel.com/reference/service-accounts-api",
       );
@@ -145,7 +143,7 @@ const create_client = function (token, config) {
     } else if (key) {
       // DEPRECATED: API key auth (use ServiceAccountCredentials instead)
       metrics.config.logger.warn(
-        "⚠️  DEPRECATION WARNING: api_key is deprecated and will be removed in a future version.\n" +
+        "DEPRECATION WARNING: api_key is deprecated and will be removed in a future version.\n" +
           "   Please migrate to ServiceAccountCredentials for enhanced security.\n" +
           "   See: https://developer.mixpanel.com/reference/service-accounts-api",
       );
