@@ -418,9 +418,5 @@ declare namespace mixpanel {
   }
 }
 
-declare const mixpanelExport: {
-  init: typeof mixpanel.init;
-  ServiceAccountCredentials: typeof mixpanel.ServiceAccountCredentials;
-};
-
-export = mixpanelExport;
+// Re-export the namespace types under the default export name
+export = mixpanel;
