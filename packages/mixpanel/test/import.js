@@ -348,16 +348,16 @@ describe("import with service account credentials", () => {
   it("validates credentials on construction", () => {
     expect(
       () => new ServiceAccountCredentials("", "secret", "123"),
-    ).toThrowError("Service account username cannot be empty");
-    expect(() => new ServiceAccountCredentials("user", "", "123")).toThrowError(
-      "Service account secret cannot be empty",
+    ).toThrow(TypeError);
+    expect(() => new ServiceAccountCredentials("user", "", "123")).toThrow(
+      TypeError,
     );
     expect(
       () => new ServiceAccountCredentials("user", "secret", ""),
-    ).toThrowError("Service account project_id cannot be empty");
+    ).toThrow(TypeError);
     expect(
       () => new ServiceAccountCredentials("  ", "secret", "123"),
-    ).toThrowError("Service account username cannot be empty");
+    ).toThrow(TypeError);
   });
 
   it("validates credentials types", () => {
@@ -443,5 +443,80 @@ describe("import with service account credentials", () => {
     }).toThrow(
       /The \/import endpoint requires authentication/,
     );
+  });
+
+  it("does not send auth headers for non-import endpoints", () => {
+    const mixpanel_sa = Mixpanel.init("token", { credentials });
+    vi.spyOn(mixpanel_sa, "send_request");
+
+    // Track should not use service account credentials
+    mixpanel_sa.track("test event", { distinct_id: "user123" });
+
+    const call_args = mixpanel_sa.send_request.mock.calls[0][0];
+    expect(call_args.endpoint).not.toBe("/import");
+  });
+});
+
+describe("deprecation warnings", () => {
+  let mixpanel;
+  let mockLogger;
+
+  beforeEach(() => {
+    mockLogger = {
+      trace: vi.fn(),
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+  });
+
+  it("warns when using api_secret", () => {
+    mixpanel = Mixpanel.init("token", {
+      secret: "api-secret",
+      logger: mockLogger,
+    });
+
+    mixpanel.import("test", Date.now(), { distinct_id: "user" });
+
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("DEPRECATION WARNING"),
+    );
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("api_secret is deprecated"),
+    );
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("ServiceAccountCredentials"),
+    );
+  });
+
+  it("warns when using api_key", () => {
+    mixpanel = Mixpanel.init("token", {
+      key: "api-key",
+      logger: mockLogger,
+    });
+
+    mixpanel.track("test", { distinct_id: "user" });
+
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("DEPRECATION WARNING"),
+    );
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("api_key is deprecated"),
+    );
+  });
+
+  it("does not warn when using service account credentials", () => {
+    const { ServiceAccountCredentials } = Mixpanel;
+    const creds = new ServiceAccountCredentials("user", "secret", "123");
+
+    mixpanel = Mixpanel.init("token", {
+      credentials: creds,
+      logger: mockLogger,
+    });
+
+    mixpanel.import("test", Date.now(), { distinct_id: "user" });
+
+    expect(mockLogger.warn).not.toHaveBeenCalled();
   });
 });

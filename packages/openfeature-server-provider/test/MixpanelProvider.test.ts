@@ -5,7 +5,6 @@ import type { SelectedVariant } from "mixpanel/lib/flags/types";
 
 function createMockFlagsProvider({
   flags = new Map<string, SelectedVariant>(),
-  ready: _ready = true,
 } = {}): MixpanelFlagsProvider & { getVariant: ReturnType<typeof vi.fn> } {
   return {
     getVariant: vi.fn(

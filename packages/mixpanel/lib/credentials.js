@@ -41,13 +41,13 @@ class ServiceAccountCredentials {
     const trimmedProjectId = project_id.trim();
 
     if (!trimmedUsername) {
-      throw new Error("Service account username cannot be empty");
+      throw new TypeError("Service account username cannot be empty");
     }
     if (!trimmedSecret) {
-      throw new Error("Service account secret cannot be empty");
+      throw new TypeError("Service account secret cannot be empty");
     }
     if (!trimmedProjectId) {
-      throw new Error("Service account project_id cannot be empty");
+      throw new TypeError("Service account project_id cannot be empty");
     }
 
     this.username = trimmedUsername;
