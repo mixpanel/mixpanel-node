@@ -418,7 +418,8 @@ declare namespace mixpanel {
   }
 }
 
-declare const mixpanelExport: typeof mixpanel.init & {
+declare const mixpanelExport: {
+  init: typeof mixpanel.init;
   ServiceAccountCredentials: typeof mixpanel.ServiceAccountCredentials;
 };
 
