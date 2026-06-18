@@ -3,6 +3,11 @@ import RemoteFeatureFlagsProvider from "./flags/remote_flags";
 import { LocalFlagsConfig, RemoteFlagsConfig } from "./flags/types";
 
 declare namespace mixpanel {
+  export function init(
+    mixpanelToken: string,
+    config?: Partial<InitConfig>,
+  ): Mixpanel;
+
   export class ServiceAccountCredentials {
     constructor(username: string, secret: string, project_id: string);
     username: string;
@@ -413,4 +418,8 @@ declare namespace mixpanel {
   }
 }
 
-export = mixpanel;
+declare const mixpanelExport: typeof mixpanel.init & {
+  ServiceAccountCredentials: typeof mixpanel.ServiceAccountCredentials;
+};
+
+export = mixpanelExport;
