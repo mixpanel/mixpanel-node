@@ -131,11 +131,11 @@ const create_client = function (token, config) {
       }
       // For other endpoints, credentials are ignored (no auth needed)
     } else if (secret) {
-      // Existing API secret logic
+      // DEPRECATED: API secret auth (use ServiceAccountCredentials instead)
       metrics.config.logger.warn(
-        "api_secret is deprecated and will be removed in a future version. " +
-          "Please migrate to ServiceAccountCredentials for enhanced security. " +
-          "See: https://developer.mixpanel.com/docs/service-accounts",
+        "⚠️  DEPRECATION WARNING: api_secret is deprecated and will be removed in a future version.\n" +
+          "   Please migrate to ServiceAccountCredentials for enhanced security.\n" +
+          "   See: https://developer.mixpanel.com/reference/service-accounts-api",
       );
       if (request_lib !== https) {
         throw new Error("Must use HTTPS if authenticating with API Secret");
@@ -143,17 +143,23 @@ const create_client = function (token, config) {
       const encoded = Buffer.from(secret + ":").toString("base64");
       request_options.headers["Authorization"] = "Basic " + encoded;
     } else if (key) {
-      // Existing API key logic
+      // DEPRECATED: API key auth (use ServiceAccountCredentials instead)
       metrics.config.logger.warn(
-        "api_key is deprecated and will be removed in a future version. " +
-          "Please migrate to ServiceAccountCredentials for enhanced security. " +
-          "See: https://developer.mixpanel.com/docs/service-accounts",
+        "⚠️  DEPRECATION WARNING: api_key is deprecated and will be removed in a future version.\n" +
+          "   Please migrate to ServiceAccountCredentials for enhanced security.\n" +
+          "   See: https://developer.mixpanel.com/reference/service-accounts-api",
       );
       query_params.api_key = key;
     } else if (endpoint === "/import") {
       throw new Error(
-        "The Mixpanel Client needs Service Account credentials or API Secret when importing old events: " +
-          "`init(token, { credentials: new ServiceAccountCredentials(...) })`",
+        "The /import endpoint requires authentication.\n\n" +
+          "RECOMMENDED: Use service account credentials (preferred method):\n" +
+          "  const { ServiceAccountCredentials } = require('mixpanel');\n" +
+          "  const credentials = new ServiceAccountCredentials('username', 'secret', 'project_id');\n" +
+          "  const mixpanel = Mixpanel.init('token', { credentials });\n\n" +
+          "Learn more: https://developer.mixpanel.com/reference/service-accounts-api\n\n" +
+          "DEPRECATED: API secret (will be removed in a future version):\n" +
+          "  const mixpanel = Mixpanel.init('token', { secret: 'your-api-secret' });",
       );
     }
 

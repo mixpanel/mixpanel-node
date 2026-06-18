@@ -194,8 +194,12 @@ mixpanel.track_batch([
   },
 ]);
 
-// Service Account Authentication (Recommended for server-side integrations)
-// For enhanced security, use service account credentials instead of API secrets
+// ============================================================================
+// Service Account Authentication (RECOMMENDED - Preferred Method)
+// ============================================================================
+// Service accounts provide enhanced security for server-to-server integrations.
+// This is the PREFERRED authentication method. API secrets are deprecated.
+// Learn more: https://developer.mixpanel.com/reference/service-accounts-api
 const { ServiceAccountCredentials } = Mixpanel;
 
 const credentials = new ServiceAccountCredentials(
@@ -226,10 +230,13 @@ const mixpanel_flags = Mixpanel.init("YOUR_TOKEN", {
   },
 });
 
-// Legacy: import an old event using API secret (deprecated)
-// Service account credentials are recommended instead
+// ============================================================================
+// DEPRECATED: API Secret Authentication (Legacy - Not Recommended)
+// ============================================================================
+// ⚠️  WARNING: API secrets are DEPRECATED and will be removed in a future version.
+// Please migrate to Service Account credentials above for enhanced security.
 var mixpanel_importer = Mixpanel.init("valid mixpanel token", {
-  secret: "valid api secret for project",
+  secret: "valid api secret for project", // DEPRECATED - use ServiceAccountCredentials instead
 });
 
 // needs to be in the system once for it to show up in the interface
@@ -260,6 +267,62 @@ mixpanel_importer.import_batch([
   },
 ]);
 ```
+
+## Service Account Authentication
+
+**Documentation:** https://developer.mixpanel.com/reference/service-accounts-api
+
+### When to Use Service Accounts
+
+Service account credentials are **required** for:
+- **Importing historical events** - Events older than 5 days via `/import` endpoint
+- **Server-side feature flags** - Evaluating feature flags with authentication
+
+Service accounts are **NOT needed** for:
+- **Regular event tracking** - `track()` uses project token only
+- **People analytics** - `people.set()`, `people.increment()`, etc.
+- **Group analytics** - `groups.set()`, etc.
+
+### Migrating from API Secrets (Deprecated)
+
+If you're currently using API secrets (deprecated), here's how to upgrade:
+
+**Before (deprecated):**
+```javascript
+// Old method - still works but deprecated
+var mixpanel = Mixpanel.init('TOKEN', { 
+  secret: 'your-api-secret' 
+});
+
+mixpanel.import('event', new Date(2020, 1, 1), {
+  distinct_id: 'user123'
+});
+```
+
+**After (recommended):**
+```javascript
+// New method - enhanced security with service accounts
+const { ServiceAccountCredentials } = Mixpanel;
+
+const credentials = new ServiceAccountCredentials(
+  'service-account-username',  // From Mixpanel project settings
+  'service-account-secret',    // From Mixpanel project settings
+  'project-id'                 // Your Mixpanel project ID
+);
+
+var mixpanel = Mixpanel.init('TOKEN', { credentials });
+
+mixpanel.import('event', new Date(2020, 1, 1), {
+  distinct_id: 'user123'
+});
+```
+
+**Key differences:**
+- Service accounts use username/secret pairs instead of a single shared secret
+- Project ID is explicitly specified for better security
+- Each service account can have specific permissions
+- Easier to rotate credentials without affecting other integrations
+- **Learn more:** https://developer.mixpanel.com/reference/service-accounts-api
 
 ## FAQ
 

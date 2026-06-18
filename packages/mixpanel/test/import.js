@@ -441,7 +441,7 @@ describe("import with service account credentials", () => {
     expect(() => {
       plain_object_mixpanel.import("test", Date.now(), {});
     }).toThrow(
-      /The Mixpanel Client needs Service Account credentials or API Secret/,
+      /The \/import endpoint requires authentication/,
     );
   });
 });
