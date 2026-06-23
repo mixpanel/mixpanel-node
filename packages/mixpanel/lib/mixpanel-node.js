@@ -129,24 +129,12 @@ const create_client = function (token, config) {
         query_params.project_id = credentials.project_id;
       }
     } else if (secret) {
-      // DEPRECATED: API secret auth (use ServiceAccountCredentials instead)
-      metrics.config.logger.warn(
-        "DEPRECATION WARNING: api_secret is deprecated and will be removed in a future version.\n" +
-          "   Please migrate to ServiceAccountCredentials for enhanced security.\n" +
-          "   See: https://developer.mixpanel.com/reference/service-accounts-api",
-      );
       if (request_lib !== https) {
         throw new Error("Must use HTTPS if authenticating with API Secret");
       }
       const encoded = Buffer.from(secret + ":").toString("base64");
       request_options.headers["Authorization"] = "Basic " + encoded;
     } else if (key) {
-      // DEPRECATED: API key auth (use ServiceAccountCredentials instead)
-      metrics.config.logger.warn(
-        "DEPRECATION WARNING: api_key is deprecated and will be removed in a future version.\n" +
-          "   Please migrate to ServiceAccountCredentials for enhanced security.\n" +
-          "   See: https://developer.mixpanel.com/reference/service-accounts-api",
-      );
       query_params.api_key = key;
     } else if (endpoint === "/import") {
       throw new Error(
@@ -536,6 +524,22 @@ const create_client = function (token, config) {
       if (port) {
         metrics.config.port = Number(port);
       }
+    }
+
+    // Emit deprecation warnings for old auth methods at client creation
+    if (config && config.secret) {
+      metrics.config.logger.warn(
+        "DEPRECATION WARNING: api_secret is deprecated and will be removed in a future version.\n" +
+          "   Please migrate to ServiceAccountCredentials for enhanced security.\n" +
+          "   See: https://developer.mixpanel.com/reference/service-accounts-api",
+      );
+    }
+    if (config && config.key) {
+      metrics.config.logger.warn(
+        "DEPRECATION WARNING: api_key is deprecated and will be removed in a future version.\n" +
+          "   Please migrate to ServiceAccountCredentials for enhanced security.\n" +
+          "   See: https://developer.mixpanel.com/reference/service-accounts-api",
+      );
     }
   };
 

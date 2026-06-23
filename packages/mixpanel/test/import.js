@@ -475,8 +475,7 @@ describe("deprecation warnings", () => {
       logger: mockLogger,
     });
 
-    mixpanel.import("test", Date.now(), { distinct_id: "user" });
-
+    // Warning should be emitted at init time, not during import
     expect(mockLogger.warn).toHaveBeenCalledWith(
       expect.stringContaining("DEPRECATION WARNING"),
     );
@@ -486,6 +485,11 @@ describe("deprecation warnings", () => {
     expect(mockLogger.warn).toHaveBeenCalledWith(
       expect.stringContaining("ServiceAccountCredentials"),
     );
+
+    // Reset mock to verify it doesn't warn again on subsequent requests
+    mockLogger.warn.mockClear();
+    mixpanel.import("test", Date.now(), { distinct_id: "user" });
+    expect(mockLogger.warn).not.toHaveBeenCalled();
   });
 
   it("warns when using api_key", () => {
@@ -494,14 +498,18 @@ describe("deprecation warnings", () => {
       logger: mockLogger,
     });
 
-    mixpanel.track("test", { distinct_id: "user" });
-
+    // Warning should be emitted at init time, not during track
     expect(mockLogger.warn).toHaveBeenCalledWith(
       expect.stringContaining("DEPRECATION WARNING"),
     );
     expect(mockLogger.warn).toHaveBeenCalledWith(
       expect.stringContaining("api_key is deprecated"),
     );
+
+    // Reset mock to verify it doesn't warn again on subsequent requests
+    mockLogger.warn.mockClear();
+    mixpanel.track("test", { distinct_id: "user" });
+    expect(mockLogger.warn).not.toHaveBeenCalled();
   });
 
   it("does not warn when using service account credentials", () => {
