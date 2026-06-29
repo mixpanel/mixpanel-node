@@ -689,21 +689,29 @@ describe("LocalFeatureFlagsProvider", () => {
         await provider.startPollingForDefinitions();
         const result = provider.getVariant("missing", FALLBACK, TEST_CONTEXT);
         expect(result.variant_source).toBe(VariantSource.FALLBACK);
-        expect(result.fallback_reason).toBe(FallbackReason.FLAG_NOT_FOUND);
+        expect(result.fallback_reason.kind).toBe(
+          FallbackReason.Kind.FLAG_NOT_FOUND,
+        );
+        expect(result.fallback_reason.message).toBeNull();
       });
 
-      it("tags missing context as fallback / MISSING_CONTEXT_KEY", async () => {
+      it("tags missing context as fallback / MISSING_CONTEXT_KEY with the missing key", async () => {
         await createFlagAndLoadItIntoSDK({ context: "distinct_id" }, provider);
         const result = provider.getVariant(FLAG_KEY, FALLBACK, {});
         expect(result.variant_source).toBe(VariantSource.FALLBACK);
-        expect(result.fallback_reason).toBe(FallbackReason.MISSING_CONTEXT_KEY);
+        expect(result.fallback_reason.kind).toBe(
+          FallbackReason.Kind.MISSING_CONTEXT_KEY,
+        );
+        expect(result.fallback_reason.message).toBe("distinct_id");
       });
 
       it("tags no-rollout-match as fallback / NO_ROLLOUT_MATCH", async () => {
         await createFlagAndLoadItIntoSDK({ rolloutPercentage: 0.0 }, provider);
         const result = provider.getVariant(FLAG_KEY, FALLBACK, TEST_CONTEXT);
         expect(result.variant_source).toBe(VariantSource.FALLBACK);
-        expect(result.fallback_reason).toBe(FallbackReason.NO_ROLLOUT_MATCH);
+        expect(result.fallback_reason.kind).toBe(
+          FallbackReason.Kind.NO_ROLLOUT_MATCH,
+        );
       });
     });
   });

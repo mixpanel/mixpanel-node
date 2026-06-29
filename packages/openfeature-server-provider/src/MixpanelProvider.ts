@@ -235,12 +235,16 @@ export class MixpanelProvider implements Provider {
     }
 
     // variant_source distinguishes local / remote / fallback. When fallback,
-    // fallback_reason carries the specific reason (PHP-aligned constants) so
-    // we can map each to the spec-correct OpenFeature response instead of
-    // collapsing every fallback to FLAG_NOT_FOUND.
-    const fallbackReason = (variant as unknown as { fallback_reason?: string })
-      .fallback_reason;
-    switch (fallbackReason) {
+    // fallback_reason carries the discriminating kind (PHP-aligned) and an
+    // optional message (BACKEND_ERROR's response body, MISSING_CONTEXT_KEY's
+    // missing attribute) so we map each to the spec-correct OpenFeature
+    // response and forward the message as errorMessage (SDK-83).
+    const fallbackReason = (
+      variant as unknown as {
+        fallback_reason?: { kind: string; message: string | null };
+      }
+    ).fallback_reason;
+    switch (fallbackReason?.kind) {
       case "FLAG_NOT_FOUND":
         return {
           value: defaultValue,
@@ -252,7 +256,9 @@ export class MixpanelProvider implements Provider {
         return {
           value: defaultValue,
           errorCode: ErrorCode.TARGETING_KEY_MISSING,
-          errorMessage: `Required context attribute missing for flag "${flagKey}"`,
+          errorMessage:
+            fallbackReason.message ??
+            `Required context attribute missing for flag "${flagKey}"`,
           reason: "ERROR",
         };
       case "NO_ROLLOUT_MATCH":
@@ -266,7 +272,7 @@ export class MixpanelProvider implements Provider {
         return createErrorResolution(
           defaultValue,
           ErrorCode.GENERAL,
-          `Flag evaluation failed for "${flagKey}"`,
+          fallbackReason.message ?? `Flag evaluation failed for "${flagKey}"`,
         );
       case "NOT_READY":
         return createErrorResolution(

@@ -96,7 +96,7 @@ class RemoteFeatureFlagsProvider extends FeatureFlagsProvider {
         // so a missing key could mean the flag doesn't exist OR the user
         // isn't in any rollout. The remote SDK can't tell them apart without
         // server-side help — surface as FLAG_NOT_FOUND for now.
-        return asFallback(fallbackVariant, FallbackReason.FLAG_NOT_FOUND);
+        return asFallback(fallbackVariant, FallbackReason.flagNotFound());
       }
 
       if (reportExposure) {
@@ -108,7 +108,15 @@ class RemoteFeatureFlagsProvider extends FeatureFlagsProvider {
       this.logger?.error(
         `Failed to get variant for flag '${flagKey}': ${err.message}`,
       );
-      return asFallback(fallbackVariant, FallbackReason.BACKEND_ERROR);
+      // SDK-83: attach the error message so the OpenFeature wrapper can
+      // forward it as errorMessage instead of swallowing the cause into
+      // a bare GENERAL error. The backend's response body (e.g.
+      // "distinct_id must be provided in evalContext as a string") is
+      // already on err.message via the HTTP layer.
+      return asFallback(
+        fallbackVariant,
+        FallbackReason.backendError(err.message),
+      );
     }
   }
 

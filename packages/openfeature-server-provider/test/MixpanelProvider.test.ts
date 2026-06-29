@@ -603,14 +603,17 @@ describe("MixpanelProvider", () => {
     });
   });
 
-  describe("fallback_reason dispatch (SDK-79)", () => {
-    const reasonProvider = (reason: string): MixpanelFlagsProvider => ({
+  describe("fallback_reason dispatch (SDK-79, SDK-83)", () => {
+    const reasonProvider = (
+      kind: string,
+      message: string | null = null,
+    ): MixpanelFlagsProvider => ({
       getVariant: vi.fn(
         (_flagKey, fallback) =>
           ({
             ...fallback,
             variant_source: "fallback",
-            fallback_reason: reason,
+            fallback_reason: { kind, message },
           }) as never,
       ),
     });
@@ -629,9 +632,9 @@ describe("MixpanelProvider", () => {
       expect(result.errorCode).toBeUndefined();
     });
 
-    it("MISSING_CONTEXT_KEY maps to TARGETING_KEY_MISSING", async () => {
+    it("MISSING_CONTEXT_KEY maps to TARGETING_KEY_MISSING and forwards the missing key", async () => {
       const provider = new MixpanelProvider(
-        reasonProvider("MISSING_CONTEXT_KEY"),
+        reasonProvider("MISSING_CONTEXT_KEY", "distinct_id"),
       );
       await provider.initialize(createMockContext());
       const result = await provider.resolveBooleanEvaluation(
@@ -642,6 +645,7 @@ describe("MixpanelProvider", () => {
       );
       expect(result.value).toBe(false);
       expect(result.errorCode).toBe(ErrorCode.TARGETING_KEY_MISSING);
+      expect(result.errorMessage).toBe("distinct_id");
       expect(result.reason).toBe("ERROR");
     });
 
@@ -659,8 +663,13 @@ describe("MixpanelProvider", () => {
       expect(result.reason).toBe("DEFAULT");
     });
 
-    it("BACKEND_ERROR maps to GENERAL", async () => {
-      const provider = new MixpanelProvider(reasonProvider("BACKEND_ERROR"));
+    it("BACKEND_ERROR maps to GENERAL and forwards the backend message (SDK-83)", async () => {
+      const provider = new MixpanelProvider(
+        reasonProvider(
+          "BACKEND_ERROR",
+          "HTTP 400: distinct_id must be provided in evalContext as a string",
+        ),
+      );
       await provider.initialize(createMockContext());
       const result = await provider.resolveStringEvaluation(
         "flag",
@@ -670,6 +679,7 @@ describe("MixpanelProvider", () => {
       );
       expect(result.value).toBe("default");
       expect(result.errorCode).toBe(ErrorCode.GENERAL);
+      expect(result.errorMessage).toContain("distinct_id must be provided");
       expect(result.reason).toBe("ERROR");
     });
 

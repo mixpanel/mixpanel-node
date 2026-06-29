@@ -124,24 +124,39 @@ export const VariantSource: {
 
 /**
  * Why the SDK returned the developer fallback. Only meaningful when
- * `variant_source === 'fallback'`. Matches the constant set used by
- * mixpanel-php so the OpenFeature wrapper can map each reason to the
- * spec-correct error code instead of collapsing every fallback to
- * FLAG_NOT_FOUND.
+ * `variant_source === 'fallback'`.
+ *
+ * `kind` is the discriminator (PHP-aligned). `message` is set on reasons
+ * that carry useful detail (BACKEND_ERROR with the backend's response body,
+ * MISSING_CONTEXT_KEY with the missing attribute name); null otherwise.
+ * The OpenFeature wrapper dispatches on kind and forwards message into
+ * ResolutionDetails.errorMessage.
  */
-export type FallbackReason =
+export type FallbackReasonKind =
   | "FLAG_NOT_FOUND"
   | "MISSING_CONTEXT_KEY"
   | "NO_ROLLOUT_MATCH"
   | "BACKEND_ERROR"
   | "NOT_READY";
 
+export interface FallbackReason {
+  kind: FallbackReasonKind;
+  message: string | null;
+}
+
 export const FallbackReason: {
-  FLAG_NOT_FOUND: "FLAG_NOT_FOUND";
-  MISSING_CONTEXT_KEY: "MISSING_CONTEXT_KEY";
-  NO_ROLLOUT_MATCH: "NO_ROLLOUT_MATCH";
-  BACKEND_ERROR: "BACKEND_ERROR";
-  NOT_READY: "NOT_READY";
+  Kind: {
+    FLAG_NOT_FOUND: "FLAG_NOT_FOUND";
+    MISSING_CONTEXT_KEY: "MISSING_CONTEXT_KEY";
+    NO_ROLLOUT_MATCH: "NO_ROLLOUT_MATCH";
+    BACKEND_ERROR: "BACKEND_ERROR";
+    NOT_READY: "NOT_READY";
+  };
+  flagNotFound(): FallbackReason;
+  noRolloutMatch(): FallbackReason;
+  notReady(): FallbackReason;
+  missingContextKey(key?: string | null): FallbackReason;
+  backendError(message: string): FallbackReason;
 };
 
 export interface SelectedVariant {

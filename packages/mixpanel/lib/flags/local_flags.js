@@ -158,14 +158,17 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
 
     if (!flag) {
       this.logger?.warn(`Cannot find flag definition for key: '${flagKey}`);
-      return asFallback(fallbackVariant, FallbackReason.FLAG_NOT_FOUND);
+      return asFallback(fallbackVariant, FallbackReason.flagNotFound());
     }
 
     if (!Object.hasOwn(context, flag.context)) {
       this.logger?.warn(
         `The variant assignment key, '${flag.context}' for flag, '${flagKey}' is not present in the supplied user context dictionary`,
       );
-      return asFallback(fallbackVariant, FallbackReason.MISSING_CONTEXT_KEY);
+      return asFallback(
+        fallbackVariant,
+        FallbackReason.missingContextKey(flag.context),
+      );
     }
 
     const contextValue = context[flag.context];
@@ -194,7 +197,7 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
       return withSource(selectedVariant, VariantSource.LOCAL);
     }
 
-    return asFallback(fallbackVariant, FallbackReason.NO_ROLLOUT_MATCH);
+    return asFallback(fallbackVariant, FallbackReason.noRolloutMatch());
   }
 
   /**

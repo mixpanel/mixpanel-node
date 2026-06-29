@@ -98,7 +98,7 @@ describe("RemoteFeatureFlagProvider", () => {
       expect(result).toEqual({
         ...fallbackVariant,
         variant_source: VariantSource.FALLBACK,
-        fallback_reason: FallbackReason.FLAG_NOT_FOUND,
+        fallback_reason: FallbackReason.flagNotFound(),
       });
       expect(mockTracker).not.toHaveBeenCalled();
     });
@@ -125,7 +125,7 @@ describe("RemoteFeatureFlagProvider", () => {
       expect(result).toEqual({
         ...fallbackVariant,
         variant_source: VariantSource.FALLBACK,
-        fallback_reason: FallbackReason.FLAG_NOT_FOUND,
+        fallback_reason: FallbackReason.flagNotFound(),
       });
       expect(mockTracker).not.toHaveBeenCalled();
     });
@@ -184,6 +184,26 @@ describe("RemoteFeatureFlagProvider", () => {
         }),
         expect.any(Function),
       );
+    });
+
+    it("tags the fallback as BACKEND_ERROR with the backend message on HTTP error (SDK-83)", async () => {
+      nock("https://localhost")
+        .get("/flags")
+        .query(true)
+        .reply(400, "distinct_id must be provided in evalContext as a string");
+
+      const fallbackVariant = { variant_value: "control" };
+      const result = await provider.getVariant(
+        "any-flag",
+        fallbackVariant,
+        TEST_CONTEXT,
+      );
+
+      expect(result.variant_source).toBe(VariantSource.FALLBACK);
+      expect(result.fallback_reason.kind).toBe(
+        FallbackReason.Kind.BACKEND_ERROR,
+      );
+      expect(result.fallback_reason.message).toBeTruthy();
     });
   });
 
