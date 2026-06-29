@@ -674,7 +674,10 @@ describe("LocalFeatureFlagsProvider", () => {
     // each to the spec-correct error code.
     describe("variant_source / fallback_reason tagging", () => {
       it("tags matched variants as local with no fallback_reason", async () => {
-        await createFlagAndLoadItIntoSDK({ rolloutPercentage: 100.0 }, provider);
+        await createFlagAndLoadItIntoSDK(
+          { rolloutPercentage: 100.0 },
+          provider,
+        );
         const result = provider.getVariant(FLAG_KEY, FALLBACK, TEST_CONTEXT);
         expect(result.variant_source).toBe(VariantSource.LOCAL);
         expect(result.fallback_reason).toBeUndefined();

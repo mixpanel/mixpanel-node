@@ -606,11 +606,12 @@ describe("MixpanelProvider", () => {
   describe("fallback_reason dispatch (SDK-79)", () => {
     const reasonProvider = (reason: string): MixpanelFlagsProvider => ({
       getVariant: vi.fn(
-        (_flagKey, fallback) => ({
-          ...fallback,
-          variant_source: "fallback",
-          fallback_reason: reason,
-        }) as never,
+        (_flagKey, fallback) =>
+          ({
+            ...fallback,
+            variant_source: "fallback",
+            fallback_reason: reason,
+          }) as never,
       ),
     });
 

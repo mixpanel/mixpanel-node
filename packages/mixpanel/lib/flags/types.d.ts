@@ -114,12 +114,12 @@ export interface ExperimentationFlag {
  * returned variant. Coarse-grained — see {@link FallbackReason} for the
  * specific reason behind a fallback.
  */
-export type VariantSource = 'local' | 'remote' | 'fallback';
+export type VariantSource = "local" | "remote" | "fallback";
 
 export const VariantSource: {
-  LOCAL: 'local';
-  REMOTE: 'remote';
-  FALLBACK: 'fallback';
+  LOCAL: "local";
+  REMOTE: "remote";
+  FALLBACK: "fallback";
 };
 
 /**
@@ -130,18 +130,18 @@ export const VariantSource: {
  * FLAG_NOT_FOUND.
  */
 export type FallbackReason =
-  | 'FLAG_NOT_FOUND'
-  | 'MISSING_CONTEXT_KEY'
-  | 'NO_ROLLOUT_MATCH'
-  | 'BACKEND_ERROR'
-  | 'NOT_READY';
+  | "FLAG_NOT_FOUND"
+  | "MISSING_CONTEXT_KEY"
+  | "NO_ROLLOUT_MATCH"
+  | "BACKEND_ERROR"
+  | "NOT_READY";
 
 export const FallbackReason: {
-  FLAG_NOT_FOUND: 'FLAG_NOT_FOUND';
-  MISSING_CONTEXT_KEY: 'MISSING_CONTEXT_KEY';
-  NO_ROLLOUT_MATCH: 'NO_ROLLOUT_MATCH';
-  BACKEND_ERROR: 'BACKEND_ERROR';
-  NOT_READY: 'NOT_READY';
+  FLAG_NOT_FOUND: "FLAG_NOT_FOUND";
+  MISSING_CONTEXT_KEY: "MISSING_CONTEXT_KEY";
+  NO_ROLLOUT_MATCH: "NO_ROLLOUT_MATCH";
+  BACKEND_ERROR: "BACKEND_ERROR";
+  NOT_READY: "NOT_READY";
 };
 
 export interface SelectedVariant {
