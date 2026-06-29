@@ -886,4 +886,45 @@ describe("LocalFeatureFlagsProvider", () => {
       // This behavior is tested in the FeatureFlagsProvider base class tests.
     });
   });
+
+  describe("polling lifecycle", () => {
+    it("is idempotent under concurrent startPollingForDefinitions calls and does not leak intervals", async () => {
+      // Mock setInterval so the spy records the call without scheduling a real
+      // timer. A real timer would keep the test process alive if an assertion
+      // failed before stopPollingForDefinitions() ran.
+      const setIntervalSpy = vi
+        .spyOn(global, "setInterval")
+        .mockImplementation(() => 999);
+
+      const provider = new LocalFeatureFlagsProvider(
+        TEST_TOKEN,
+        {
+          api_host: "localhost",
+          enable_polling: true,
+          polling_interval_in_seconds: 3600,
+        },
+        mockTracker,
+        mockLogger,
+      );
+
+      nock("https://localhost")
+        .persist()
+        .get("/flags/definitions")
+        .query(true)
+        .reply(200, { code: 200, flags: [] });
+
+      const N = 8;
+      const starts = [];
+      for (let i = 0; i < N; i++) {
+        starts.push(provider.startPollingForDefinitions());
+      }
+      await Promise.all(starts);
+
+      expect(setIntervalSpy).toHaveBeenCalledTimes(1);
+      expect(provider.pollingInterval).not.toBeNull();
+
+      provider.stopPollingForDefinitions();
+      setIntervalSpy.mockRestore();
+    });
+  });
 });

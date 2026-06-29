@@ -55,14 +55,29 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
     this.flagDefinitions = new Map();
     this.pollingInterval = null;
     this._initialFetchPromise = null;
+    // Cached in-flight start so concurrent startPollingForDefinitions() calls
+    // share the same async work. Without it, two callers both `await
+    // _fetchFlagDefinitions()`, both pass the !this.pollingInterval check,
+    // and both call setInterval — leaking the first interval.
+    this._startPromise = null;
   }
 
   /**
    * Start polling for flag definitions.
-   * Fetches immediately and then at regular intervals if polling is enabled
+   * Fetches immediately and then at regular intervals if polling is enabled.
+   * Concurrent calls share the same in-flight promise; subsequent calls
+   * after start has completed are a no-op until stopPollingForDefinitions().
    * @returns {Promise<void>}
    */
   async startPollingForDefinitions() {
+    if (this._startPromise) {
+      return this._startPromise;
+    }
+    this._startPromise = this._doStartPolling();
+    return this._startPromise;
+  }
+
+  async _doStartPolling() {
     try {
       this._initialFetchPromise = this._fetchFlagDefinitions();
       await this._initialFetchPromise;
@@ -92,6 +107,9 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
+      // Clear the cached start promise too so a subsequent
+      // startPollingForDefinitions() can re-start cleanly.
+      this._startPromise = null;
     } else {
       this.logger?.warn(
         "stopPollingForDefinitions called but polling was not active",
@@ -104,6 +122,7 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
     }
+    this._startPromise = null;
   }
 
   areFlagsReady() {
