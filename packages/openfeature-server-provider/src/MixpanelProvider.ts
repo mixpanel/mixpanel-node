@@ -234,7 +234,52 @@ export class MixpanelProvider implements Provider {
       );
     }
 
+    // variant_source distinguishes local / remote / fallback. When fallback,
+    // fallback_reason carries the specific reason (PHP-aligned constants) so
+    // we can map each to the spec-correct OpenFeature response instead of
+    // collapsing every fallback to FLAG_NOT_FOUND.
+    const fallbackReason = (variant as unknown as { fallback_reason?: string })
+      .fallback_reason;
+    switch (fallbackReason) {
+      case "FLAG_NOT_FOUND":
+        return {
+          value: defaultValue,
+          errorCode: ErrorCode.FLAG_NOT_FOUND,
+          errorMessage: `Flag "${flagKey}" not found`,
+          reason: "DEFAULT",
+        };
+      case "MISSING_CONTEXT_KEY":
+        return {
+          value: defaultValue,
+          errorCode: ErrorCode.TARGETING_KEY_MISSING,
+          errorMessage: `Required context attribute missing for flag "${flagKey}"`,
+          reason: "ERROR",
+        };
+      case "NO_ROLLOUT_MATCH":
+        // Flag exists, user just didn't match any rollout — per the
+        // OpenFeature spec this is `reason: DEFAULT` with no error.
+        return {
+          value: defaultValue,
+          reason: "DEFAULT",
+        };
+      case "BACKEND_ERROR":
+        return createErrorResolution(
+          defaultValue,
+          ErrorCode.GENERAL,
+          `Flag evaluation failed for "${flagKey}"`,
+        );
+      case "NOT_READY":
+        return createErrorResolution(
+          defaultValue,
+          ErrorCode.PROVIDER_NOT_READY,
+          `Flags not ready for "${flagKey}"`,
+        );
+    }
+
     if ((variant.variant_key as unknown) === FALLBACK_SENTINEL) {
+      // Legacy path: older base SDK predates fallback_reason and uses the
+      // sentinel-on-variant_key trick to flag fallbacks. Keep this mapping
+      // so we don't regress callers on the older base SDK.
       return {
         value: defaultValue,
         errorCode: ErrorCode.FLAG_NOT_FOUND,

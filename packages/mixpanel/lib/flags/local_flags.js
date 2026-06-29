@@ -17,6 +17,12 @@ const {
   lowercaseAllKeysAndValues,
   lowercaseLeafNodes,
 } = require("./utils");
+const {
+  VariantSource,
+  FallbackReason,
+  withSource,
+  asFallback,
+} = require("./variant_source");
 const { apply } = require("json-logic-js");
 
 class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
@@ -152,14 +158,14 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
 
     if (!flag) {
       this.logger?.warn(`Cannot find flag definition for key: '${flagKey}`);
-      return fallbackVariant;
+      return asFallback(fallbackVariant, FallbackReason.FLAG_NOT_FOUND);
     }
 
     if (!Object.hasOwn(context, flag.context)) {
       this.logger?.warn(
         `The variant assignment key, '${flag.context}' for flag, '${flagKey}' is not present in the supplied user context dictionary`,
       );
-      return fallbackVariant;
+      return asFallback(fallbackVariant, FallbackReason.MISSING_CONTEXT_KEY);
     }
 
     const contextValue = context[flag.context];
@@ -185,10 +191,10 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
       if (reportExposure) {
         this.trackExposureEvent(flagKey, selectedVariant, context);
       }
-      return selectedVariant;
+      return withSource(selectedVariant, VariantSource.LOCAL);
     }
 
-    return fallbackVariant;
+    return asFallback(fallbackVariant, FallbackReason.NO_ROLLOUT_MATCH);
   }
 
   /**
@@ -199,10 +205,11 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
    */
   getAllVariants(context) {
     const variants = {};
+    const fallback = { variant_value: null };
 
     for (const flagKey of this.flagDefinitions.keys()) {
-      const variant = this.getVariant(flagKey, null, context, false);
-      if (variant !== null) {
+      const variant = this.getVariant(flagKey, fallback, context, false);
+      if (variant.variant_source === VariantSource.LOCAL) {
         variants[flagKey] = variant;
       }
     }

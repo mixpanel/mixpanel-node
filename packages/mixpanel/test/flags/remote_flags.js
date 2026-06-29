@@ -1,5 +1,9 @@
 const nock = require("nock");
 const RemoteFeatureFlagsProvider = require("../../lib/flags/remote_flags");
+const {
+  VariantSource,
+  FallbackReason,
+} = require("../../lib/flags/variant_source");
 
 const mockSuccessResponse = (flags_with_selected_variant) => {
   const remote_response = {
@@ -62,6 +66,7 @@ describe("RemoteFeatureFlagProvider", () => {
       const expectedVariant = {
         variant_key: "on",
         variant_value: true,
+        variant_source: VariantSource.REMOTE,
       };
 
       const result = await provider.getVariant(
@@ -90,7 +95,11 @@ describe("RemoteFeatureFlagProvider", () => {
         TEST_CONTEXT,
       );
 
-      expect(result).toEqual(fallbackVariant);
+      expect(result).toEqual({
+        ...fallbackVariant,
+        variant_source: VariantSource.FALLBACK,
+        fallback_reason: FallbackReason.FLAG_NOT_FOUND,
+      });
       expect(mockTracker).not.toHaveBeenCalled();
     });
 
@@ -113,7 +122,11 @@ describe("RemoteFeatureFlagProvider", () => {
         TEST_CONTEXT,
       );
 
-      expect(result).toEqual(fallbackVariant);
+      expect(result).toEqual({
+        ...fallbackVariant,
+        variant_source: VariantSource.FALLBACK,
+        fallback_reason: FallbackReason.FLAG_NOT_FOUND,
+      });
       expect(mockTracker).not.toHaveBeenCalled();
     });
 
@@ -155,6 +168,7 @@ describe("RemoteFeatureFlagProvider", () => {
       expect(result).toEqual({
         variant_key: "treatment",
         variant_value: true,
+        variant_source: VariantSource.REMOTE,
       });
 
       expect(mockTracker).toHaveBeenCalledTimes(1);
@@ -350,14 +364,17 @@ describe("RemoteFeatureFlagProvider", () => {
         "flag-1": {
           variant_key: "treatment",
           variant_value: true,
+          variant_source: VariantSource.REMOTE,
         },
         "flag-2": {
           variant_key: "control",
           variant_value: false,
+          variant_source: VariantSource.REMOTE,
         },
         "flag-3": {
           variant_key: "blue",
           variant_value: "blue-theme",
+          variant_source: VariantSource.REMOTE,
         },
       });
     });

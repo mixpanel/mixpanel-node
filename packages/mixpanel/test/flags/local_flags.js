@@ -1,5 +1,9 @@
 const nock = require("nock");
 const LocalFeatureFlagsProvider = require("../../lib/flags/local_flags");
+const {
+  VariantSource,
+  FallbackReason,
+} = require("../../lib/flags/variant_source");
 
 const mockFlagDefinitionsResponse = (flags) => {
   const response = {
@@ -663,6 +667,41 @@ describe("LocalFeatureFlagsProvider", () => {
 
       provider.getVariant(FLAG_KEY, FALLBACK, { company_id: "company123" });
       expect(mockTracker).not.toHaveBeenCalled();
+    });
+
+    // SDK-79: every fallback path must be tagged distinctly via
+    // variant_source + fallback_reason so the OpenFeature wrapper can map
+    // each to the spec-correct error code.
+    describe("variant_source / fallback_reason tagging", () => {
+      it("tags matched variants as local with no fallback_reason", async () => {
+        await createFlagAndLoadItIntoSDK({ rolloutPercentage: 100.0 }, provider);
+        const result = provider.getVariant(FLAG_KEY, FALLBACK, TEST_CONTEXT);
+        expect(result.variant_source).toBe(VariantSource.LOCAL);
+        expect(result.fallback_reason).toBeUndefined();
+        expect(result.variant_key).toBeDefined();
+      });
+
+      it("tags missing flag as fallback / FLAG_NOT_FOUND", async () => {
+        mockFlagDefinitionsResponse([]);
+        await provider.startPollingForDefinitions();
+        const result = provider.getVariant("missing", FALLBACK, TEST_CONTEXT);
+        expect(result.variant_source).toBe(VariantSource.FALLBACK);
+        expect(result.fallback_reason).toBe(FallbackReason.FLAG_NOT_FOUND);
+      });
+
+      it("tags missing context as fallback / MISSING_CONTEXT_KEY", async () => {
+        await createFlagAndLoadItIntoSDK({ context: "distinct_id" }, provider);
+        const result = provider.getVariant(FLAG_KEY, FALLBACK, {});
+        expect(result.variant_source).toBe(VariantSource.FALLBACK);
+        expect(result.fallback_reason).toBe(FallbackReason.MISSING_CONTEXT_KEY);
+      });
+
+      it("tags no-rollout-match as fallback / NO_ROLLOUT_MATCH", async () => {
+        await createFlagAndLoadItIntoSDK({ rolloutPercentage: 0.0 }, provider);
+        const result = provider.getVariant(FLAG_KEY, FALLBACK, TEST_CONTEXT);
+        expect(result.variant_source).toBe(VariantSource.FALLBACK);
+        expect(result.fallback_reason).toBe(FallbackReason.NO_ROLLOUT_MATCH);
+      });
     });
   });
 

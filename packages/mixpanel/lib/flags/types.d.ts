@@ -109,12 +109,50 @@ export interface ExperimentationFlag {
   hash_salt?: string;
 }
 
+/**
+ * Where a {@link SelectedVariant} came from. Set by the providers on every
+ * returned variant. Coarse-grained — see {@link FallbackReason} for the
+ * specific reason behind a fallback.
+ */
+export type VariantSource = 'local' | 'remote' | 'fallback';
+
+export const VariantSource: {
+  LOCAL: 'local';
+  REMOTE: 'remote';
+  FALLBACK: 'fallback';
+};
+
+/**
+ * Why the SDK returned the developer fallback. Only meaningful when
+ * `variant_source === 'fallback'`. Matches the constant set used by
+ * mixpanel-php so the OpenFeature wrapper can map each reason to the
+ * spec-correct error code instead of collapsing every fallback to
+ * FLAG_NOT_FOUND.
+ */
+export type FallbackReason =
+  | 'FLAG_NOT_FOUND'
+  | 'MISSING_CONTEXT_KEY'
+  | 'NO_ROLLOUT_MATCH'
+  | 'BACKEND_ERROR'
+  | 'NOT_READY';
+
+export const FallbackReason: {
+  FLAG_NOT_FOUND: 'FLAG_NOT_FOUND';
+  MISSING_CONTEXT_KEY: 'MISSING_CONTEXT_KEY';
+  NO_ROLLOUT_MATCH: 'NO_ROLLOUT_MATCH';
+  BACKEND_ERROR: 'BACKEND_ERROR';
+  NOT_READY: 'NOT_READY';
+};
+
 export interface SelectedVariant {
   variant_key?: string | null;
   variant_value: any;
   experiment_id?: string;
   is_experiment_active?: boolean;
   is_qa_tester?: boolean;
+  variant_source?: VariantSource;
+  /** undefined on success; set when variant_source is 'fallback'. */
+  fallback_reason?: FallbackReason;
 }
 
 export interface RemoteFlagsResponse {
