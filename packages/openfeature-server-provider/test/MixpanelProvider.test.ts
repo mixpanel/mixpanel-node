@@ -682,7 +682,6 @@ describe("MixpanelProvider", () => {
       expect(result.errorMessage).toContain("distinct_id must be provided");
       expect(result.reason).toBe("ERROR");
     });
-
   });
 
   describe("async flags provider (remote)", () => {
