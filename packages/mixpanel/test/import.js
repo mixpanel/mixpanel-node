@@ -339,10 +339,10 @@ describe("import with service account credentials", () => {
     );
     mixpanel = Mixpanel.init("token", { credentials });
     vi.spyOn(mixpanel, "send_request");
+  });
 
-    return () => {
-      mixpanel.send_request.mockRestore();
-    };
+  afterEach(() => {
+    mixpanel.send_request.mockRestore();
   });
 
   it("validates credentials on construction", () => {

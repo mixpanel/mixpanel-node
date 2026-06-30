@@ -22,8 +22,7 @@ class ServiceAccountCredentials {
    * @param {string} username - Service account username
    * @param {string} secret - Service account secret
    * @param {string} project_id - Mixpanel project ID
-   * @throws {TypeError} If any parameter is not a string
-   * @throws {ValueError} If any parameter is empty or whitespace-only
+   * @throws {TypeError} If any parameter is not a string, empty, or whitespace-only
    */
   constructor(username, secret, project_id) {
     if (typeof username !== "string") {

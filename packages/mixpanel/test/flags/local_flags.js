@@ -878,6 +878,12 @@ describe("LocalFeatureFlagsProvider", () => {
 
       // Verify the provider was created with credentials
       expect(provider.credentials).toBe(credentials);
+
+      // Note: The service account credentials (username, secret, project_id)
+      // are passed to the FeatureFlagsProvider parent class which uses them
+      // to construct the Authorization header (Basic auth with username:secret)
+      // and includes project_id as a query parameter when calling the flags endpoint.
+      // This behavior is tested in the FeatureFlagsProvider base class tests.
     });
   });
 });

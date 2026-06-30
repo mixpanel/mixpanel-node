@@ -140,7 +140,8 @@ const create_client = function (token, config) {
       throw new Error(
         "The /import endpoint requires authentication.\n\n" +
           "RECOMMENDED: Use service account credentials (preferred method):\n" +
-          "  const { ServiceAccountCredentials } = require('mixpanel');\n" +
+          "  const Mixpanel = require('mixpanel');\n" +
+          "  const { ServiceAccountCredentials } = Mixpanel;\n" +
           "  const credentials = new ServiceAccountCredentials('username', 'secret', 'project_id');\n" +
           "  const mixpanel = Mixpanel.init('token', { credentials });\n\n" +
           "Learn more: https://developer.mixpanel.com/reference/service-accounts-api\n\n" +
