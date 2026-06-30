@@ -54,9 +54,9 @@ class ServiceAccountCredentials {
     this.project_id = trimmedProjectId;
 
     // Cache the base64-encoded auth to avoid recomputing on every request
-    this._cachedAuth = Buffer.from(
-      this.username + ":" + this.secret,
-    ).toString("base64");
+    this._cachedAuth = Buffer.from(this.username + ":" + this.secret).toString(
+      "base64",
+    );
   }
 
   /**
