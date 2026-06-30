@@ -274,13 +274,10 @@ export class MixpanelProvider implements Provider {
           ErrorCode.GENERAL,
           fallbackReason.message ?? `Flag evaluation failed for "${flagKey}"`,
         );
-      case "NOT_READY":
-        return createErrorResolution(
-          defaultValue,
-          ErrorCode.PROVIDER_NOT_READY,
-          `Flags not ready for "${flagKey}"`,
-        );
     }
+    // PROVIDER_NOT_READY is handled at the top of _resolveFlag via the
+    // _initialized check; no producer constructs a NOT_READY fallback
+    // reason, so there's no dispatch arm for it here.
 
     if ((variant.variant_key as unknown) === FALLBACK_SENTINEL) {
       // Legacy path: older base SDK predates fallback_reason and uses the

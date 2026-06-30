@@ -136,8 +136,7 @@ export type FallbackReasonKind =
   | "FLAG_NOT_FOUND"
   | "MISSING_CONTEXT_KEY"
   | "NO_ROLLOUT_MATCH"
-  | "BACKEND_ERROR"
-  | "NOT_READY";
+  | "BACKEND_ERROR";
 
 export interface FallbackReason {
   kind: FallbackReasonKind;
@@ -150,11 +149,9 @@ export const FallbackReason: {
     MISSING_CONTEXT_KEY: "MISSING_CONTEXT_KEY";
     NO_ROLLOUT_MATCH: "NO_ROLLOUT_MATCH";
     BACKEND_ERROR: "BACKEND_ERROR";
-    NOT_READY: "NOT_READY";
   };
   flagNotFound(): FallbackReason;
   noRolloutMatch(): FallbackReason;
-  notReady(): FallbackReason;
   missingContextKey(key?: string | null): FallbackReason;
   backendError(message: string): FallbackReason;
 };
