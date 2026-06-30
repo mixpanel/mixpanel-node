@@ -2,7 +2,7 @@
  * TypeScript definitions for Remote Feature Flags Provider
  */
 
-import { CustomLogger } from "../mixpanel-node";
+import { CustomLogger, ServiceAccountCredentials } from "../mixpanel-node";
 import { RemoteFlagsConfig, FlagContext, SelectedVariant } from "./types";
 
 /**
@@ -13,13 +13,14 @@ export default class RemoteFeatureFlagsProvider {
   constructor(
     token: string,
     config: RemoteFlagsConfig,
-    logger: CustomLogger,
     tracker: (
       distinct_id: string,
       event: string,
       properties: object,
       callback: (err?: Error) => void,
     ) => void,
+    logger: CustomLogger,
+    credentials?: ServiceAccountCredentials,
   );
 
   /**

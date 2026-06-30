@@ -52,6 +52,11 @@ class ServiceAccountCredentials {
     this.username = trimmedUsername;
     this.secret = trimmedSecret;
     this.project_id = trimmedProjectId;
+
+    // Cache the base64-encoded auth to avoid recomputing on every request
+    this._cachedAuth = Buffer.from(
+      this.username + ":" + this.secret,
+    ).toString("base64");
   }
 
   /**
@@ -60,7 +65,7 @@ class ServiceAccountCredentials {
    * @returns {string} Base64-encoded username:secret for Authorization header
    */
   toHttpBasicAuth() {
-    return Buffer.from(this.username + ":" + this.secret).toString("base64");
+    return this._cachedAuth;
   }
 
   /**
