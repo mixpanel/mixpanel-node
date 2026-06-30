@@ -18,10 +18,6 @@ const VariantSource = Object.freeze({
  * MISSING_CONTEXT_KEY with the missing attribute name); null otherwise. The
  * OpenFeature wrapper dispatches on kind and forwards message into
  * ResolutionDetails.errorMessage.
- *
- * Note: the wrapper handles PROVIDER_NOT_READY by short-circuiting before
- * invoking the provider (see MixpanelProvider._resolveFlag), so there is no
- * NOT_READY kind here — no producer would ever construct it.
  */
 const FallbackReasonKind = Object.freeze({
   FLAG_NOT_FOUND: "FLAG_NOT_FOUND",

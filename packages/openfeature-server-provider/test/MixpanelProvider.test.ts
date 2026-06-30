@@ -683,10 +683,6 @@ describe("MixpanelProvider", () => {
       expect(result.reason).toBe("ERROR");
     });
 
-    // Not-ready handling is covered by the "PROVIDER_NOT_READY error when not
-    // initialized" tests above, which exercise the wrapper's _initialized
-    // short-circuit. The provider never stamps a NOT_READY fallback reason,
-    // so there is no producer-side dispatch to test here.
   });
 
   describe("async flags provider (remote)", () => {
