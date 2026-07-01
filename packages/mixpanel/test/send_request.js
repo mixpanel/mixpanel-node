@@ -318,4 +318,30 @@ describe("send_request", () => {
       `/import?ip=0&verbose=0&data=e30%3D&api_key=barbaz`,
     );
   });
+
+  it("sets Authorization header and project_id query param for service account import", () => {
+    const { ServiceAccountCredentials } = Mixpanel;
+    const credentials = new ServiceAccountCredentials(
+      "sa-user",
+      "sa-secret",
+      "test-project-123",
+    );
+    const sa_mixpanel = Mixpanel.init("token", { credentials });
+
+    sa_mixpanel.send_request({
+      endpoint: `/import`,
+      data: { event: `test event` },
+    });
+
+    expect(https.request).toHaveBeenCalledTimes(1);
+    const request_options = https.request.mock.calls[0][0];
+
+    // Verify Authorization header is set
+    expect(request_options.headers.Authorization).toBe(
+      `Basic ${Buffer.from("sa-user:sa-secret").toString("base64")}`,
+    );
+
+    // Verify project_id is in query string
+    expect(request_options.path).toContain("project_id=test-project-123");
+  });
 });

@@ -486,4 +486,113 @@ describe("RemoteFeatureFlagProvider", () => {
       expect(result).toBe(false);
     });
   });
+
+  describe("Service Account Credentials", () => {
+    const { ServiceAccountCredentials } = require("../../lib/credentials");
+    let saProvider;
+    let credentials;
+
+    beforeEach(() => {
+      credentials = new ServiceAccountCredentials(
+        "sa-username",
+        "sa-secret",
+        "test-project-123",
+      );
+
+      let mockLogger = {
+        error: vi.fn(),
+        warn: vi.fn(),
+        info: vi.fn(),
+      };
+
+      let config = {
+        api_host: flagsEndpointHostName,
+      };
+
+      mockTracker = vi.fn();
+
+      saProvider = new RemoteFeatureFlagsProvider(
+        TEST_TOKEN,
+        config,
+        mockTracker,
+        mockLogger,
+        credentials,
+      );
+    });
+
+    it("should include Authorization header with service account credentials", async () => {
+      const expectedAuthHeader =
+        "Basic " + Buffer.from("sa-username:sa-secret").toString("base64");
+
+      const scope = nock("https://localhost", {
+        reqheaders: {
+          authorization: expectedAuthHeader,
+        },
+      })
+        .get("/flags")
+        .query(true)
+        .reply(200, {
+          code: 200,
+          flags: {
+            "test-flag": {
+              variant_key: "on",
+              variant_value: true,
+            },
+          },
+        });
+
+      await saProvider.getVariant("test-flag", null, TEST_CONTEXT);
+
+      expect(scope.isDone()).toBe(true);
+    });
+
+    it("should include project_id in query parameters", async () => {
+      const scope = nock("https://localhost")
+        .get("/flags")
+        .query((queryObject) => {
+          return queryObject.project_id === "test-project-123";
+        })
+        .reply(200, {
+          code: 200,
+          flags: {
+            "test-flag": {
+              variant_key: "on",
+              variant_value: true,
+            },
+          },
+        });
+
+      await saProvider.getVariant("test-flag", null, TEST_CONTEXT);
+
+      expect(scope.isDone()).toBe(true);
+    });
+
+    it("should include both Authorization header and project_id together", async () => {
+      const expectedAuthHeader =
+        "Basic " + Buffer.from("sa-username:sa-secret").toString("base64");
+
+      const scope = nock("https://localhost", {
+        reqheaders: {
+          authorization: expectedAuthHeader,
+        },
+      })
+        .get("/flags")
+        .query((queryObject) => {
+          return queryObject.project_id === "test-project-123";
+        })
+        .reply(200, {
+          code: 200,
+          flags: {
+            "test-flag": {
+              variant_key: "on",
+              variant_value: true,
+            },
+          },
+        });
+
+      await saProvider.getVariant("test-flag", null, TEST_CONTEXT);
+
+      expect(scope.isDone()).toBe(true);
+    });
+  });
 });
