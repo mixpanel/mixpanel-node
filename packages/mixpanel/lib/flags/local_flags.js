@@ -157,7 +157,7 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
     const flag = this.flagDefinitions.get(flagKey);
 
     if (!flag) {
-      this.logger?.warn(`Cannot find flag definition for key: '${flagKey}`);
+      this.logger?.warn(`Cannot find flag definition for key: '${flagKey}'`);
       return asFallback(fallbackVariant, FallbackReason.flagNotFound());
     }
 

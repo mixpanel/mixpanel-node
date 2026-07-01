@@ -105,17 +105,22 @@ class RemoteFeatureFlagsProvider extends FeatureFlagsProvider {
 
       return withSource(selectedVariant, VariantSource.REMOTE);
     } catch (err) {
+      // catch(err) can bind any thrown value — including null/undefined/plain
+      // strings — so `err.message` isn't safe to read directly. Extract once,
+      // reuse for both logging and the FallbackReason payload.
+      const errorMessage =
+        err instanceof Error ? err.message : String(err ?? "unknown error");
       this.logger?.error(
-        `Failed to get variant for flag '${flagKey}': ${err.message}`,
+        `Failed to get variant for flag '${flagKey}': ${errorMessage}`,
       );
       // SDK-83: attach the error message so the OpenFeature wrapper can
       // forward it as errorMessage instead of swallowing the cause into
       // a bare GENERAL error. The backend's response body (e.g.
-      // "distinct_id must be provided in evalContext as a string") is
-      // already on err.message via the HTTP layer.
+      // "distinct_id must be provided in evalContext as a string") arrives
+      // on err.message via the HTTP layer.
       return asFallback(
         fallbackVariant,
-        FallbackReason.backendError(err.message),
+        FallbackReason.backendError(errorMessage),
       );
     }
   }

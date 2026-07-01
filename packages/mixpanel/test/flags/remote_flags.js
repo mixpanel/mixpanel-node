@@ -205,6 +205,28 @@ describe("RemoteFeatureFlagProvider", () => {
       );
       expect(result.fallback_reason.message).toBeTruthy();
     });
+
+    it("still stamps BACKEND_ERROR when the thrown value is not an Error instance", async () => {
+      // callFlagsEndpoint is inherited from the base provider; swap it out to
+      // simulate a non-Error rejection (e.g. a rogue `throw null` upstream).
+      // The catch block must not re-throw on `err.message` access.
+      provider.callFlagsEndpoint = () => Promise.reject(null);
+
+      const fallbackVariant = { variant_value: "control" };
+      const result = await provider.getVariant(
+        "any-flag",
+        fallbackVariant,
+        TEST_CONTEXT,
+      );
+
+      expect(result.variant_source).toBe(VariantSource.FALLBACK);
+      expect(result.fallback_reason.kind).toBe(
+        FallbackReason.Kind.BACKEND_ERROR,
+      );
+      // Defensive fallback string, not undefined or a crash.
+      expect(typeof result.fallback_reason.message).toBe("string");
+      expect(result.fallback_reason.message.length).toBeGreaterThan(0);
+    });
   });
 
   describe("getVariantValue", () => {
