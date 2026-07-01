@@ -200,8 +200,6 @@ mixpanel.track_batch([
 // Service accounts provide enhanced security for server-to-server integrations.
 // This is the PREFERRED authentication method. API secrets are deprecated.
 // Learn more: https://developer.mixpanel.com/reference/service-accounts-api
-const { ServiceAccountCredentials } = Mixpanel;
-
 const credentials = new ServiceAccountCredentials(
   "YOUR_SERVICE_ACCOUNT_USERNAME",
   "YOUR_SERVICE_ACCOUNT_SECRET",

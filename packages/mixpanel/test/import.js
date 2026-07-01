@@ -444,14 +444,34 @@ describe("import with service account credentials", () => {
   });
 
   it("does not send auth headers for non-import endpoints", () => {
+    const http_emitter = new events.EventEmitter();
+    const res = new events.EventEmitter();
+    vi.spyOn(https, "request").mockImplementation((_, cb) => {
+      cb(res);
+      return http_emitter;
+    });
+    http_emitter.write = vi.fn();
+    http_emitter.end = vi.fn();
+
     const mixpanel_sa = Mixpanel.init("token", { credentials });
-    vi.spyOn(mixpanel_sa, "send_request");
 
     // Track should not use service account credentials
     mixpanel_sa.track("test event", { distinct_id: "user123" });
 
-    const call_args = mixpanel_sa.send_request.mock.calls[0][0];
-    expect(call_args.endpoint).not.toBe("/import");
+    expect(https.request).toHaveBeenCalledTimes(1);
+    const request_options = https.request.mock.calls[0][0];
+
+    // Verify endpoint is /track, not /import
+    expect(request_options.path).toContain("/track");
+    expect(request_options.path).not.toContain("/import");
+
+    // Verify Authorization header is NOT set
+    expect(request_options.headers.Authorization).toBeUndefined();
+
+    // Verify project_id is NOT in query string
+    expect(request_options.path).not.toContain("project_id");
+
+    https.request.mockRestore();
   });
 });
 
