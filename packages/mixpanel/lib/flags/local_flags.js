@@ -94,6 +94,10 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
         }, this.config.polling_interval_in_seconds * 1000);
       }
     } catch (err) {
+      // Drop the cached start so the caller can retry via
+      // startPollingForDefinitions(). Otherwise a failed initial
+      // fetch would permanently short-circuit subsequent calls.
+      this._startPromise = null;
       this.logger?.error(
         `Initial flag definitions fetch failed: ${err.message}`,
       );
@@ -107,14 +111,16 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
-      // Clear the cached start promise too so a subsequent
-      // startPollingForDefinitions() can re-start cleanly.
-      this._startPromise = null;
     } else {
       this.logger?.warn(
         "stopPollingForDefinitions called but polling was not active",
       );
     }
+    // Always clear the cached start so a subsequent
+    // startPollingForDefinitions() can re-start cleanly, including
+    // the enable_polling=false case where pollingInterval was never
+    // set. Matches shutdown().
+    this._startPromise = null;
   }
 
   shutdown() {
