@@ -38,6 +38,9 @@ const DEFAULT_CONFIG = {
   logger: console,
 };
 
+// Module-level flag to warn about deprecated auth once per process
+let _deprecation_warned = false;
+
 const create_client = function (token, config) {
   if (!token) {
     throw new Error(
@@ -527,17 +530,12 @@ const create_client = function (token, config) {
       }
     }
 
-    // Emit deprecation warnings for old auth methods at client creation
-    if (config && config.secret) {
+    // Emit deprecation warning once per process for old auth methods
+    if (!_deprecation_warned && config && (config.secret || config.key)) {
+      _deprecation_warned = true;
+      const method = config.secret ? "api_secret" : "api_key";
       metrics.config.logger.warn(
-        "DEPRECATION WARNING: api_secret is deprecated and will be removed in a future version.\n" +
-          "   Please migrate to ServiceAccountCredentials for enhanced security.\n" +
-          "   See: https://developer.mixpanel.com/reference/service-accounts-api",
-      );
-    }
-    if (config && config.key) {
-      metrics.config.logger.warn(
-        "DEPRECATION WARNING: api_key is deprecated and will be removed in a future version.\n" +
+        `DEPRECATION WARNING: ${method} is deprecated and will be removed in a future version.\n` +
           "   Please migrate to ServiceAccountCredentials for enhanced security.\n" +
           "   See: https://developer.mixpanel.com/reference/service-accounts-api",
       );
