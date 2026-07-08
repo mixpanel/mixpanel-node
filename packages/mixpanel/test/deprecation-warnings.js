@@ -1,68 +1,53 @@
 const Mixpanel = require("../lib/mixpanel-node");
 
 describe("deprecation warnings", () => {
-  let mixpanel;
-  let mockLogger;
+  let warnings;
+  let originalEmitWarning;
 
   beforeEach(() => {
-    mockLogger = {
-      trace: vi.fn(),
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
+    warnings = [];
+    originalEmitWarning = process.emitWarning;
+    process.emitWarning = function (message, type, code) {
+      warnings.push({ message, type, code });
     };
   });
 
-  it("warns once per process when using api_secret (first use)", () => {
-    mixpanel = Mixpanel.init("token", {
-      secret: "api-secret",
-      logger: mockLogger,
-    });
-
-    // Warning should be emitted at init time
-    expect(mockLogger.warn).toHaveBeenCalledWith(
-      expect.stringContaining("DEPRECATION WARNING"),
-    );
-    expect(mockLogger.warn).toHaveBeenCalledWith(
-      expect.stringContaining("api_secret is deprecated"),
-    );
-    expect(mockLogger.warn).toHaveBeenCalledWith(
-      expect.stringContaining("ServiceAccountCredentials"),
-    );
-
-    // Reset mock to verify it doesn't warn again on subsequent requests
-    mockLogger.warn.mockClear();
-    mixpanel.import("test", Date.now(), { distinct_id: "user" });
-    expect(mockLogger.warn).not.toHaveBeenCalled();
+  afterEach(() => {
+    process.emitWarning = originalEmitWarning;
   });
 
-  it("does not warn again when creating another client with deprecated auth (already warned)", () => {
-    // This simulates serverless where multiple clients are created in same process
-    // The warning should NOT fire again since we already warned in the first test
-    const anotherMixpanel = Mixpanel.init("token", {
-      key: "api-key",
-      logger: mockLogger,
-    });
+  it("warns when using api_secret", () => {
+    Mixpanel.init("token", { secret: "api-secret" });
 
-    // No warning because we already warned once in this process
-    expect(mockLogger.warn).not.toHaveBeenCalled();
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].type).toBe("DeprecationWarning");
+    expect(warnings[0].code).toBe("MIXPANEL_LEGACY_AUTH_DEPRECATED");
+    expect(warnings[0].message).toContain("api_secret is deprecated");
+    expect(warnings[0].message).toContain("ServiceAccountCredentials");
+  });
 
-    anotherMixpanel.track("test", { distinct_id: "user" });
-    expect(mockLogger.warn).not.toHaveBeenCalled();
+  it("warns when using api_key", () => {
+    Mixpanel.init("token", { key: "api-key" });
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].type).toBe("DeprecationWarning");
+    expect(warnings[0].code).toBe("MIXPANEL_LEGACY_AUTH_DEPRECATED");
+    expect(warnings[0].message).toContain("api_key is deprecated");
+    expect(warnings[0].message).toContain("ServiceAccountCredentials");
   });
 
   it("does not warn when using service account credentials", () => {
     const { ServiceAccountCredentials } = Mixpanel;
     const creds = new ServiceAccountCredentials("user", "secret", "123");
 
-    mixpanel = Mixpanel.init("token", {
-      credentials: creds,
-      logger: mockLogger,
-    });
+    Mixpanel.init("token", { credentials: creds });
 
-    mixpanel.import("test", Date.now(), { distinct_id: "user" });
+    expect(warnings).toHaveLength(0);
+  });
 
-    expect(mockLogger.warn).not.toHaveBeenCalled();
+  it("does not warn when using no auth", () => {
+    Mixpanel.init("token");
+
+    expect(warnings).toHaveLength(0);
   });
 });
