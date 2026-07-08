@@ -527,15 +527,13 @@ const create_client = function (token, config) {
       }
     }
 
-    // Emit deprecation warning for old auth methods
+    // Warn about deprecated auth methods
     if (config && (config.secret || config.key)) {
       const method = config.secret ? 'api_secret' : 'api_key';
-      process.emitWarning(
-        `${method} is deprecated and will be removed in a future version. ` +
-          'Please migrate to ServiceAccountCredentials for enhanced security. ' +
-          'See: https://developer.mixpanel.com/reference/service-accounts-api',
-        'DeprecationWarning',
-        'MIXPANEL_LEGACY_AUTH_DEPRECATED'
+      metrics.config.logger.warn(
+        `DEPRECATION WARNING: ${method} is deprecated and will be removed in a future version.\n` +
+          '   Please migrate to ServiceAccountCredentials for enhanced security.\n' +
+          '   See: https://developer.mixpanel.com/reference/service-accounts-api'
       );
     }
   };
