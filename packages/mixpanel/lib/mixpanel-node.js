@@ -529,11 +529,11 @@ const create_client = function (token, config) {
 
     // Warn about deprecated auth methods
     if (config && (config.secret || config.key)) {
-      const method = config.secret ? 'api_secret' : 'api_key';
+      const method = config.secret ? "api_secret" : "api_key";
       metrics.config.logger.warn(
         `DEPRECATION WARNING: ${method} is deprecated and will be removed in a future version.\n` +
-          '   Please migrate to ServiceAccountCredentials for enhanced security.\n' +
-          '   See: https://developer.mixpanel.com/reference/service-accounts-api'
+          "   Please migrate to ServiceAccountCredentials for enhanced security.\n" +
+          "   See: https://developer.mixpanel.com/reference/service-accounts-api",
       );
     }
   };
