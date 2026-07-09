@@ -2,9 +2,21 @@ import LocalFeatureFlagsProvider from "./flags/local_flags";
 import RemoteFeatureFlagsProvider from "./flags/remote_flags";
 import { LocalFlagsConfig, RemoteFlagsConfig } from "./flags/types";
 
-declare const mixpanel: mixpanel.Mixpanel;
-
 declare namespace mixpanel {
+  export function init(
+    mixpanelToken: string,
+    config?: Partial<InitConfig>,
+  ): Mixpanel;
+
+  export class ServiceAccountCredentials {
+    constructor(username: string, secret: string, project_id: string);
+    username: string;
+    secret: string;
+    project_id: string;
+    toHttpBasicAuth(): string;
+    toString(): string;
+  }
+
   export type Callback = (err: Error | undefined) => any;
   export type BatchCallback = (errors: [Error] | undefined) => any;
 
@@ -26,6 +38,7 @@ declare namespace mixpanel {
     protocol: string;
     path: string;
     secret: string;
+    credentials?: ServiceAccountCredentials;
     keepAlive: boolean;
     geolocate: boolean;
     logger: CustomLogger;

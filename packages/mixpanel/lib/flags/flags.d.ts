@@ -2,7 +2,7 @@
  * TypeScript type definitions for Base Feature Flags Provider
  */
 
-import { CustomLogger } from "../mixpanel-node";
+import { CustomLogger, ServiceAccountCredentials } from "../mixpanel-node";
 import { SelectedVariant, FlagContext } from "./types";
 
 /**
@@ -22,16 +22,23 @@ export class FeatureFlagsProvider {
   providerConfig: FeatureFlagsConfig;
   endpoint: string;
   logger: CustomLogger | null;
+  credentials?: ServiceAccountCredentials;
 
   /**
-   * @param config - Common configuration for feature flag providers
+   * @param providerConfig - Common configuration for feature flag providers
    * @param endpoint - API endpoint path (i.e., '/flags' or '/flags/definitions')
+   * @param tracker - Function to track events
+   * @param evaluationMode - The feature flag evaluation mode
    * @param logger - Logger instance
+   * @param credentials - Optional service account credentials
    */
   constructor(
-    config: FeatureFlagsConfig,
+    providerConfig: FeatureFlagsConfig,
     endpoint: string,
+    tracker: Function,
+    evaluationMode: string,
     logger: CustomLogger | null,
+    credentials?: ServiceAccountCredentials,
   );
 
   /**

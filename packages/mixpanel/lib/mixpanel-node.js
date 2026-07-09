@@ -22,6 +22,7 @@ const {
   LocalFeatureFlagsProvider,
   RemoteFeatureFlagsProvider,
 } = require("./flags");
+const { ServiceAccountCredentials } = require("./credentials");
 
 const DEFAULT_CONFIG = {
   test: false,
@@ -116,7 +117,18 @@ const create_client = function (token, config) {
     }
 
     // add auth params
-    if (secret) {
+    const credentials = metrics.config.credentials;
+
+    if (credentials instanceof ServiceAccountCredentials) {
+      if (endpoint === "/import") {
+        if (request_lib !== https) {
+          throw new Error("Must use HTTPS with service account credentials");
+        }
+        request_options.headers["Authorization"] =
+          "Basic " + credentials.toHttpBasicAuth();
+        query_params.project_id = credentials.project_id;
+      }
+    } else if (secret) {
       if (request_lib !== https) {
         throw new Error("Must use HTTPS if authenticating with API Secret");
       }
@@ -126,7 +138,15 @@ const create_client = function (token, config) {
       query_params.api_key = key;
     } else if (endpoint === "/import") {
       throw new Error(
-        "The Mixpanel Client needs a Mixpanel API Secret when importing old events: `init(token, { secret: ... })`",
+        "The /import endpoint requires authentication.\n\n" +
+          "RECOMMENDED: Use service account credentials (preferred method):\n" +
+          "  const Mixpanel = require('mixpanel');\n" +
+          "  const { ServiceAccountCredentials } = Mixpanel;\n" +
+          "  const credentials = new ServiceAccountCredentials('username', 'secret', 'project_id');\n" +
+          "  const mixpanel = Mixpanel.init('token', { credentials });\n\n" +
+          "Learn more: https://developer.mixpanel.com/reference/service-accounts-api\n\n" +
+          "DEPRECATED: API secret (will be removed in a future version):\n" +
+          "  const mixpanel = Mixpanel.init('token', { secret: 'your-api-secret' });",
       );
     }
 
@@ -298,7 +318,9 @@ const create_client = function (token, config) {
         cb = function (errors, results) {
           index += 1;
           if (index === total_request_batches) {
-            callback && callback(errors, results);
+            if (callback) {
+              callback(errors, results);
+            }
           } else {
             send_next_request_batch(index);
           }
@@ -504,6 +526,16 @@ const create_client = function (token, config) {
         metrics.config.port = Number(port);
       }
     }
+
+    // Warn about deprecated auth methods
+    if (config && (config.secret || config.key)) {
+      const method = config.secret ? "api_secret" : "api_key";
+      metrics.config.logger.warn(
+        `DEPRECATION WARNING: ${method} is deprecated and will be removed in a future version.\n` +
+          "   Please migrate to ServiceAccountCredentials for enhanced security.\n" +
+          "   See: https://developer.mixpanel.com/reference/service-accounts-api",
+      );
+    }
   };
 
   if (config) {
@@ -517,6 +549,7 @@ const create_client = function (token, config) {
       config.local_flags_config,
       metrics.track.bind(metrics),
       config.logger,
+      config.credentials,
     );
   }
 
@@ -526,6 +559,7 @@ const create_client = function (token, config) {
       config.remote_flags_config,
       metrics.track.bind(metrics),
       config.logger,
+      config.credentials,
     );
   }
 
@@ -535,4 +569,5 @@ const create_client = function (token, config) {
 // module exporting
 module.exports = {
   init: create_client,
+  ServiceAccountCredentials: ServiceAccountCredentials,
 };

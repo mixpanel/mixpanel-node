@@ -82,22 +82,33 @@ mixpanel.track("test", function (err) {
   }
 });
 
-// import an old event
-const mixpanel_importer = Mixpanel.init("valid mixpanel token", {
-  secret: "valid api secret for project",
+// ============================================================================
+// Service Account Authentication (RECOMMENDED for importing old events)
+// ============================================================================
+// Service accounts provide enhanced security for importing historical events
+// Learn more: https://developer.mixpanel.com/reference/service-accounts-api
+
+const { ServiceAccountCredentials } = Mixpanel;
+
+const credentials = new ServiceAccountCredentials(
+  "YOUR_SERVICE_ACCOUNT_USERNAME", // From Mixpanel project settings
+  "YOUR_SERVICE_ACCOUNT_SECRET", // From Mixpanel project settings
+  "YOUR_PROJECT_ID", // Your Mixpanel project ID
+);
+
+const mixpanel_with_sa = Mixpanel.init("valid mixpanel token", {
+  credentials,
 });
-mixpanel_importer.set_config({ debug: true });
+mixpanel_with_sa.set_config({ debug: true });
 
-// needs to be in the system once for it to show up in the interface
-mixpanel_importer.track("old event", { gender: "" });
-
-mixpanel_importer.import("old event", new Date(2012, 4, 20, 12, 34, 56), {
+// Import old events (uses service account auth)
+mixpanel_with_sa.import("old event", new Date(2012, 4, 20, 12, 34, 56), {
   distinct_id: "billybob",
   gender: "male",
 });
 
-// import multiple events at once
-mixpanel_importer.import_batch([
+// Import multiple events at once
+mixpanel_with_sa.import_batch([
   {
     event: "old event",
     properties: {
@@ -115,3 +126,17 @@ mixpanel_importer.import_batch([
     },
   },
 ]);
+
+// ============================================================================
+// DEPRECATED: API Secret (use Service Accounts instead)
+// ============================================================================
+// This method still works but will be removed in a future version
+const mixpanel_importer = Mixpanel.init("valid mixpanel token", {
+  secret: "valid api secret for project", // DEPRECATED - use ServiceAccountCredentials
+});
+mixpanel_importer.set_config({ debug: true });
+
+mixpanel_importer.import("old event", new Date(2012, 4, 20, 12, 34, 56), {
+  distinct_id: "billybob",
+  gender: "male",
+});

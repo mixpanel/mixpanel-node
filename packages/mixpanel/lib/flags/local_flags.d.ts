@@ -3,7 +3,7 @@
  */
 
 import { LocalFlagsConfig, FlagContext, SelectedVariant } from "./types";
-import { CustomLogger } from "../mixpanel-node";
+import { CustomLogger, ServiceAccountCredentials } from "../mixpanel-node";
 
 /**
  * Local Feature Flags Provider
@@ -20,6 +20,7 @@ export default class LocalFeatureFlagsProvider {
       callback: (err?: Error) => void,
     ) => void,
     logger: CustomLogger,
+    credentials?: ServiceAccountCredentials,
   );
 
   /**
