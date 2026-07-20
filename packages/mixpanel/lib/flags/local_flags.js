@@ -56,9 +56,12 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
     this.pollingInterval = null;
     this._initialFetchPromise = null;
     // Cached in-flight start so concurrent startPollingForDefinitions() calls
-    // share the same async work. Without it, two callers both `await
-    // _fetchFlagDefinitions()`, both pass the !this.pollingInterval check,
-    // and both call setInterval — leaking the first interval.
+    // share the same async work. In JS's single-threaded model the
+    // !this.pollingInterval check + setInterval assignment are atomic within a
+    // microtask, so setInterval itself isn't racy. What the guard prevents is
+    // N concurrent starts each awaiting their own _fetchFlagDefinitions() and
+    // clobbering _initialFetchPromise — N redundant HTTP calls where one
+    // would do.
     this._startPromise = null;
   }
 
@@ -111,7 +114,12 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
-    } else {
+    } else if (!this._startPromise) {
+      // Only warn when the caller stopped something that was truly never
+      // started. The enable_polling=false lifecycle (start → stop) and the
+      // mid-start case (stop before setInterval fires) both leave
+      // pollingInterval null with a legitimate _startPromise present —
+      // warning in those cases is noise.
       this.logger?.warn(
         "stopPollingForDefinitions called but polling was not active",
       );
