@@ -11,6 +11,12 @@
  */
 
 const FeatureFlagsProvider = require("./flags");
+const {
+  VariantSource,
+  FallbackReason,
+  withSource,
+  asFallback,
+} = require("./variant_source");
 
 class RemoteFeatureFlagsProvider extends FeatureFlagsProvider {
   /**
@@ -87,19 +93,36 @@ class RemoteFeatureFlagsProvider extends FeatureFlagsProvider {
       const flags = response.flags || {};
       const selectedVariant = flags[flagKey];
       if (!selectedVariant) {
-        return fallbackVariant;
+        // The /flags endpoint only returns variants the user is enrolled in,
+        // so a missing key could mean the flag doesn't exist OR the user
+        // isn't in any rollout. The remote SDK can't tell them apart without
+        // server-side help — surface as FLAG_NOT_FOUND for now.
+        return asFallback(fallbackVariant, FallbackReason.flagNotFound());
       }
 
       if (reportExposure) {
         this.trackExposureEvent(flagKey, selectedVariant, context, latencyMs);
       }
 
-      return selectedVariant;
+      return withSource(selectedVariant, VariantSource.REMOTE);
     } catch (err) {
+      // catch(err) can bind any thrown value — including null/undefined/plain
+      // strings — so `err.message` isn't safe to read directly. Extract once,
+      // reuse for both logging and the FallbackReason payload.
+      const errorMessage =
+        err instanceof Error ? err.message : String(err ?? "unknown error");
       this.logger?.error(
-        `Failed to get variant for flag '${flagKey}': ${err.message}`,
+        `Failed to get variant for flag '${flagKey}': ${errorMessage}`,
       );
-      return fallbackVariant;
+      // SDK-83: attach the error message so the OpenFeature wrapper can
+      // forward it as errorMessage instead of swallowing the cause into
+      // a bare GENERAL error. The backend's response body (e.g.
+      // "distinct_id must be provided in evalContext as a string") arrives
+      // on err.message via the HTTP layer.
+      return asFallback(
+        fallbackVariant,
+        FallbackReason.backendError(errorMessage),
+      );
     }
   }
 
@@ -132,7 +155,12 @@ class RemoteFeatureFlagsProvider extends FeatureFlagsProvider {
   async getAllVariants(context) {
     try {
       const response = await this._fetchFlags(context);
-      return response.flags || {};
+      const flags = response.flags || {};
+      const tagged = {};
+      for (const [key, variant] of Object.entries(flags)) {
+        tagged[key] = withSource(variant, VariantSource.REMOTE);
+      }
+      return tagged;
     } catch (err) {
       this.logger?.error(`Failed to get all remote variants: ${err.message}`);
       return null;

@@ -603,6 +603,87 @@ describe("MixpanelProvider", () => {
     });
   });
 
+  describe("fallback_reason dispatch (SDK-79, SDK-83)", () => {
+    const reasonProvider = (
+      kind: string,
+      message: string | null = null,
+    ): MixpanelFlagsProvider => ({
+      getVariant: vi.fn(
+        (_flagKey, fallback) =>
+          ({
+            ...fallback,
+            variant_source: "fallback",
+            fallback_reason: { kind, message },
+          }) as never,
+      ),
+    });
+
+    it("NO_ROLLOUT_MATCH returns DEFAULT reason without error", async () => {
+      const provider = new MixpanelProvider(reasonProvider("NO_ROLLOUT_MATCH"));
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveBooleanEvaluation(
+        "flag",
+        true,
+        {},
+        mockLogger,
+      );
+      expect(result.value).toBe(true);
+      expect(result.reason).toBe("DEFAULT");
+      expect(result.errorCode).toBeUndefined();
+    });
+
+    it("MISSING_CONTEXT_KEY maps to TARGETING_KEY_MISSING and forwards the missing key", async () => {
+      const provider = new MixpanelProvider(
+        reasonProvider("MISSING_CONTEXT_KEY", "distinct_id"),
+      );
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveBooleanEvaluation(
+        "flag",
+        false,
+        {},
+        mockLogger,
+      );
+      expect(result.value).toBe(false);
+      expect(result.errorCode).toBe(ErrorCode.TARGETING_KEY_MISSING);
+      expect(result.errorMessage).toBe("distinct_id");
+      expect(result.reason).toBe("ERROR");
+    });
+
+    it("FLAG_NOT_FOUND maps to FLAG_NOT_FOUND", async () => {
+      const provider = new MixpanelProvider(reasonProvider("FLAG_NOT_FOUND"));
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveBooleanEvaluation(
+        "flag",
+        true,
+        {},
+        mockLogger,
+      );
+      expect(result.value).toBe(true);
+      expect(result.errorCode).toBe(ErrorCode.FLAG_NOT_FOUND);
+      expect(result.reason).toBe("DEFAULT");
+    });
+
+    it("BACKEND_ERROR maps to GENERAL and forwards the backend message (SDK-83)", async () => {
+      const provider = new MixpanelProvider(
+        reasonProvider(
+          "BACKEND_ERROR",
+          "HTTP 400: distinct_id must be provided in evalContext as a string",
+        ),
+      );
+      await provider.initialize(createMockContext());
+      const result = await provider.resolveStringEvaluation(
+        "flag",
+        "default",
+        {},
+        mockLogger,
+      );
+      expect(result.value).toBe("default");
+      expect(result.errorCode).toBe(ErrorCode.GENERAL);
+      expect(result.errorMessage).toContain("distinct_id must be provided");
+      expect(result.reason).toBe("ERROR");
+    });
+  });
+
   describe("async flags provider (remote)", () => {
     it("should handle async getVariant from remote provider", async () => {
       const asyncProvider: MixpanelFlagsProvider = {

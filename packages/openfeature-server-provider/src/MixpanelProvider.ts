@@ -234,7 +234,52 @@ export class MixpanelProvider implements Provider {
       );
     }
 
+    // variant_source distinguishes local / remote / fallback. When fallback,
+    // fallback_reason carries the discriminating kind (PHP-aligned) and an
+    // optional message (BACKEND_ERROR's response body, MISSING_CONTEXT_KEY's
+    // missing attribute) so we map each to the spec-correct OpenFeature
+    // response and forward the message as errorMessage (SDK-83).
+    const fallbackReason = (
+      variant as unknown as {
+        fallback_reason?: { kind: string; message: string | null };
+      }
+    ).fallback_reason;
+    switch (fallbackReason?.kind) {
+      case "FLAG_NOT_FOUND":
+        return {
+          value: defaultValue,
+          errorCode: ErrorCode.FLAG_NOT_FOUND,
+          errorMessage: `Flag "${flagKey}" not found`,
+          reason: "DEFAULT",
+        };
+      case "MISSING_CONTEXT_KEY":
+        return {
+          value: defaultValue,
+          errorCode: ErrorCode.TARGETING_KEY_MISSING,
+          errorMessage:
+            fallbackReason.message ??
+            `Required context attribute missing for flag "${flagKey}"`,
+          reason: "ERROR",
+        };
+      case "NO_ROLLOUT_MATCH":
+        // Flag exists, user just didn't match any rollout — per the
+        // OpenFeature spec this is `reason: DEFAULT` with no error.
+        return {
+          value: defaultValue,
+          reason: "DEFAULT",
+        };
+      case "BACKEND_ERROR":
+        return createErrorResolution(
+          defaultValue,
+          ErrorCode.GENERAL,
+          fallbackReason.message ?? `Flag evaluation failed for "${flagKey}"`,
+        );
+    }
+
     if ((variant.variant_key as unknown) === FALLBACK_SENTINEL) {
+      // Legacy path: older base SDK predates fallback_reason and uses the
+      // sentinel-on-variant_key trick to flag fallbacks. Keep this mapping
+      // so we don't regress callers on the older base SDK.
       return {
         value: defaultValue,
         errorCode: ErrorCode.FLAG_NOT_FOUND,

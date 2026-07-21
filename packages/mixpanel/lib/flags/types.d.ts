@@ -109,12 +109,62 @@ export interface ExperimentationFlag {
   hash_salt?: string;
 }
 
+/**
+ * Where a {@link SelectedVariant} came from. Set by the providers on every
+ * returned variant. Coarse-grained — see {@link FallbackReason} for the
+ * specific reason behind a fallback.
+ */
+export type VariantSource = "local" | "remote" | "fallback";
+
+export const VariantSource: {
+  LOCAL: "local";
+  REMOTE: "remote";
+  FALLBACK: "fallback";
+};
+
+/**
+ * Why the SDK returned the developer fallback. Only meaningful when
+ * `variant_source === 'fallback'`.
+ *
+ * `kind` is the discriminator (PHP-aligned). `message` is set on reasons
+ * that carry useful detail (BACKEND_ERROR with the backend's response body,
+ * MISSING_CONTEXT_KEY with the missing attribute name); null otherwise.
+ * The OpenFeature wrapper dispatches on kind and forwards message into
+ * ResolutionDetails.errorMessage.
+ */
+export type FallbackReasonKind =
+  | "FLAG_NOT_FOUND"
+  | "MISSING_CONTEXT_KEY"
+  | "NO_ROLLOUT_MATCH"
+  | "BACKEND_ERROR";
+
+export interface FallbackReason {
+  kind: FallbackReasonKind;
+  message: string | null;
+}
+
+export const FallbackReason: {
+  Kind: {
+    FLAG_NOT_FOUND: "FLAG_NOT_FOUND";
+    MISSING_CONTEXT_KEY: "MISSING_CONTEXT_KEY";
+    NO_ROLLOUT_MATCH: "NO_ROLLOUT_MATCH";
+    BACKEND_ERROR: "BACKEND_ERROR";
+  };
+  flagNotFound(): FallbackReason;
+  noRolloutMatch(): FallbackReason;
+  missingContextKey(key?: string | null): FallbackReason;
+  backendError(message: string): FallbackReason;
+};
+
 export interface SelectedVariant {
   variant_key?: string | null;
   variant_value: any;
   experiment_id?: string;
   is_experiment_active?: boolean;
   is_qa_tester?: boolean;
+  variant_source?: VariantSource;
+  /** undefined on success; set when variant_source is 'fallback'. */
+  fallback_reason?: FallbackReason;
 }
 
 export interface RemoteFlagsResponse {

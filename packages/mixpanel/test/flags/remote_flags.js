@@ -1,5 +1,9 @@
 const nock = require("nock");
 const RemoteFeatureFlagsProvider = require("../../lib/flags/remote_flags");
+const {
+  VariantSource,
+  FallbackReason,
+} = require("../../lib/flags/variant_source");
 
 const mockSuccessResponse = (flags_with_selected_variant) => {
   const remote_response = {
@@ -62,6 +66,7 @@ describe("RemoteFeatureFlagProvider", () => {
       const expectedVariant = {
         variant_key: "on",
         variant_value: true,
+        variant_source: VariantSource.REMOTE,
       };
 
       const result = await provider.getVariant(
@@ -90,7 +95,11 @@ describe("RemoteFeatureFlagProvider", () => {
         TEST_CONTEXT,
       );
 
-      expect(result).toEqual(fallbackVariant);
+      expect(result).toEqual({
+        ...fallbackVariant,
+        variant_source: VariantSource.FALLBACK,
+        fallback_reason: FallbackReason.flagNotFound(),
+      });
       expect(mockTracker).not.toHaveBeenCalled();
     });
 
@@ -113,7 +122,11 @@ describe("RemoteFeatureFlagProvider", () => {
         TEST_CONTEXT,
       );
 
-      expect(result).toEqual(fallbackVariant);
+      expect(result).toEqual({
+        ...fallbackVariant,
+        variant_source: VariantSource.FALLBACK,
+        fallback_reason: FallbackReason.flagNotFound(),
+      });
       expect(mockTracker).not.toHaveBeenCalled();
     });
 
@@ -155,6 +168,7 @@ describe("RemoteFeatureFlagProvider", () => {
       expect(result).toEqual({
         variant_key: "treatment",
         variant_value: true,
+        variant_source: VariantSource.REMOTE,
       });
 
       expect(mockTracker).toHaveBeenCalledTimes(1);
@@ -170,6 +184,48 @@ describe("RemoteFeatureFlagProvider", () => {
         }),
         expect.any(Function),
       );
+    });
+
+    it("tags the fallback as BACKEND_ERROR with the backend message on HTTP error (SDK-83)", async () => {
+      nock("https://localhost")
+        .get("/flags")
+        .query(true)
+        .reply(400, "distinct_id must be provided in evalContext as a string");
+
+      const fallbackVariant = { variant_value: "control" };
+      const result = await provider.getVariant(
+        "any-flag",
+        fallbackVariant,
+        TEST_CONTEXT,
+      );
+
+      expect(result.variant_source).toBe(VariantSource.FALLBACK);
+      expect(result.fallback_reason.kind).toBe(
+        FallbackReason.Kind.BACKEND_ERROR,
+      );
+      expect(result.fallback_reason.message).toBeTruthy();
+    });
+
+    it("still stamps BACKEND_ERROR when the thrown value is not an Error instance", async () => {
+      // callFlagsEndpoint is inherited from the base provider; swap it out to
+      // simulate a non-Error rejection (e.g. a rogue `throw null` upstream).
+      // The catch block must not re-throw on `err.message` access.
+      provider.callFlagsEndpoint = () => Promise.reject(null);
+
+      const fallbackVariant = { variant_value: "control" };
+      const result = await provider.getVariant(
+        "any-flag",
+        fallbackVariant,
+        TEST_CONTEXT,
+      );
+
+      expect(result.variant_source).toBe(VariantSource.FALLBACK);
+      expect(result.fallback_reason.kind).toBe(
+        FallbackReason.Kind.BACKEND_ERROR,
+      );
+      // Defensive fallback string, not undefined or a crash.
+      expect(typeof result.fallback_reason.message).toBe("string");
+      expect(result.fallback_reason.message.length).toBeGreaterThan(0);
     });
   });
 
@@ -350,14 +406,17 @@ describe("RemoteFeatureFlagProvider", () => {
         "flag-1": {
           variant_key: "treatment",
           variant_value: true,
+          variant_source: VariantSource.REMOTE,
         },
         "flag-2": {
           variant_key: "control",
           variant_value: false,
+          variant_source: VariantSource.REMOTE,
         },
         "flag-3": {
           variant_key: "blue",
           variant_value: "blue-theme",
+          variant_source: VariantSource.REMOTE,
         },
       });
     });
