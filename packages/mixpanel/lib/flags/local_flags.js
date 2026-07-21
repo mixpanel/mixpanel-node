@@ -90,9 +90,17 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
           try {
             await this._fetchFlagDefinitions();
           } catch (err) {
+            // Stop polling on the first refresh failure and reset state
+            // (clears the interval and _startPromise) so the caller can
+            // decide to restart. Continuing to poll a failing endpoint
+            // just spams the log without recovering — if it's transient
+            // (network blip), a follow-up startPollingForDefinitions()
+            // gets us back; if it's permanent (bad token, revoked
+            // project), silent retries hide the real failure.
             this.logger?.error(
-              `Error polling for flag definition: ${err.message}`,
+              `Error polling for flag definitions, stopping polling: ${err.message}`,
             );
+            this.stopPollingForDefinitions();
           }
         }, this.config.polling_interval_in_seconds * 1000);
       }
