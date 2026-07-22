@@ -936,4 +936,177 @@ describe("LocalFeatureFlagsProvider", () => {
       // This behavior is tested in the FeatureFlagsProvider base class tests.
     });
   });
+
+  describe("polling lifecycle", () => {
+    it("dedups initial fetch under concurrent startPollingForDefinitions calls", async () => {
+      // Mock setInterval so the spy records the call without scheduling a real
+      // timer. A real timer would keep the test process alive if an assertion
+      // failed before stopPollingForDefinitions() ran.
+      const setIntervalSpy = vi
+        .spyOn(global, "setInterval")
+        .mockImplementation(() => 999);
+
+      const provider = new LocalFeatureFlagsProvider(
+        TEST_TOKEN,
+        {
+          api_host: "localhost",
+          enable_polling: true,
+          polling_interval_in_seconds: 3600,
+        },
+        mockTracker,
+        mockLogger,
+      );
+
+      nock("https://localhost")
+        .persist()
+        .get("/flags/definitions")
+        .query(true)
+        .reply(200, { code: 200, flags: [] });
+
+      // Count fetch invocations — the guard should coalesce concurrent
+      // starts into a single _fetchFlagDefinitions() call. Asserting on
+      // setInterval alone wouldn't catch a regression: JS's single-threaded
+      // microtask model makes the !pollingInterval check-then-set atomic
+      // even without the guard, so setInterval would be called once
+      // regardless.
+      const originalFetch = provider._fetchFlagDefinitions.bind(provider);
+      const fetchSpy = vi
+        .spyOn(provider, "_fetchFlagDefinitions")
+        .mockImplementation(() => originalFetch());
+
+      const N = 8;
+      const starts = [];
+      for (let i = 0; i < N; i++) {
+        starts.push(provider.startPollingForDefinitions());
+      }
+      await Promise.all(starts);
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(setIntervalSpy).toHaveBeenCalledTimes(1);
+      expect(provider.pollingInterval).not.toBeNull();
+
+      provider.stopPollingForDefinitions();
+      fetchSpy.mockRestore();
+      setIntervalSpy.mockRestore();
+    });
+
+    it("stopPollingForDefinitions clears the cached start so start can re-fetch (enable_polling=false)", async () => {
+      const provider = new LocalFeatureFlagsProvider(
+        TEST_TOKEN,
+        {
+          api_host: "localhost",
+          enable_polling: false,
+        },
+        mockTracker,
+        mockLogger,
+      );
+
+      nock("https://localhost")
+        .persist()
+        .get("/flags/definitions")
+        .query(true)
+        .reply(200, { code: 200, flags: [] });
+
+      const originalFetch = provider._fetchFlagDefinitions.bind(provider);
+      const fetchSpy = vi
+        .spyOn(provider, "_fetchFlagDefinitions")
+        .mockImplementation(() => originalFetch());
+
+      await provider.startPollingForDefinitions();
+      provider.stopPollingForDefinitions();
+      await provider.startPollingForDefinitions();
+
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+      fetchSpy.mockRestore();
+    });
+
+    it("failed initial fetch clears the cached start so subsequent start retries", async () => {
+      const provider = new LocalFeatureFlagsProvider(
+        TEST_TOKEN,
+        {
+          api_host: "localhost",
+          enable_polling: false,
+        },
+        mockTracker,
+        mockLogger,
+      );
+
+      // First attempt fails, second succeeds.
+      nock("https://localhost")
+        .get("/flags/definitions")
+        .query(true)
+        .reply(500);
+      nock("https://localhost")
+        .get("/flags/definitions")
+        .query(true)
+        .reply(200, { code: 200, flags: [] });
+
+      const originalFetch = provider._fetchFlagDefinitions.bind(provider);
+      const fetchSpy = vi
+        .spyOn(provider, "_fetchFlagDefinitions")
+        .mockImplementation(() => originalFetch());
+
+      await provider.startPollingForDefinitions();
+      await provider.startPollingForDefinitions();
+
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+      fetchSpy.mockRestore();
+    });
+
+    it("stops polling and resets state when a refresh fails", async () => {
+      // Capture the interval callback synchronously so we can drive it
+      // directly without letting the real timer fire (and keep the test
+      // deterministic).
+      let intervalCallback = null;
+      const setIntervalSpy = vi
+        .spyOn(global, "setInterval")
+        .mockImplementation((cb) => {
+          intervalCallback = cb;
+          return 999;
+        });
+      const clearIntervalSpy = vi.spyOn(global, "clearInterval");
+
+      const provider = new LocalFeatureFlagsProvider(
+        TEST_TOKEN,
+        {
+          api_host: "localhost",
+          enable_polling: true,
+          polling_interval_in_seconds: 3600,
+        },
+        mockTracker,
+        mockLogger,
+      );
+
+      // Initial fetch succeeds so we get past _doStartPolling and set
+      // up the interval; second fetch (driven by the interval) fails.
+      nock("https://localhost")
+        .get("/flags/definitions")
+        .query(true)
+        .reply(200, { code: 200, flags: [] });
+      nock("https://localhost")
+        .get("/flags/definitions")
+        .query(true)
+        .reply(500);
+
+      await provider.startPollingForDefinitions();
+      expect(provider.pollingInterval).not.toBeNull();
+      expect(intervalCallback).not.toBeNull();
+
+      // Fire the poller manually and wait for the awaited fetch inside
+      // to reject and hit the catch.
+      await intervalCallback();
+
+      expect(clearIntervalSpy).toHaveBeenCalledWith(999);
+      expect(provider.pollingInterval).toBeNull();
+      expect(provider._startPromise).toBeNull();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("stopping polling"),
+      );
+
+      clearIntervalSpy.mockRestore();
+      setIntervalSpy.mockRestore();
+    });
+  });
 });

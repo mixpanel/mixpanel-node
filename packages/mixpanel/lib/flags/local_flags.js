@@ -61,14 +61,32 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
     this.flagDefinitions = new Map();
     this.pollingInterval = null;
     this._initialFetchPromise = null;
+    // Cached in-flight start so concurrent startPollingForDefinitions() calls
+    // share the same async work. In JS's single-threaded model the
+    // !this.pollingInterval check + setInterval assignment are atomic within a
+    // microtask, so setInterval itself isn't racy. What the guard prevents is
+    // N concurrent starts each awaiting their own _fetchFlagDefinitions() and
+    // clobbering _initialFetchPromise — N redundant HTTP calls where one
+    // would do.
+    this._startPromise = null;
   }
 
   /**
    * Start polling for flag definitions.
-   * Fetches immediately and then at regular intervals if polling is enabled
+   * Fetches immediately and then at regular intervals if polling is enabled.
+   * Concurrent calls share the same in-flight promise; subsequent calls
+   * after start has completed are a no-op until stopPollingForDefinitions().
    * @returns {Promise<void>}
    */
   async startPollingForDefinitions() {
+    if (this._startPromise) {
+      return this._startPromise;
+    }
+    this._startPromise = this._doStartPolling();
+    return this._startPromise;
+  }
+
+  async _doStartPolling() {
     try {
       this._initialFetchPromise = this._fetchFlagDefinitions();
       await this._initialFetchPromise;
@@ -78,13 +96,25 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
           try {
             await this._fetchFlagDefinitions();
           } catch (err) {
+            // Stop polling on the first refresh failure and reset state
+            // (clears the interval and _startPromise) so the caller can
+            // decide to restart. Continuing to poll a failing endpoint
+            // just spams the log without recovering — if it's transient
+            // (network blip), a follow-up startPollingForDefinitions()
+            // gets us back; if it's permanent (bad token, revoked
+            // project), silent retries hide the real failure.
             this.logger?.error(
-              `Error polling for flag definition: ${err.message}`,
+              `Error polling for flag definitions, stopping polling: ${err.message}`,
             );
+            this.stopPollingForDefinitions();
           }
         }, this.config.polling_interval_in_seconds * 1000);
       }
     } catch (err) {
+      // Drop the cached start so the caller can retry via
+      // startPollingForDefinitions(). Otherwise a failed initial
+      // fetch would permanently short-circuit subsequent calls.
+      this._startPromise = null;
       this.logger?.error(
         `Initial flag definitions fetch failed: ${err.message}`,
       );
@@ -98,11 +128,21 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
-    } else {
+    } else if (!this._startPromise) {
+      // Only warn when the caller stopped something that was truly never
+      // started. The enable_polling=false lifecycle (start → stop) and the
+      // mid-start case (stop before setInterval fires) both leave
+      // pollingInterval null with a legitimate _startPromise present —
+      // warning in those cases is noise.
       this.logger?.warn(
         "stopPollingForDefinitions called but polling was not active",
       );
     }
+    // Always clear the cached start so a subsequent
+    // startPollingForDefinitions() can re-start cleanly, including
+    // the enable_polling=false case where pollingInterval was never
+    // set. Matches shutdown().
+    this._startPromise = null;
   }
 
   shutdown() {
@@ -110,6 +150,7 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
     }
+    this._startPromise = null;
   }
 
   areFlagsReady() {
