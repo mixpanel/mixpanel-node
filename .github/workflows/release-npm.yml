@@ -3,7 +3,7 @@ name: Publish Release to npm
 # Tag-triggered: npm trusted publishing requires the publish to come from a
 # workflow run triggered by a tag-push matching the pattern configured in
 # the package's npm admin "Trusted Publishers" entry. Add new tag prefixes
-# here as additional modules are added to .github/modules.json.
+# here as additional modules are added to .github/modules.json (e.g. `- 'foo-v*'`).
 on:
   push:
     tags:
@@ -74,7 +74,7 @@ jobs:
             echo "package_name=$(echo "$MODULE_CONFIG" | jq -r '.package_name')"
           } >> "$GITHUB_OUTPUT"
 
-          echo "Resolved tag '$TAG' -> module '$MODULE', version '$VERSION', workspace '$WORKSPACE_DIR'"
+          echo "Resolved tag '$TAG' -> module '$MODULE', version '$VERSION'"
 
       - name: Verify tag commit is on master
         env:
@@ -110,12 +110,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      # Root `build` fans out to `npm run build --workspaces --if-present`,
-      # producing the `lib/` / `dist/` outputs that each package's `files`
-      # array ships to npm.
-      - name: Build
-        run: npm run build
 
       - name: Test
         run: npm test
@@ -164,7 +158,7 @@ jobs:
 
       # Publish last — npm uploads are irreversible (only unpublishable within
       # 72h, with restrictions). The draft GitHub release acts as the human
-      # gate.
+      # gate (mirrors the Maven Central Portal's manual Publish step).
       - name: Publish to npm
         env:
           WORKSPACE_DIR: ${{ steps.module.outputs.workspace_dir }}
