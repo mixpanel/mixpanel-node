@@ -1,3 +1,5 @@
+# Changelog
+
 0.22.0 / 2026-05-04
 ==================
 * add new OpenFeature server provider package

@@ -1,0 +1,16 @@
+{
+  "analytics": {
+    "tag_prefix": "v",
+    "package_json": "packages/mixpanel/package.json",
+    "changelog": "packages/mixpanel/CHANGELOG.md",
+    "readme": "packages/mixpanel/readme.md",
+    "package_name": "mixpanel"
+  },
+  "openfeature": {
+    "tag_prefix": "openfeature/v",
+    "package_json": "packages/openfeature-server-provider/package.json",
+    "changelog": "packages/openfeature-server-provider/CHANGELOG.md",
+    "readme": "packages/openfeature-server-provider/README.md",
+    "package_name": "@mixpanel/openfeature-server-provider"
+  }
+}
