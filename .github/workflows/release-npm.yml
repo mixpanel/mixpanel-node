@@ -1,0 +1,182 @@
+name: Publish Release to npm
+
+# Tag-triggered: npm trusted publishing requires the publish to come from a
+# workflow run triggered by a tag-push matching the pattern configured in
+# the package's npm admin "Trusted Publishers" entry. Add new tag prefixes
+# here as additional modules are added to .github/modules.json (e.g. `- 'foo-v*'`).
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'openfeature/v*'
+
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # create the draft GitHub release
+  id-token: write   # OIDC for npm trusted publishing
+
+jobs:
+  publish:
+    name: "Publish ${{ github.ref_name }} to npm"
+    runs-on: ubuntu-latest
+    environment: release
+    timeout-minutes: 30
+
+    # One-time npm admin / GitHub Environment / tag ruleset setup is required.
+    # The `environment:` name above must match what npm's Trusted Publishers
+    # entry is configured to require.
+
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Resolve module from tag
+        id: module
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          MODULE=$(jq -r --arg t "$TAG" '
+            to_entries
+            | map(select(.value.tag_prefix as $p | $t | startswith($p)))
+            | max_by(.value.tag_prefix | length)
+            | .key // empty
+          ' .github/modules.json)
+
+          if [ -z "$MODULE" ]; then
+            echo "::error::Tag '$TAG' does not match any module tag_prefix in .github/modules.json"
+            exit 1
+          fi
+
+          MODULE_CONFIG=$(jq -e --arg m "$MODULE" '.[$m]' .github/modules.json)
+          TAG_PREFIX=$(echo "$MODULE_CONFIG" | jq -r '.tag_prefix')
+          VERSION="${TAG#${TAG_PREFIX}}"
+
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "::error::Version '$VERSION' (from tag '$TAG') is not a valid semver"
+            exit 1
+          fi
+
+          PACKAGE_JSON=$(echo "$MODULE_CONFIG" | jq -r '.package_json')
+          WORKSPACE_DIR=$(dirname "$PACKAGE_JSON")
+
+          {
+            echo "module=$MODULE"
+            echo "version=$VERSION"
+            echo "tag_prefix=$TAG_PREFIX"
+            echo "package_json=$PACKAGE_JSON"
+            echo "workspace_dir=$WORKSPACE_DIR"
+            echo "changelog=$(echo "$MODULE_CONFIG" | jq -r '.changelog')"
+            echo "package_name=$(echo "$MODULE_CONFIG" | jq -r '.package_name')"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Resolved tag '$TAG' -> module '$MODULE', version '$VERSION'"
+
+      - name: Verify tag commit is on master
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          git fetch origin master
+          TAG_SHA=$(git rev-parse HEAD)
+          if ! git merge-base --is-ancestor "$TAG_SHA" origin/master; then
+            echo "::error::Tag '$TAG' ($TAG_SHA) is not an ancestor of origin/master."
+            echo "Tags must be pushed from a commit on the master branch."
+            exit 1
+          fi
+
+      - name: Validate package.json version matches tag
+        env:
+          VERSION: ${{ steps.module.outputs.version }}
+          PACKAGE_JSON: ${{ steps.module.outputs.package_json }}
+        run: |
+          PKG_VERSION=$(jq -r '.version' "$PACKAGE_JSON")
+          if [ "$VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag version '$VERSION' does not match $PACKAGE_JSON version '$PKG_VERSION'"
+            exit 1
+          fi
+          echo "Version confirmed: $PKG_VERSION"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          # Required so `npm publish` writes a registry URL to .npmrc that the
+          # OIDC trusted-publishing flow looks for.
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Dry run publish
+        env:
+          WORKSPACE_DIR: ${{ steps.module.outputs.workspace_dir }}
+        run: npm publish --dry-run --access public --workspace "$WORKSPACE_DIR"
+
+      - name: Extract changelog section for tag
+        env:
+          TAG: ${{ github.ref_name }}
+          CHANGELOG: ${{ steps.module.outputs.changelog }}
+        run: |
+          # Extract this tag's section from CHANGELOG.md via a sed range.
+          # The address `\@^## \[TAG\]@,\@^## \[@` selects from the version
+          # header through the next `## [` line; the inner block deletes
+          # both markers and prints the body. sed range patterns don't test
+          # the end pattern against the start line, so the start doesn't
+          # self-terminate. `\@...@` switches the address delimiter from
+          # `/` to `@` so tags containing `/` (e.g. `openfeature/v0.1.0`)
+          # don't conflict with the default `/`. Mirrors the deployed
+          # mixpanel-android extraction logic. Falls back to a placeholder
+          # if the section is missing or empty.
+          sed -n '\@^## \['"${TAG}"'\]@,\@^## \[@{\@^## \['"${TAG}"'\]@d;\@^## \[@d;p;}' "$CHANGELOG" 2>/dev/null > release_notes.md || true
+          if [ ! -s release_notes.md ]; then
+            echo "Release $TAG" > release_notes.md
+          fi
+          echo "--- release_notes.md ---"
+          cat release_notes.md
+
+      - name: Create draft GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          # Idempotent: if a draft release for this tag already exists, leave it alone.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "GitHub release for $TAG already exists; skipping creation"
+          else
+            gh release create "$TAG" \
+              --draft \
+              --title "$TAG" \
+              --notes-file release_notes.md
+          fi
+
+      # Publish last — npm uploads are irreversible (only unpublishable within
+      # 72h, with restrictions). The draft GitHub release acts as the human
+      # gate (mirrors the Maven Central Portal's manual Publish step).
+      - name: Publish to npm
+        env:
+          WORKSPACE_DIR: ${{ steps.module.outputs.workspace_dir }}
+        run: npm publish --provenance --access public --workspace "$WORKSPACE_DIR"
+
+      - name: Summary
+        env:
+          MODULE: ${{ steps.module.outputs.module }}
+          VERSION: ${{ steps.module.outputs.version }}
+          PACKAGE_NAME: ${{ steps.module.outputs.package_name }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          {
+            echo "## ${MODULE} ${VERSION} published"
+            echo ""
+            echo "- [npm](https://www.npmjs.com/package/${PACKAGE_NAME}/v/${VERSION})"
+            echo "- [Draft GitHub Release](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${TAG})"
+            echo ""
+            echo "### Next step"
+            echo "Review the draft GitHub release and click **Publish release** to make it live."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,195 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      module:
+        description: 'Module to release (must match a key in .github/modules.json)'
+        required: true
+        type: string
+      version:
+        description: 'Release version (e.g., 1.3.0 or 1.3.0-beta.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: prepare-release-${{ inputs.module }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: "Prepare ${{ inputs.module }} ${{ inputs.version }}"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate inputs
+        env:
+          MODULE: ${{ inputs.module }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "::error::Invalid version format: $VERSION"
+            exit 1
+          fi
+          jq -e --arg m "$MODULE" '.[$m]' .github/modules.json > /dev/null || {
+            echo "::error::Unknown module '$MODULE'. Valid modules: $(jq -r 'keys | join(", ")' .github/modules.json)"
+            exit 1
+          }
+
+      - name: Resolve module config
+        id: config
+        env:
+          MODULE: ${{ inputs.module }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          MODULE_CONFIG=$(jq -e --arg m "$MODULE" '.[$m]' .github/modules.json)
+
+          TAG_PREFIX=$(echo "$MODULE_CONFIG" | jq -r '.tag_prefix')
+          {
+            echo "tag=${TAG_PREFIX}${VERSION}"
+            echo "package_json=$(echo "$MODULE_CONFIG" | jq -r '.package_json')"
+            echo "changelog=$(echo "$MODULE_CONFIG" | jq -r '.changelog')"
+            echo "readme=$(echo "$MODULE_CONFIG" | jq -r '.readme')"
+            echo "package_name=$(echo "$MODULE_CONFIG" | jq -r '.package_name')"
+            echo "branch=release/${MODULE}/${VERSION}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Validate version not already released
+        env:
+          TAG: ${{ steps.config.outputs.tag }}
+        run: |
+          if git tag -l "$TAG" | grep -q .; then
+            echo "::error::Tag $TAG already exists"
+            exit 1
+          fi
+
+      - name: Clean up existing release branch and PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ steps.config.outputs.branch }}
+        run: |
+          EXISTING_PR=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number' 2>/dev/null || true)
+          if [[ -n "$EXISTING_PR" ]]; then
+            echo "Closing existing PR #$EXISTING_PR and deleting branch"
+            gh pr close "$EXISTING_PR" --delete-branch
+          elif git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            echo "Deleting orphaned branch $BRANCH"
+            git push origin --delete "$BRANCH"
+          fi
+
+      - name: Create release branch
+        env:
+          BRANCH: ${{ steps.config.outputs.branch }}
+        run: git checkout -b "$BRANCH"
+
+      - name: Bump version in package.json
+        env:
+          VERSION: ${{ inputs.version }}
+          PACKAGE_JSON: ${{ steps.config.outputs.package_json }}
+        run: |
+          OLD_VERSION=$(jq -r '.version' "$PACKAGE_JSON")
+          if [ -z "$OLD_VERSION" ] || [ "$OLD_VERSION" = "null" ]; then
+            echo "::error::Could not read current version from $PACKAGE_JSON"
+            exit 1
+          fi
+          echo "Bumping ${OLD_VERSION} -> ${VERSION}"
+
+          # Atomic write via tmp file. jq preserves 2-space indentation that
+          # matches Prettier's default (and the existing file).
+          jq --indent 2 --arg v "$VERSION" '.version = $v' "$PACKAGE_JSON" > "$PACKAGE_JSON.tmp"
+          mv "$PACKAGE_JSON.tmp" "$PACKAGE_JSON"
+
+      - name: Update README version header
+        env:
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          TAG: ${{ steps.config.outputs.tag }}
+          README: ${{ steps.config.outputs.readme }}
+        run: |
+          DATE=$(date +"%B %d, %Y")
+          # Replace the version header line.
+          # The `1,/pat/` address range bounds the substitution to lines from
+          # the start of the file through the first match, so a README that
+          # accidentally contains a second matching line is left untouched.
+          sed -i -E \
+            "1,/^##### _.*_ - \[.*\]\(.*\)\$/ s|^##### _.*_ - \[.*\]\(.*\)\$|##### _${DATE}_ - [${TAG}](${REPO_URL}/releases/tag/${TAG})|" \
+            "$README"
+
+      - name: Generate changelog
+        env:
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          MODULE: ${{ inputs.module }}
+          TAG: ${{ steps.config.outputs.tag }}
+          CHANGELOG_FILE: ${{ steps.config.outputs.changelog }}
+        run: |
+          CHANGELOG=$(.github/scripts/generate-changelog.sh \
+            "$MODULE" "$TAG" "$REPO_URL" HEAD)
+
+          if [ -f "$CHANGELOG_FILE" ]; then
+            {
+              printf '# Changelog\n\n%s\n' "$CHANGELOG"
+              sed '1{/^# Changelog$/d;}' "$CHANGELOG_FILE"
+            } > CHANGELOG.new.md
+            mv CHANGELOG.new.md "$CHANGELOG_FILE"
+          else
+            printf '# Changelog\n\n%s\n' "$CHANGELOG" > "$CHANGELOG_FILE"
+          fi
+
+      - name: Commit and push
+        env:
+          MODULE: ${{ inputs.module }}
+          VERSION: ${{ inputs.version }}
+          BRANCH: ${{ steps.config.outputs.branch }}
+          PACKAGE_JSON: ${{ steps.config.outputs.package_json }}
+          CHANGELOG_FILE: ${{ steps.config.outputs.changelog }}
+          README: ${{ steps.config.outputs.readme }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$PACKAGE_JSON" "$CHANGELOG_FILE" "$README"
+          git commit -m "release: prepare ${MODULE} ${VERSION}"
+          git push origin "$BRANCH"
+
+      - name: Create pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MODULE: ${{ inputs.module }}
+          VERSION: ${{ inputs.version }}
+          TAG: ${{ steps.config.outputs.tag }}
+          PACKAGE_JSON: ${{ steps.config.outputs.package_json }}
+          CHANGELOG_FILE: ${{ steps.config.outputs.changelog }}
+          README: ${{ steps.config.outputs.readme }}
+          BRANCH: ${{ steps.config.outputs.branch }}
+        run: |
+          gh pr create \
+            --title "release: prepare ${MODULE} ${VERSION}" \
+            --body "$(cat <<EOF
+          ## Release ${MODULE} ${VERSION}
+
+          This PR prepares the ${MODULE} module for release.
+
+          ### Changes
+          - Bumps \`version\` to \`${VERSION}\` in \`${PACKAGE_JSON}\`
+          - Updates \`${CHANGELOG_FILE}\` with a new section since the last \`${TAG%${VERSION}}*\` tag
+          - Updates \`${README}\` version header
+
+          ### After merging
+          1. Push tag \`${TAG}\` from the merge commit on \`master\` to trigger the publish workflow:
+             \`\`\`
+             git checkout master && git pull
+             git tag ${TAG}
+             git push origin ${TAG}
+             \`\`\`
+          2. The publish workflow creates a draft GitHub release and publishes to npm. Review and publish the GitHub release after the workflow finishes.
+          EOF
+          )" \
+            --base master \
+            --head "$BRANCH"

@@ -1,5 +1,7 @@
 # Mixpanel-node
 
+##### _May 04, 2026_ - [v0.22.0](https://github.com/mixpanel/mixpanel-node/releases/tag/v0.22.0)
+
 ![Build Status](https://github.com/mixpanel/mixpanel-node/actions/workflows/tests.yml/badge.svg)
 
 This library provides many of the features in the official JavaScript mixpanel library. It is easy to use, and fully async. It is intended to be used on the server (it is not a client module). The in-browser client library is available

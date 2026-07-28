@@ -17,7 +17,7 @@
     "lib",
     "readme.md",
     "LICENSE",
-    "history.md"
+    "CHANGELOG.md"
   ],
   "directories": {
     "lib": "lib"
