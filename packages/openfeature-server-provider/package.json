@@ -16,7 +16,7 @@
   },
   "peerDependencies": {
     "@openfeature/server-sdk": "^1.17.0",
-    "mixpanel": "^0.21.0"
+    "mixpanel": "^0.23.0"
   },
   "devDependencies": {
     "@openfeature/core": "^1.9.2",
