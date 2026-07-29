@@ -96,17 +96,15 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
           try {
             await this._fetchFlagDefinitions();
           } catch (err) {
-            // Stop polling on the first refresh failure and reset state
-            // (clears the interval and _startPromise) so the caller can
-            // decide to restart. Continuing to poll a failing endpoint
-            // just spams the log without recovering — if it's transient
-            // (network blip), a follow-up startPollingForDefinitions()
-            // gets us back; if it's permanent (bad token, revoked
-            // project), silent retries hide the real failure.
+            // Log and keep polling. A refresh failure is usually transient
+            // (network blip, HTTP 500) and the next tick recovers on its
+            // own. Tearing down the interval here would strand the provider
+            // on stale definitions indefinitely for the common case where
+            // the caller starts polling once at boot and never re-checks.
+            // Matches the Go/Python/Ruby/Java providers.
             this.logger?.error(
-              `Error polling for flag definitions, stopping polling: ${err.message}`,
+              `Error polling for flag definitions: ${err.message}`,
             );
-            this.stopPollingForDefinitions();
           }
         }, this.config.polling_interval_in_seconds * 1000);
       }
