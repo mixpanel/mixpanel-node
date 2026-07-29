@@ -1,6 +1,6 @@
 # Mixpanel Node.js OpenFeature Provider
 
-##### _July 28, 2026_ - [openfeature/v0.1.0](https://github.com/mixpanel/mixpanel-node/releases/tag/openfeature/v0.1.0)
+##### _July 29, 2026_ - [openfeature/v0.2.0](https://github.com/mixpanel/mixpanel-node/releases/tag/openfeature/v0.2.0)
 
 [![npm](https://img.shields.io/npm/v/@mixpanel/openfeature-server-provider.svg)](https://www.npmjs.com/package/@mixpanel/openfeature-server-provider)
 [![OpenFeature](https://img.shields.io/badge/OpenFeature-compatible-green)](https://openfeature.dev/)

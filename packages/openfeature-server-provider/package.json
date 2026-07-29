@@ -1,6 +1,6 @@
 {
   "name": "@mixpanel/openfeature-server-provider",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "OpenFeature server provider for Mixpanel feature flags",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
