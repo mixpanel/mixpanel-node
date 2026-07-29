@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.22.0](https://github.com/mixpanel/mixpanel-node/tree/v0.22.0) (2026-07-29)
+
+### Features
+- add service account support ([#275](https://github.com/mixpanel/mixpanel-node/pull/275))
+
+### Fixes
+- guard polling start so concurrent callers don't leak intervals (SDK-81) ([#278](https://github.com/mixpanel/mixpanel-node/pull/278))
+- distinguish fallback reasons + forward backend error message (SDK-79, SDK-83) ([#277](https://github.com/mixpanel/mixpanel-node/pull/277))
+
+[Full Changelog](https://github.com/mixpanel/mixpanel-node/compare/v0.21.0...v0.22.0)
+
 0.22.0 / 2026-05-04
 ==================
 * add new OpenFeature server provider package
