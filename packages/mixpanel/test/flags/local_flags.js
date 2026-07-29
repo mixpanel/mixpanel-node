@@ -1055,7 +1055,7 @@ describe("LocalFeatureFlagsProvider", () => {
       fetchSpy.mockRestore();
     });
 
-    it("stops polling and resets state when a refresh fails", async () => {
+    it("keeps polling when a refresh fails", async () => {
       // Capture the interval callback synchronously so we can drive it
       // directly without letting the real timer fire (and keep the test
       // deterministic).
@@ -1079,8 +1079,9 @@ describe("LocalFeatureFlagsProvider", () => {
         mockLogger,
       );
 
-      // Initial fetch succeeds so we get past _doStartPolling and set
-      // up the interval; second fetch (driven by the interval) fails.
+      // Initial fetch succeeds so we get past _doStartPolling and set up
+      // the interval; the next fetch (driven by the interval) fails, and
+      // the one after that succeeds again.
       nock("https://localhost")
         .get("/flags/definitions")
         .query(true)
@@ -1089,6 +1090,10 @@ describe("LocalFeatureFlagsProvider", () => {
         .get("/flags/definitions")
         .query(true)
         .reply(500);
+      nock("https://localhost")
+        .get("/flags/definitions")
+        .query(true)
+        .reply(200, { code: 200, flags: [] });
 
       await provider.startPollingForDefinitions();
       expect(provider.pollingInterval).not.toBeNull();
@@ -1098,12 +1103,18 @@ describe("LocalFeatureFlagsProvider", () => {
       // to reject and hit the catch.
       await intervalCallback();
 
-      expect(clearIntervalSpy).toHaveBeenCalledWith(999);
-      expect(provider.pollingInterval).toBeNull();
-      expect(provider._startPromise).toBeNull();
+      // The failure is logged but the interval survives, so a later tick
+      // can recover from a transient error.
+      expect(clearIntervalSpy).not.toHaveBeenCalled();
+      expect(provider.pollingInterval).toBe(999);
+      expect(provider._startPromise).not.toBeNull();
       expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining("stopping polling"),
+        expect.stringContaining("Error polling for flag definitions"),
       );
+
+      // Next tick succeeds — polling recovered on its own.
+      await intervalCallback();
+      expect(provider.pollingInterval).toBe(999);
 
       clearIntervalSpy.mockRestore();
       setIntervalSpy.mockRestore();
