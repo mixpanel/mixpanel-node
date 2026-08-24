@@ -31,7 +31,10 @@ function semverCompare(actual, symbol, target) {
   }
   const actualVersion = normalizeSemver(actual);
   const targetVersion = normalizeSemver(target);
-  if (!SEMVER_PATTERN.test(actualVersion) || !SEMVER_PATTERN.test(targetVersion)) {
+  if (
+    !SEMVER_PATTERN.test(actualVersion) ||
+    !SEMVER_PATTERN.test(targetVersion)
+  ) {
     return false;
   }
   const cmp = compareVersions(actualVersion, targetVersion);
