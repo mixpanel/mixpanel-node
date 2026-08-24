@@ -24,6 +24,7 @@ const {
   asFallback,
 } = require("./variant_source");
 const { apply } = require("json-logic-js");
+require("./custom_operators");
 
 class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
   /**
