@@ -35,7 +35,6 @@
     "build": "tsc --build"
   },
   "dependencies": {
-    "compare-versions": "6.1.1",
     "https-proxy-agent": "7.0.6",
     "json-logic-js": "2.0.5"
   },

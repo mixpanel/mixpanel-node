@@ -1,5 +1,4 @@
 const jsonLogic = require("json-logic-js");
-const { compareVersions } = require("compare-versions");
 
 // Strict RFC3339 guard for datetime strings.
 const RFC3339_PATTERN =
@@ -37,8 +36,97 @@ function semverCompare(actual, symbol, target) {
   ) {
     return false;
   }
-  const cmp = compareVersions(actualVersion, targetVersion);
+  const cmp = compareSemver(actualVersion, targetVersion);
   return comparatorMatches(cmp, symbol);
+}
+
+// Strip optional build metadata and separate the core version from pre-release identifiers
+function splitSemver(version) {
+  const plus = version.indexOf("+");
+  if (plus !== -1) {
+    version = version.slice(0, plus);
+  }
+  const dash = version.indexOf("-");
+  if (dash === -1) {
+    return { core: version.split("."), prerelease: [] };
+  }
+  return {
+    core: version.slice(0, dash).split("."),
+    prerelease: version.slice(dash + 1).split("."),
+  };
+}
+
+function isNumericIdentifier(identifier) {
+  return /^[0-9]+$/.test(identifier);
+}
+
+// Numeric identifiers carry no leading zeros, so the longer run of digits is the larger number.
+// Comparing them as digits rather than as numbers keeps versions past Number.MAX_SAFE_INTEGER
+// ordered correctly.
+function compareNumeric(a, b) {
+  if (a.length !== b.length) {
+    return a.length < b.length ? -1 : 1;
+  }
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+// SemVer 2.0.0 section 11.4: digits compare numerically, a numeric identifier ranks below an
+// alphanumeric one, and anything else compares by ASCII order.
+function comparePrereleaseIdentifier(a, b) {
+  const aNumeric = isNumericIdentifier(a);
+  const bNumeric = isNumericIdentifier(b);
+  if (aNumeric && bNumeric) {
+    return compareNumeric(a, b);
+  }
+  if (aNumeric) {
+    return -1;
+  }
+  if (bNumeric) {
+    return 1;
+  }
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+// Ordering per SemVer 2.0.0 section 11. Both operands have already been normalized and matched
+// against the official regex, so the core holds exactly three numeric identifiers and every
+// prerelease field is well-formed; the split needs no error path.
+function compareSemver(actualVersion, targetVersion) {
+  const actual = splitSemver(actualVersion);
+  const target = splitSemver(targetVersion);
+
+  for (let i = 0; i < actual.core.length; i++) {
+    const result = compareNumeric(actual.core[i], target.core[i]);
+    if (result !== 0) {
+      return result;
+    }
+  }
+
+  // A prerelease ranks below the release it belongs to (section 11.3).
+  if (!actual.prerelease.length && !target.prerelease.length) {
+    return 0;
+  }
+  if (!actual.prerelease.length) {
+    return 1;
+  }
+  if (!target.prerelease.length) {
+    return -1;
+  }
+
+  const shared = Math.min(actual.prerelease.length, target.prerelease.length);
+  for (let i = 0; i < shared; i++) {
+    const result = comparePrereleaseIdentifier(
+      actual.prerelease[i],
+      target.prerelease[i],
+    );
+    if (result !== 0) {
+      return result;
+    }
+  }
+  // Every field so far is equal, so the longer list wins (section 11.4.4).
+  if (actual.prerelease.length !== target.prerelease.length) {
+    return actual.prerelease.length < target.prerelease.length ? -1 : 1;
+  }
+  return 0;
 }
 
 // Implements a custom operation for datetime comparison.
@@ -58,9 +146,9 @@ function datetimeCompare(actual, symbol, target) {
 
 function comparatorMatches(cmp, symbol) {
   switch (symbol) {
-    case "=":
+    case "===":
       return cmp === 0;
-    case "!=":
+    case "!==":
       return cmp !== 0;
     case "<":
       return cmp < 0;
