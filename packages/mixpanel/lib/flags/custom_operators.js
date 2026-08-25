@@ -1,11 +1,17 @@
 const jsonLogic = require("json-logic-js");
 
-// Strict RFC3339 guard for datetime strings.
+// Strict RFC3339 guard for datetime strings. The date and hour fields are captured so the calendar
+// can be validated separately; the pattern only constrains their shape.
 const RFC3339_PATTERN =
-  /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/;
+  /^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/;
 
 // SemVer 2.0.0 requires major.minor.patch; partial versions are zero-padded to this.
 const SEMVER_PARTS = 3;
+
+// Longest operand the semver regex is allowed to see. A real version never approaches this; the
+// bound matches MAX_LENGTH in node-semver, and keeps an arbitrarily long property value off the
+// regex regardless of how the engine schedules backtracking.
+const MAX_SEMVER_LENGTH = 256;
 
 // Epoch milliseconds are compared as int64 elsewhere, so anything at or beyond this is out of range.
 const MAX_EPOCH_MS = 9223372036854775808;
@@ -26,6 +32,9 @@ function semverCompare(actual, symbol, target) {
     return false;
   }
   if (typeof actual !== "string" || typeof target !== "string") {
+    return false;
+  }
+  if (actual.length > MAX_SEMVER_LENGTH || target.length > MAX_SEMVER_LENGTH) {
     return false;
   }
   const actualVersion = normalizeSemver(actual);
@@ -184,12 +193,38 @@ function normalizeSemver(version) {
   return parts.join(".") + suffix;
 }
 
+function daysInMonth(year, month) {
+  if (month === 2) {
+    const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+    return isLeapYear ? 29 : 28;
+  }
+  return month === 4 || month === 6 || month === 9 || month === 11 ? 30 : 31;
+}
+
+// The pattern constrains each field to two digits, which still admits a date that cannot exist, such
+// as 2026-02-30 or 29 February in a common year. Date.parse rolls those forward into a real instant
+// instead of rejecting them, and hour 24 likewise becomes the following midnight, so the calendar is
+// checked here rather than left to the engine. RFC 3339 section 5.6 allows hours 00 through 23.
+function isRealCalendarDate(year, month, day, hour) {
+  if (month < 1 || month > 12 || day < 1 || hour > 23) {
+    return false;
+  }
+  return day <= daysInMonth(year, month);
+}
+
 function convertRfc3339ToUnixSeconds(value) {
   if (typeof value !== "string") {
     return null;
   }
   const normalized = value.trim().toUpperCase();
-  if (!RFC3339_PATTERN.test(normalized)) {
+  const fields = RFC3339_PATTERN.exec(normalized);
+  if (!fields) {
+    return null;
+  }
+  const [, year, month, day, hour] = fields;
+  if (
+    !isRealCalendarDate(Number(year), Number(month), Number(day), Number(hour))
+  ) {
     return null;
   }
   const ms = Date.parse(normalized);
