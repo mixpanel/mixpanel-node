@@ -193,23 +193,20 @@ function normalizeSemver(version) {
   return parts.join(".") + suffix;
 }
 
-function daysInMonth(year, month) {
-  if (month === 2) {
-    const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
-    return isLeapYear ? 29 : 28;
-  }
-  return month === 4 || month === 6 || month === 9 || month === 11 ? 30 : 31;
-}
-
 // The pattern constrains each field to two digits, which still admits a date that cannot exist, such
-// as 2026-02-30 or 29 February in a common year. Date.parse rolls those forward into a real instant
-// instead of rejecting them, and hour 24 likewise becomes the following midnight, so the calendar is
-// checked here rather than left to the engine. RFC 3339 section 5.6 allows hours 00 through 23.
+// as 2026-02-30 or 29 February in a common year. Writing the fields into a Date and reading them back
+// settles it: out-of-range fields are normalized into a real instant, so a date that does not exist
+// comes back carrying different fields than it went in with. The three-argument setUTCFullYear sets
+// all three at once, which judges 29 February against the year given rather than a placeholder, and
+// leaves years 0 through 99 alone where Date.UTC would map them into the 1900s. The hour is checked
+// separately because it is not part of the round trip; RFC 3339 section 5.6 allows hours 00 through 23.
 function isRealCalendarDate(year, month, day, hour) {
-  if (month < 1 || month > 12 || day < 1 || hour > 23) {
+  if (hour > 23) {
     return false;
   }
-  return day <= daysInMonth(year, month);
+  const dt = new Date();
+  dt.setUTCFullYear(year, month - 1, day);
+  return dt.getUTCFullYear() === year && dt.getUTCMonth() === month - 1 && dt.getUTCDate() === day;
 }
 
 function convertRfc3339ToUnixSeconds(value) {
