@@ -517,6 +517,62 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(result.variant_value).toBe(FALLBACK_NAME);
     });
 
+    it("should return variant when semver_compare runtime rule satisfied", async () => {
+      const runtimeEvaluationRule = {
+        semver_compare: [{ var: "app_version" }, ">=", "1.2.3"],
+      };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
+
+      const context = userContextWithRuntimeParameters({
+        app_version: "1.5.0",
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      assertVariantReturned(result);
+    });
+
+    it("should return fallback when semver_compare runtime rule not satisfied", async () => {
+      const runtimeEvaluationRule = {
+        semver_compare: [{ var: "app_version" }, ">=", "1.2.3"],
+      };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
+
+      const context = userContextWithRuntimeParameters({
+        app_version: "1.0.0",
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).toBe(FALLBACK_NAME);
+    });
+
+    it("should return variant when datetime_compare runtime rule satisfied", async () => {
+      const runtimeEvaluationRule = {
+        datetime_compare: [{ var: "signup" }, "<", 1_784_160_000_000],
+      };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
+
+      const context = userContextWithRuntimeParameters({
+        signup: "2026-07-15T00:00:00Z",
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      assertVariantReturned(result);
+    });
+
+    it("should return fallback when datetime_compare runtime rule not satisfied", async () => {
+      const runtimeEvaluationRule = {
+        datetime_compare: [{ var: "signup" }, "<", 1_784_160_000_000],
+      };
+      await createFlagAndLoadItIntoSDK({ runtimeEvaluationRule }, provider);
+
+      const context = userContextWithRuntimeParameters({
+        signup: "2026-07-17T00:00:00Z",
+      });
+
+      const result = provider.getVariant(FLAG_KEY, FALLBACK, context);
+      expect(result.variant_value).toBe(FALLBACK_NAME);
+    });
+
     it("should respect legacy runtime evaluation when satisfied", async () => {
       const legacyRuntimeRule = { plan: "premium", region: "US" };
       await createFlagAndLoadItIntoSDK(
