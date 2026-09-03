@@ -39,7 +39,7 @@
     "json-logic-js": "2.0.5"
   },
   "devDependencies": {
-    "nock": "^14.0.10",
+    "nock": "^15.0.0",
     "proxyquire": "^2.1.3"
   }
 }
