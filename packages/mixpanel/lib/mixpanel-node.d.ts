@@ -17,8 +17,12 @@ declare namespace mixpanel {
     toString(): string;
   }
 
-  export type Callback = (err: Error | undefined) => any;
-  export type BatchCallback = (errors: [Error] | undefined) => any;
+  export interface MixpanelError extends Error {
+    statusCode?: number;
+  }
+
+  export type Callback = (err: MixpanelError | undefined) => any;
+  export type BatchCallback = (errors: [MixpanelError] | undefined) => any;
 
   type Scalar = string | number | boolean;
 
