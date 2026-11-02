@@ -559,8 +559,18 @@ const create_client = function (token, config) {
 
         distinct_id:string              the current identifier
         alias:string                    the future alias
+
+        On a hierarchical groups client, throws
+        MixpanelUnsupportedOperationError before anything is sent.
     */
   metrics.alias = function (distinct_id, alias, callback) {
+    if (metrics.hierarchical_groups) {
+      throw new MixpanelUnsupportedOperationError(
+        "alias is not supported for hierarchical groups projects, which " +
+          "identify a user by company and user id. Track with a " +
+          "MixpanelIdentity({user_id, company_id}) instead.",
+      );
+    }
     const properties = {
       distinct_id: distinct_id,
       alias: alias,

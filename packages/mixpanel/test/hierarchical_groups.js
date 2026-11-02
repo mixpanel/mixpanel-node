@@ -334,6 +334,20 @@ describe("hierarchical groups", () => {
     });
   });
 
+  describe("alias", () => {
+    it("refuses alias on a hierarchical groups client", () => {
+      expect(() =>
+        hg.alias("$company:acme|$user:user_123", "$company:acme|$user:u2"),
+      ).toThrow(MixpanelUnsupportedOperationError);
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("still sends $create_alias on other clients", () => {
+      legacy.alias("user_123", "u2");
+      expect(sent(legacy).data.event).toBe("$create_alias");
+    });
+  });
+
   describe("user profiles", () => {
     it("refuses $add and $append on a hierarchical groups client", () => {
       // A hierarchical groups user profile is a group profile, and /groups has

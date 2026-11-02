@@ -459,13 +459,11 @@ describe("hierarchical groups scenarios", () => {
     });
 
     it("Alias (Unsupported)", () => {
-      // alias is not refused: it sends $create_alias as on any client
-      hg.alias("old_id", "new_id");
-
-      expect_event(hg, "/track", "$create_alias", {
-        distinct_id: "old_id",
-        alias: "new_id",
-      });
+      // A user is identified by company and user id, so there is nothing to alias
+      expect(() => hg.alias("old_id", "new_id")).toThrow(
+        MixpanelUnsupportedOperationError,
+      );
+      expect(hg.send_request).not.toHaveBeenCalled();
     });
   });
 

@@ -306,7 +306,7 @@ sent to `/engage`. A user profile update takes a `MixpanelIdentity` with a
 `$company:{company}|$user:{user}`; any other distinct id throws
 `MixpanelArgumentError`. Events are unaffected: `track` and `import` send a
 distinct id as given. `people.increment`, `people.append`,
-`people.track_charge` and `people.clear_charges` throw
+`people.track_charge`, `people.clear_charges` and `alias` throw
 `MixpanelUnsupportedOperationError`. A user id sent without a company (and
 without a device id) names a separate user that cannot be merged afterwards,
 so it throws `MixpanelArgumentError`, as does a hierarchical identity on a
