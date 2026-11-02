@@ -26,9 +26,7 @@ const {
 const { apply } = require("json-logic-js");
 require("./custom_operators");
 
-// The highest context_template_version this SDK knows how to apply.
-const SUPPORTED_CONTEXT_TEMPLATE_VERSION = 1;
-// A {property} placeholder in a context template.
+// A {property} placeholder in a context value template.
 const CONTEXT_PLACEHOLDER = /\{([^}]+)\}/g;
 
 class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
@@ -215,21 +213,14 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
       return asFallback(fallbackVariant, FallbackReason.flagNotFound());
     }
 
-    // The context value is used as sent. Where the caller did not send it, the
-    // service may publish a template saying how to build it from properties
-    // they did send; this SDK never composes an identity of its own.
-    const useTemplate =
-      flag.context_template &&
-      !(Object.hasOwn(context, flag.context) && context[flag.context] != null);
-    const contextValue = useTemplate
-      ? this._applyContextTemplate(flag.context_template, context)
-      : context[flag.context];
+    // The service may publish a template for the assignment key, e.g.
+    // "$company:{$company_id}|$user:{$user_id}". When any placeholder is
+    // missing, or there is no template, the raw context value is used.
+    const templatedValue = flag.context_value_template
+      ? this._applyContextValueTemplate(flag.context_value_template, context)
+      : null;
 
-    if (
-      useTemplate
-        ? contextValue === null
-        : !Object.hasOwn(context, flag.context)
-    ) {
+    if (templatedValue === null && !Object.hasOwn(context, flag.context)) {
       this.logger?.warn(
         `The variant assignment key, '${flag.context}' for flag, '${flagKey}' is not present in the supplied user context dictionary`,
       );
@@ -239,14 +230,15 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
       );
     }
 
+    const contextValue = templatedValue ?? context[flag.context];
+
     let selectedVariant = null;
 
-    // Test users are keyed by distinct id. When the flag assigns on
-    // distinct_id its template builds exactly that.
+    // Test users are keyed by distinct id, which is the resolved assignment
+    // key when the flag assigns on distinct_id.
     const testUserVariant = this._getVariantOverrideForTestUser(
       flag,
-      context,
-      useTemplate && flag.context === "distinct_id" ? contextValue : undefined,
+      flag.context === "distinct_id" ? contextValue : context.distinct_id,
     );
     if (testUserVariant) {
       selectedVariant = testUserVariant;
@@ -301,11 +293,6 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
 
     const newDefinitions = new Map();
     response.flags.forEach((flag) => {
-      if (!this._isSupportedDefinition(flag)) {
-        // Drop a definition this SDK cannot evaluate rather than assign a
-        // variant the service never chose; the other flags are kept.
-        return;
-      }
       newDefinitions.set(flag.key, flag);
     });
 
@@ -315,52 +302,18 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
   }
 
   /**
-   * Whether this SDK can evaluate a definition's context template.
-   * A definition with no template is always supported.
-   * @param {ExperimentationFlag} flag - Flag definition
-   * @returns {boolean}
-   */
-  _isSupportedDefinition(flag) {
-    const version =
-      flag.context_template_version ?? SUPPORTED_CONTEXT_TEMPLATE_VERSION;
-    if (version > SUPPORTED_CONTEXT_TEMPLATE_VERSION) {
-      this.logger?.warn(
-        `Dropping flag '${flag.key}': context_template_version ${version} is newer than this SDK understands (${SUPPORTED_CONTEXT_TEMPLATE_VERSION}). Evaluate it remotely, or upgrade the SDK.`,
-      );
-      return false;
-    }
-
-    const template = flag.context_template;
-    if (!template) {
-      return true;
-    }
-    // Match blank placeholders too ({} or {  }), so they can be rejected.
-    const placeholders = [...String(template).matchAll(/\{([^}]*)\}/g)];
-    if (
-      placeholders.length === 0 ||
-      placeholders.some((match) => match[1].trim() === "")
-    ) {
-      this.logger?.warn(
-        `Dropping flag '${flag.key}': context_template '${template}' has no usable placeholders.`,
-      );
-      return false;
-    }
-    return true;
-  }
-
-  /**
-   * Fill a context template the service published with values from the
-   * evaluation context, e.g. "$company:{$company_id}|$user:{$user_id}".
-   * @param {string} template - Context template
+   * Fill a context value template with values from the evaluation context.
+   * Text outside the braces is literal.
+   * @param {string} template - Context value template
    * @param {FlagContext} context - Evaluation context
    * @returns {string|null} The resolved value, or null if any placeholder's
-   *   context value is missing or empty
+   *   context value is missing
    */
-  _applyContextTemplate(template, context) {
+  _applyContextValueTemplate(template, context) {
     let missing = false;
     const resolved = String(template).replace(CONTEXT_PLACEHOLDER, (_, key) => {
       const value = Object.hasOwn(context, key) ? context[key] : undefined;
-      if (value == null || String(value) === "") {
+      if (value == null) {
         missing = true;
         return "";
       }
@@ -389,12 +342,11 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
     return null;
   }
 
-  _getVariantOverrideForTestUser(flag, context, templatedDistinctId) {
+  _getVariantOverrideForTestUser(flag, distinctId) {
     if (!flag.ruleset.test?.users) {
       return null;
     }
 
-    const distinctId = context.distinct_id ?? templatedDistinctId;
     if (!distinctId) {
       return null;
     }

@@ -1189,7 +1189,7 @@ describe("LocalFeatureFlagsProvider hierarchical groups", () => {
     project_id: 123,
     serving_method: "client",
     context: "distinct_id",
-    context_template: HG_TEMPLATE,
+    context_value_template: HG_TEMPLATE,
     hash_salt: "880dc3e584b4452fb769808ca18dc9a6",
     ruleset: {
       variants: [
@@ -1222,7 +1222,7 @@ describe("LocalFeatureFlagsProvider hierarchical groups", () => {
 
   const withTemplate = (overrides = {}) => ({
     ...createTestFlag(overrides),
-    context_template: HG_TEMPLATE,
+    context_value_template: HG_TEMPLATE,
   });
 
   const hgContext = (userId, companyId) => ({
@@ -1302,29 +1302,6 @@ describe("LocalFeatureFlagsProvider hierarchical groups", () => {
     assertVariantReturned(result);
   });
 
-  it("needs every placeholder", async () => {
-    await load([withTemplate()]);
-    for (const context of [
-      { $company_id: "acme" },
-      { $company_id: "acme", $user_id: "" },
-      { $company_id: "acme", $user_id: null },
-    ]) {
-      const result = provider.getVariant(FLAG_KEY_HG, FALLBACK, context);
-      expect(result.variant_value).toBe(FALLBACK_NAME);
-    }
-  });
-
-  it("uses a sent context value over the template", async () => {
-    await load([withTemplate()]);
-    const hashSpy = vi.spyOn(provider, "_getAssignedRollout");
-
-    provider.getVariant(FLAG_KEY_HG, FALLBACK, {
-      ...hgContext("user-123", "acme"),
-      distinct_id: "someone-else",
-    });
-    expect(hashSpy.mock.calls[0][1]).toBe("someone-else");
-  });
-
   it("cannot evaluate a distinct_id flag from $user_id/$company_id without a template", async () => {
     await load([createTestFlag()]);
     const hashSpy = vi.spyOn(provider, "_getAssignedRollout");
@@ -1336,25 +1313,6 @@ describe("LocalFeatureFlagsProvider hierarchical groups", () => {
     );
     expect(result.variant_value).toBe(FALLBACK_NAME);
     expect(hashSpy).not.toHaveBeenCalled();
-  });
-
-  it("resolves test user overrides from the template", async () => {
-    await load([
-      withTemplate({
-        variants: [
-          { key: "control", value: "control", is_control: true, split: 1.0 },
-          { key: "treatment", value: "treatment", is_control: false, split: 0 },
-        ],
-        testUsers: { "$company:acme|$user:user-123": "treatment" },
-      }),
-    ]);
-    const result = provider.getVariant(
-      FLAG_KEY_HG,
-      FALLBACK,
-      hgContext("user-123", "acme"),
-    );
-    expect(result.variant_value).toBe("treatment");
-    expect(result.is_qa_tester).toBe(true);
   });
 
   it("matches test user overrides on a distinct id as sent", async () => {
@@ -1372,33 +1330,6 @@ describe("LocalFeatureFlagsProvider hierarchical groups", () => {
       distinct_id: "$company:acme|$user:user-123",
     });
     expect(result.variant_value).toBe("treatment");
-  });
-
-  it("does not use a templated value for test users when the flag is not keyed on distinct_id", async () => {
-    await load([
-      {
-        ...createTestFlag({
-          context: "group_key",
-          variants: [
-            { key: "control", value: "control", is_control: true, split: 1.0 },
-            {
-              key: "treatment",
-              value: "treatment",
-              is_control: false,
-              split: 0,
-            },
-          ],
-          testUsers: { "$company:acme|$user:user-123": "treatment" },
-        }),
-        context_template: HG_TEMPLATE,
-      },
-    ]);
-    const result = provider.getVariant(
-      FLAG_KEY_HG,
-      FALLBACK,
-      hgContext("user-123", "acme"),
-    );
-    expect(result.variant_value).toBe("control");
   });
 
   it("hashes group and device flags on the raw context value", async () => {
@@ -1419,73 +1350,191 @@ describe("LocalFeatureFlagsProvider hierarchical groups", () => {
     expect(hashSpy.mock.calls[1][1]).toBe("device-abc");
   });
 
-  describe("definition parsing", () => {
-    it("drops a flag with a newer context_template_version", async () => {
-      await load([{ ...createTestFlag(), context_template_version: 2 }]);
+  describe("context_value_template", () => {
+    const SPEC_CONTEXT = {
+      distinct_id: "user_123",
+      device_id: "device_abc",
+      $user_id: "user_123",
+      $company_id: "company_123",
+      department: "finance",
+    };
 
-      const result = provider.getVariant(FLAG_KEY_HG, FALLBACK, {
-        distinct_id: "user-123",
-      });
-      expect(result.fallback_reason.kind).toBe(
-        FallbackReason.Kind.FLAG_NOT_FOUND,
-      );
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining(
-          `Dropping flag '${FLAG_KEY_HG}': context_template_version 2`,
-        ),
-      );
+    const templatedFlag = (context, template, overrides = {}) => ({
+      ...createTestFlag({ context, ...overrides }),
+      context_value_template: template,
     });
 
-    it("keeps a flag with context_template_version 1", async () => {
-      await load([{ ...withTemplate(), context_template_version: 1 }]);
-      assertVariantReturned(
-        provider.getVariant(
-          FLAG_KEY_HG,
-          FALLBACK,
-          hgContext("user-123", "acme"),
-        ),
-      );
+    const assignmentKey = (context) => {
+      const hashSpy = vi.spyOn(provider, "_getAssignedRollout");
+      provider.getVariant(FLAG_KEY_HG, FALLBACK, context, false);
+      const key = hashSpy.mock.calls[0]?.[1];
+      hashSpy.mockRestore();
+      return key;
+    };
+
+    it.each([
+      [
+        "distinct_id",
+        "$company:{$company_id}|$user:{$user_id}",
+        "$company:company_123|$user:user_123",
+      ],
+      ["device_id", "{device_id}", "device_abc"],
+      [
+        "$user_id",
+        "$company:{$company_id}|$user:{$user_id}",
+        "$company:company_123|$user:user_123",
+      ],
+      ["$company_id", "$company:{$company_id}", "$company:company_123"],
+      [
+        "department",
+        "$company:{$company_id}|department:{department}",
+        "$company:company_123|department:finance",
+      ],
+    ])(
+      "assigns a %s flag with template %s on %s",
+      async (context, template, expected) => {
+        await load([templatedFlag(context, template)]);
+        const variantSpy = vi.spyOn(provider, "_getAssignedVariant");
+
+        expect(assignmentKey(SPEC_CONTEXT)).toBe(expected);
+        provider.getVariant(FLAG_KEY_HG, FALLBACK, SPEC_CONTEXT, false);
+        expect(variantSpy.mock.calls[0][1]).toBe(expected);
+      },
+    );
+
+    it("keeps literal text outside the braces", async () => {
+      await load([
+        templatedFlag("department", "dept-{department}/{$company_id}!"),
+      ]);
+      expect(assignmentKey(SPEC_CONTEXT)).toBe("dept-finance/company_123!");
+    });
+
+    it("stringifies placeholder values", async () => {
+      await load([templatedFlag("department", "{department}:{count}")]);
+      expect(assignmentKey({ ...SPEC_CONTEXT, count: 42 })).toBe("finance:42");
     });
 
     it.each([
-      "$company:no-placeholders",
-      "$company:{}",
-      "$company:{  }",
-      "$company:{$company_id}|$user:{}",
-    ])("drops a flag with malformed template %s", async (template) => {
-      await load([{ ...createTestFlag(), context_template: template }]);
+      ["absent", {}],
+      ["null", { $user_id: null }],
+      ["undefined", { $user_id: undefined }],
+    ])(
+      "uses the raw context value when a placeholder is %s",
+      async (_, override) => {
+        await load([
+          templatedFlag(
+            "distinct_id",
+            "$company:{$company_id}|$user:{$user_id}",
+          ),
+        ]);
+        const { $user_id, ...rest } = SPEC_CONTEXT;
+        expect(assignmentKey({ ...rest, ...override })).toBe("user_123");
+      },
+    );
+
+    it("uses the raw context value without a template, as before", async () => {
+      await load([createTestFlag({ context: "department" })]);
+      expect(assignmentKey(SPEC_CONTEXT)).toBe("finance");
+    });
+
+    it("returns the fallback when the raw value is also missing", async () => {
+      await load([
+        templatedFlag("distinct_id", "$company:{$company_id}|$user:{$user_id}"),
+      ]);
+      const hashSpy = vi.spyOn(provider, "_getAssignedRollout");
 
       const result = provider.getVariant(FLAG_KEY_HG, FALLBACK, {
-        distinct_id: "user-123",
+        $company_id: "company_123",
       });
+      expect(result.variant_value).toBe(FALLBACK_NAME);
       expect(result.fallback_reason.kind).toBe(
-        FallbackReason.Kind.FLAG_NOT_FOUND,
+        FallbackReason.Kind.MISSING_CONTEXT_KEY,
       );
+      expect(hashSpy).not.toHaveBeenCalled();
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining(`Dropping flag '${FLAG_KEY_HG}'`),
+        `The variant assignment key, 'distinct_id' for flag, '${FLAG_KEY_HG}' is not present in the supplied user context dictionary`,
       );
     });
 
-    it("keeps other flags when one is dropped", async () => {
+    it("gives a context without $company_id the same variant as a flag without a template", async () => {
+      const contexts = Array.from({ length: 50 }, (_, i) => ({
+        distinct_id: `user_${i}`,
+        $user_id: `user_${i}`,
+      }));
+      const variantKeys = () =>
+        contexts.map(
+          (context) =>
+            provider.getVariant(FLAG_KEY_HG, FALLBACK, context, false)
+              .variant_key,
+        );
+
+      const variants = [
+        { key: "control", value: "control", is_control: true, split: 0.5 },
+        { key: "treatment", value: "treatment", is_control: false, split: 0.5 },
+      ];
+
+      await load([createTestFlag({ variants })]);
+      const untemplated = variantKeys();
       await load([
-        createTestFlag({ flagKey: "good-flag" }),
-        { ...createTestFlag(), context_template_version: 99 },
+        templatedFlag(
+          "distinct_id",
+          "$company:{$company_id}|$user:{$user_id}",
+          { variants },
+        ),
       ]);
-      const context = { distinct_id: "user-123" };
+      const templated = variantKeys();
 
-      assertVariantReturned(
-        provider.getVariant("good-flag", FALLBACK, context),
-      );
-      expect(
-        provider.getVariant(FLAG_KEY_HG, FALLBACK, context).variant_value,
-      ).toBe(FALLBACK_NAME);
+      expect(templated).toEqual(untemplated);
+      expect(new Set(templated)).toEqual(new Set(["control", "treatment"]));
     });
 
-    it("treats an empty template as none", async () => {
-      await load([{ ...createTestFlag(), context_template: "" }]);
-      assertVariantReturned(
-        provider.getVariant(FLAG_KEY_HG, FALLBACK, { distinct_id: "user-123" }),
-      );
+    describe("test user overrides", () => {
+      const overrideFlag = (context, testUsers) =>
+        templatedFlag(context, "$company:{$company_id}|$user:{$user_id}", {
+          variants: [
+            { key: "control", value: "control", is_control: true, split: 1.0 },
+            {
+              key: "treatment",
+              value: "treatment",
+              is_control: false,
+              split: 0,
+            },
+          ],
+          testUsers,
+        });
+
+      it("matches a distinct_id flag on the resolved assignment key", async () => {
+        await load([
+          overrideFlag("distinct_id", {
+            "$company:company_123|$user:user_123": "treatment",
+          }),
+        ]);
+        const result = provider.getVariant(FLAG_KEY_HG, FALLBACK, SPEC_CONTEXT);
+        expect(result.variant_value).toBe("treatment");
+        expect(result.is_qa_tester).toBe(true);
+      });
+
+      it("does not match a distinct_id flag on the raw distinct_id when the template resolves", async () => {
+        await load([overrideFlag("distinct_id", { user_123: "treatment" })]);
+        const result = provider.getVariant(FLAG_KEY_HG, FALLBACK, SPEC_CONTEXT);
+        expect(result.variant_value).toBe("control");
+      });
+
+      it("matches other flags on the raw distinct_id", async () => {
+        await load([overrideFlag("$user_id", { user_123: "treatment" })]);
+        const result = provider.getVariant(FLAG_KEY_HG, FALLBACK, SPEC_CONTEXT);
+        expect(result.variant_value).toBe("treatment");
+      });
+
+      it("does not match other flags on the resolved assignment key", async () => {
+        await load([
+          overrideFlag("$user_id", {
+            "$company:company_123|$user:user_123": "treatment",
+          }),
+        ]);
+        const result = provider.getVariant(FLAG_KEY_HG, FALLBACK, SPEC_CONTEXT);
+        expect(result.variant_value).toBe("control");
+      });
     });
   });
 

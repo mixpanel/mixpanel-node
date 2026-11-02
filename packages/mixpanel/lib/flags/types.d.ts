@@ -115,12 +115,11 @@ export interface ExperimentationFlag {
   /** Hash salt for variant assignment */
   hash_salt?: string;
   /**
-   * How to build the assignment key when the context does not carry
-   * `context` directly, e.g. `"$company:{$company_id}|$user:{$user_id}"`
+   * Template for the assignment key, filled from the evaluation context, e.g.
+   * `"$company:{$company_id}|$user:{$user_id}"`. When a placeholder is
+   * missing, the raw `context` value is used instead.
    */
-  context_template?: string;
-  /** Version of the context template format (default: 1) */
-  context_template_version?: number;
+  context_value_template?: string;
 }
 
 /**
