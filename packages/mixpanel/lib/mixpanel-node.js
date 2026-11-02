@@ -621,16 +621,6 @@ const create_client = function (token, config) {
                             mixpanel client config
     */
   metrics.set_config = function (config) {
-    if (
-      config &&
-      config.hierarchical_groups !== undefined &&
-      config.hierarchical_groups !== hierarchical_groups
-    ) {
-      throw new MixpanelArgumentError(
-        "hierarchical_groups is fixed when the client is created: " +
-          "Mixpanel.init(token, { hierarchical_groups: true })",
-      );
-    }
     if (config && config.logger !== undefined) {
       assert_logger(config.logger);
     }

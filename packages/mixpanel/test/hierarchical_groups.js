@@ -100,12 +100,12 @@ describe("hierarchical groups", () => {
       ).toThrow(MixpanelArgumentError);
     });
 
-    it("cannot be switched after init", () => {
-      expect(() => legacy.set_config({ hierarchical_groups: true })).toThrow(
-        /fixed when the client is created/,
-      );
-      expect(() => hg.set_config({ hierarchical_groups: true })).not.toThrow();
+    it("is read once at init, like the flags configs", () => {
+      legacy.set_config({ hierarchical_groups: true });
+      hg.set_config({ hierarchical_groups: false });
+
       expect(legacy.hierarchical_groups).toBe(false);
+      expect(hg.hierarchical_groups).toBe(true);
     });
 
     it("does not change a message that is valid in both modes", () => {
