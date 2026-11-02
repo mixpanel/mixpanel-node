@@ -1,10 +1,139 @@
-const { merge_modifiers, ProfileHelpers } = require("./profile_helpers");
+const {
+  merge_modifiers,
+  ProfileHelpers,
+  GROUP_OPERATIONS,
+} = require("./profile_helpers");
+const {
+  MixpanelIdentity,
+  parse_combined_distinct_id,
+  require_identity_matches_project,
+} = require("./identity");
+const {
+  MixpanelArgumentError,
+  MixpanelUnsupportedOperationError,
+} = require("./errors");
 
 class MixpanelPeople extends ProfileHelpers() {
   constructor(mp_instance) {
     super();
     this.mixpanel = mp_instance;
     this.endpoint = "/engage";
+  }
+
+  /**
+   * set, set_once, unset, union, remove and delete_user accept a
+   * MixpanelIdentity in place of a distinct id. Without hierarchical groups, a
+   * distinct id (raw or in an identity) updates that /engage profile.
+   *
+   * On a hierarchical groups client nothing is sent to /engage. A user's
+   * profile is the group profile $group_key "$user_id" within its company,
+   * sent to /groups. The user and company come from the identity's user_id
+   * and company_id (else a $company_id modifier), or are parsed from a
+   * distinct id of the form $company:{company}|$user:{user}. Any other
+   * distinct id is rejected.
+   */
+  _target(identifiers, modifiers) {
+    const identity = identifiers.$distinct_id;
+    const hierarchical_groups = this.mixpanel.hierarchical_groups;
+    if (!(identity instanceof MixpanelIdentity)) {
+      if (!hierarchical_groups) {
+        return { endpoint: this.endpoint, identifiers };
+      }
+      return this._combined_distinct_id_target(identity, modifiers);
+    }
+    require_identity_matches_project(identity, hierarchical_groups);
+    if (identity.distinct_id !== null) {
+      if (hierarchical_groups) {
+        return this._combined_distinct_id_target(
+          identity.distinct_id,
+          modifiers,
+        );
+      }
+      return {
+        endpoint: this.endpoint,
+        identifiers: { $distinct_id: identity.distinct_id },
+      };
+    }
+    if (!hierarchical_groups) {
+      throw new MixpanelArgumentError(
+        `${identity} cannot identify a profile on this project. User profiles are ` +
+          "addressed by distinct id unless the project uses hierarchical groups.",
+      );
+    }
+    if (identity.user_id === null) {
+      if (identity.company_id === null) {
+        throw new MixpanelArgumentError(
+          `${identity} names no user, so it cannot identify a profile. ` +
+            "Device ids identify anonymous events, not profiles.",
+        );
+      }
+      throw new MixpanelArgumentError(
+        `User profile updates require a user id, and ${identity} has none. ` +
+          'Use mixpanel.groups.set("$company_id", company_id, properties) to update ' +
+          "the company's profile.",
+      );
+    }
+    // The identity's own company, not the client's bound company: the
+    // company is part of the user's identity.
+    return this._group_target(
+      { $group_key: "$user_id", $group_id: identity.user_id },
+      identity.company_id,
+      modifiers,
+    );
+  }
+
+  /**
+   * The /groups user profile target for a distinct id on a hierarchical
+   * groups client. Only a $company:{company}|$user:{user} distinct id names
+   * a user and company; anything else is rejected before anything is sent.
+   */
+  _combined_distinct_id_target(distinct_id, modifiers) {
+    const parsed = parse_combined_distinct_id(distinct_id);
+    if (parsed === null) {
+      throw new MixpanelArgumentError(
+        "User profile updates on hierarchical groups projects need a user and a " +
+          `company, and the distinct id ${JSON.stringify(distinct_id)} does not name both. ` +
+          "Pass new MixpanelIdentity({ user_id, company_id }) or a distinct id " +
+          "of the form $company:{company}|$user:{user}.",
+      );
+    }
+    // The parsed company is part of the user's identity, so it wins over the
+    // client's bound company and a $company_id modifier.
+    return this._group_target(
+      { $group_key: "$user_id", $group_id: parsed.user_id },
+      parsed.company_id,
+      modifiers,
+    );
+  }
+
+  /**
+   * A hierarchical groups user profile is a group profile, so it supports
+   * what /groups supports. Operations outside that set, clear_charges (whose
+   * $transactions only track_charge writes), and any identity argument, are
+   * refused before anything is sent.
+   */
+  _require_supported(operation, method, distinct_id) {
+    if (this.mixpanel.hierarchical_groups) {
+      const unsupported =
+        method === "clear_charges"
+          ? "people.clear_charges"
+          : !GROUP_OPERATIONS.includes(operation) && operation;
+      if (unsupported) {
+        throw new MixpanelUnsupportedOperationError(
+          `${unsupported} is not supported for hierarchical groups projects, whose user ` +
+            "profiles are group profiles keyed by $user_id. Supported operations are " +
+            `${GROUP_OPERATIONS.join(", ")}, so people.increment, people.append, ` +
+            "people.track_charge and people.clear_charges have no hierarchical groups " +
+            "equivalent.",
+        );
+      }
+    }
+    if (distinct_id instanceof MixpanelIdentity) {
+      throw new MixpanelArgumentError(
+        `people.${method} does not accept a MixpanelIdentity; pass a distinct id. ` +
+          "Identities are accepted by set, set_once, unset, union, remove and delete_user.",
+      );
+    }
   }
 
   /** people.set_once(distinct_id, prop, to, modifiers, callback)
@@ -37,6 +166,16 @@ class MixpanelPeople extends ProfileHelpers() {
                 'company': 'acme',
                 'plan': 'premium'
             });
+
+            // set, set_once, unset, union, remove and delete_user also take a
+            // MixpanelIdentity in place of the distinct id. On a hierarchical
+            // groups client this updates the user's profile within its company,
+            // as does a distinct id of the form $company:{company}|$user:{user};
+            // any other distinct id throws.
+            mixpanel.people.set(
+                new MixpanelIdentity({ user_id: 'joe', company_id: 'acme' }),
+                { 'plan': 'premium' }
+            );
     */
   set(distinct_id, prop, to, modifiers, callback) {
     const identifiers = { $distinct_id: distinct_id };
@@ -67,6 +206,7 @@ class MixpanelPeople extends ProfileHelpers() {
             });
     */
   increment(distinct_id, prop, by, modifiers, callback) {
+    this._require_supported("$add", "increment", distinct_id);
     // TODO extract to ProfileHelpers
 
     const $add = {};
@@ -145,6 +285,7 @@ class MixpanelPeople extends ProfileHelpers() {
             });
     */
   append(distinct_id, prop, value, modifiers, callback) {
+    this._require_supported("$append", "append", distinct_id);
     // TODO extract to ProfileHelpers
 
     const $append = {};
@@ -202,6 +343,8 @@ class MixpanelPeople extends ProfileHelpers() {
             mixpanel.people.track_charge('bob', 19, { '$time': new Date('feb 1 2012') });
     */
   track_charge(distinct_id, amount, properties, modifiers, callback) {
+    // track_charge writes $append to $transactions
+    this._require_supported("$append", "track_charge", distinct_id);
     if (typeof properties === "function" || !properties) {
       callback = properties || undefined;
       properties = {};
@@ -268,6 +411,7 @@ class MixpanelPeople extends ProfileHelpers() {
             mixpanel.people.clear_charges('bob');
     */
   clear_charges(distinct_id, modifiers, callback) {
+    this._require_supported("$set", "clear_charges", distinct_id);
     let data = {
       $set: { $transactions: [] },
       $token: this.mixpanel.token,

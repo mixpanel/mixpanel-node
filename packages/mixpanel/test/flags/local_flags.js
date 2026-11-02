@@ -1177,3 +1177,410 @@ describe("LocalFeatureFlagsProvider", () => {
     });
   });
 });
+
+describe("LocalFeatureFlagsProvider hierarchical groups", () => {
+  const FLAG_KEY_HG = "test_flag";
+  const HG_TEMPLATE = "$company:{$company_id}|$user:{$user_id}";
+  const HG_FLAG = {
+    id: "hg-id",
+    name: "HG Test",
+    key: "hg-test",
+    status: "active",
+    project_id: 123,
+    serving_method: "client",
+    context: "distinct_id",
+    context_template: HG_TEMPLATE,
+    hash_salt: "880dc3e584b4452fb769808ca18dc9a6",
+    ruleset: {
+      variants: [
+        { key: "On", value: true, split: 1 },
+        { key: "Off", value: false, split: 0 },
+      ],
+      rollout: [{ rollout_percentage: 0.5, variant_splits: { Off: 0, On: 1 } }],
+      test: { users: {} },
+    },
+  };
+
+  let mockTracker;
+  let mockLogger;
+  let provider;
+
+  const makeProvider = (hierarchical_groups) => {
+    provider = new LocalFeatureFlagsProvider(
+      "test-token",
+      { api_host: "localhost", enable_polling: false, hierarchical_groups },
+      mockTracker,
+      mockLogger,
+    );
+    return provider;
+  };
+
+  const load = async (flags) => {
+    mockFlagDefinitionsResponse(flags);
+    await provider.startPollingForDefinitions();
+  };
+
+  const withTemplate = (overrides = {}) => ({
+    ...createTestFlag(overrides),
+    context_template: HG_TEMPLATE,
+  });
+
+  const hgContext = (userId, companyId) => ({
+    $user_id: userId,
+    $company_id: companyId,
+  });
+
+  beforeEach(() => {
+    mockTracker = vi.fn();
+    mockLogger = { error: vi.fn(), warn: vi.fn(), debug: vi.fn() };
+    makeProvider(true);
+  });
+
+  afterEach(() => {
+    provider.stopPollingForDefinitions();
+    vi.restoreAllMocks();
+    nock.cleanAll();
+  });
+
+  it("assigns a templated context exactly as the distinct id it builds", async () => {
+    await load([HG_FLAG]);
+    const seen = new Set();
+    for (let i = 0; i < 50; i++) {
+      const userId = `u${i}`;
+      const templated = provider.getVariant(
+        "hg-test",
+        FALLBACK,
+        { $company_id: "acme", $user_id: userId },
+        false,
+      );
+      const direct = provider.getVariant(
+        "hg-test",
+        FALLBACK,
+        { distinct_id: `$company:acme|$user:${userId}` },
+        false,
+      );
+      expect(templated).toEqual(direct);
+      seen.add(templated.variant_source);
+    }
+    // 50% rollout: both in-rollout and fallback outcomes are exercised
+    expect(seen).toEqual(
+      new Set([VariantSource.LOCAL, VariantSource.FALLBACK]),
+    );
+
+    const userOnly = provider.getVariant("hg-test", FALLBACK, {
+      $user_id: "u1",
+    });
+    expect(userOnly.variant_value).toBe(FALLBACK_NAME);
+    expect(userOnly.fallback_reason.kind).toBe(
+      FallbackReason.Kind.MISSING_CONTEXT_KEY,
+    );
+  });
+
+  it("hashes the resolved template value", async () => {
+    await load([withTemplate()]);
+    const hashSpy = vi.spyOn(provider, "_getAssignedRollout");
+
+    const result = provider.getVariant(
+      FLAG_KEY_HG,
+      FALLBACK,
+      hgContext("user-123", "acme"),
+    );
+
+    assertVariantReturned(result);
+    expect(hashSpy.mock.calls[0][1]).toBe("$company:acme|$user:user-123");
+  });
+
+  it("applies the template without hierarchical_groups", async () => {
+    makeProvider(false);
+    await load([withTemplate()]);
+
+    const result = provider.getVariant(
+      FLAG_KEY_HG,
+      FALLBACK,
+      hgContext("user-123", "acme"),
+    );
+    assertVariantReturned(result);
+  });
+
+  it("needs every placeholder", async () => {
+    await load([withTemplate()]);
+    for (const context of [
+      { $company_id: "acme" },
+      { $company_id: "acme", $user_id: "" },
+      { $company_id: "acme", $user_id: null },
+    ]) {
+      const result = provider.getVariant(FLAG_KEY_HG, FALLBACK, context);
+      expect(result.variant_value).toBe(FALLBACK_NAME);
+    }
+  });
+
+  it("uses a sent context value over the template", async () => {
+    await load([withTemplate()]);
+    const hashSpy = vi.spyOn(provider, "_getAssignedRollout");
+
+    provider.getVariant(FLAG_KEY_HG, FALLBACK, {
+      ...hgContext("user-123", "acme"),
+      distinct_id: "someone-else",
+    });
+    expect(hashSpy.mock.calls[0][1]).toBe("someone-else");
+  });
+
+  it("cannot evaluate a distinct_id flag from $user_id/$company_id without a template", async () => {
+    await load([createTestFlag()]);
+    const hashSpy = vi.spyOn(provider, "_getAssignedRollout");
+
+    const result = provider.getVariant(
+      FLAG_KEY_HG,
+      FALLBACK,
+      hgContext("user-123", "acme"),
+    );
+    expect(result.variant_value).toBe(FALLBACK_NAME);
+    expect(hashSpy).not.toHaveBeenCalled();
+  });
+
+  it("resolves test user overrides from the template", async () => {
+    await load([
+      withTemplate({
+        variants: [
+          { key: "control", value: "control", is_control: true, split: 1.0 },
+          { key: "treatment", value: "treatment", is_control: false, split: 0 },
+        ],
+        testUsers: { "$company:acme|$user:user-123": "treatment" },
+      }),
+    ]);
+    const result = provider.getVariant(
+      FLAG_KEY_HG,
+      FALLBACK,
+      hgContext("user-123", "acme"),
+    );
+    expect(result.variant_value).toBe("treatment");
+    expect(result.is_qa_tester).toBe(true);
+  });
+
+  it("matches test user overrides on a distinct id as sent", async () => {
+    await load([
+      createTestFlag({
+        variants: [
+          { key: "control", value: "control", is_control: true, split: 1.0 },
+          { key: "treatment", value: "treatment", is_control: false, split: 0 },
+        ],
+        testUsers: { "$company:acme|$user:user-123": "treatment" },
+      }),
+    ]);
+    const result = provider.getVariant(FLAG_KEY_HG, FALLBACK, {
+      ...hgContext("user-123", "acme"),
+      distinct_id: "$company:acme|$user:user-123",
+    });
+    expect(result.variant_value).toBe("treatment");
+  });
+
+  it("does not use a templated value for test users when the flag is not keyed on distinct_id", async () => {
+    await load([
+      {
+        ...createTestFlag({
+          context: "group_key",
+          variants: [
+            { key: "control", value: "control", is_control: true, split: 1.0 },
+            {
+              key: "treatment",
+              value: "treatment",
+              is_control: false,
+              split: 0,
+            },
+          ],
+          testUsers: { "$company:acme|$user:user-123": "treatment" },
+        }),
+        context_template: HG_TEMPLATE,
+      },
+    ]);
+    const result = provider.getVariant(
+      FLAG_KEY_HG,
+      FALLBACK,
+      hgContext("user-123", "acme"),
+    );
+    expect(result.variant_value).toBe("control");
+  });
+
+  it("hashes group and device flags on the raw context value", async () => {
+    await load([
+      createTestFlag({ flagKey: "dept", context: "department" }),
+      createTestFlag({ flagKey: "device", context: "device_id" }),
+    ]);
+    const hashSpy = vi.spyOn(provider, "_getAssignedRollout");
+    const context = {
+      ...hgContext("user-123", "acme"),
+      department: "finance",
+      device_id: "device-abc",
+    };
+
+    provider.getVariant("dept", FALLBACK, context);
+    provider.getVariant("device", FALLBACK, context);
+    expect(hashSpy.mock.calls[0][1]).toBe("finance");
+    expect(hashSpy.mock.calls[1][1]).toBe("device-abc");
+  });
+
+  describe("definition parsing", () => {
+    it("drops a flag with a newer context_template_version", async () => {
+      await load([{ ...createTestFlag(), context_template_version: 2 }]);
+
+      const result = provider.getVariant(FLAG_KEY_HG, FALLBACK, {
+        distinct_id: "user-123",
+      });
+      expect(result.fallback_reason.kind).toBe(
+        FallbackReason.Kind.FLAG_NOT_FOUND,
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          `Dropping flag '${FLAG_KEY_HG}': context_template_version 2`,
+        ),
+      );
+    });
+
+    it("keeps a flag with context_template_version 1", async () => {
+      await load([{ ...withTemplate(), context_template_version: 1 }]);
+      assertVariantReturned(
+        provider.getVariant(
+          FLAG_KEY_HG,
+          FALLBACK,
+          hgContext("user-123", "acme"),
+        ),
+      );
+    });
+
+    it.each([
+      "$company:no-placeholders",
+      "$company:{}",
+      "$company:{  }",
+      "$company:{$company_id}|$user:{}",
+    ])("drops a flag with malformed template %s", async (template) => {
+      await load([{ ...createTestFlag(), context_template: template }]);
+
+      const result = provider.getVariant(FLAG_KEY_HG, FALLBACK, {
+        distinct_id: "user-123",
+      });
+      expect(result.fallback_reason.kind).toBe(
+        FallbackReason.Kind.FLAG_NOT_FOUND,
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining(`Dropping flag '${FLAG_KEY_HG}'`),
+      );
+    });
+
+    it("keeps other flags when one is dropped", async () => {
+      await load([
+        createTestFlag({ flagKey: "good-flag" }),
+        { ...createTestFlag(), context_template_version: 99 },
+      ]);
+      const context = { distinct_id: "user-123" };
+
+      assertVariantReturned(
+        provider.getVariant("good-flag", FALLBACK, context),
+      );
+      expect(
+        provider.getVariant(FLAG_KEY_HG, FALLBACK, context).variant_value,
+      ).toBe(FALLBACK_NAME);
+    });
+
+    it("treats an empty template as none", async () => {
+      await load([{ ...createTestFlag(), context_template: "" }]);
+      assertVariantReturned(
+        provider.getVariant(FLAG_KEY_HG, FALLBACK, { distinct_id: "user-123" }),
+      );
+    });
+  });
+
+  describe("exposure", () => {
+    const exposureProperties = () => mockTracker.mock.calls[0][1];
+
+    it("carries $user_id and $company_id without a distinct_id", async () => {
+      await load([withTemplate()]);
+      provider.getVariant(FLAG_KEY_HG, FALLBACK, hgContext("user-123", "acme"));
+
+      expect(mockTracker).toHaveBeenCalledTimes(1);
+      const properties = exposureProperties();
+      expect(properties.$user_id).toBe("user-123");
+      expect(properties.$company_id).toBe("acme");
+      expect("distinct_id" in properties).toBe(false);
+    });
+
+    it("carries the distinct id as sent alongside $user_id and $company_id", async () => {
+      await load([createTestFlag()]);
+      provider.getVariant(FLAG_KEY_HG, FALLBACK, {
+        ...hgContext("user-123", "acme"),
+        distinct_id: "$company:acme|$user:user-123",
+      });
+
+      const properties = exposureProperties();
+      expect(properties.distinct_id).toBe("$company:acme|$user:user-123");
+      expect(properties.$user_id).toBe("user-123");
+      expect(properties.$company_id).toBe("acme");
+    });
+
+    it("attributes by $company_id alone", async () => {
+      await load([createTestFlag({ context: "department" })]);
+      provider.getVariant(FLAG_KEY_HG, FALLBACK, {
+        $company_id: "acme",
+        department: "finance",
+      });
+
+      const properties = exposureProperties();
+      expect(properties.$company_id).toBe("acme");
+      expect("$user_id" in properties).toBe(false);
+      expect("distinct_id" in properties).toBe(false);
+    });
+
+    it("drops an exposure without $company_id or distinct_id, naming $company_id", async () => {
+      await load([createTestFlag({ context: "department" })]);
+      provider.getVariant(FLAG_KEY_HG, FALLBACK, {
+        $user_id: "user-123",
+        department: "finance",
+      });
+
+      expect(mockTracker).not.toHaveBeenCalled();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        "Cannot track exposure event without a $company_id in the context",
+      );
+    });
+
+    it("is unchanged without hierarchical_groups", async () => {
+      makeProvider(false);
+      await load([createTestFlag()]);
+      const hashSpy = vi.spyOn(provider, "_getAssignedRollout");
+      provider.getVariant(FLAG_KEY_HG, FALLBACK, {
+        ...hgContext("user-123", "acme"),
+        distinct_id: "user-123",
+      });
+
+      expect(hashSpy.mock.calls[0][1]).toBe("user-123");
+      expect(mockTracker).toHaveBeenCalledWith(
+        "$experiment_started",
+        {
+          distinct_id: "user-123",
+          "Experiment name": FLAG_KEY_HG,
+          "Variant name": expect.any(String),
+          $experiment_type: "feature_flag",
+          "Flag evaluation mode": "local",
+          $experiment_id: null,
+          $is_experiment_active: null,
+          $is_qa_tester: false,
+        },
+        expect.any(Function),
+      );
+      expect(Object.keys(exposureProperties())[0]).toBe("distinct_id");
+    });
+
+    it("keeps the non-HG drop message without hierarchical_groups", async () => {
+      makeProvider(false);
+      await load([createTestFlag({ context: "department" })]);
+      provider.getVariant(FLAG_KEY_HG, FALLBACK, {
+        $company_id: "acme",
+        department: "finance",
+      });
+
+      expect(mockTracker).not.toHaveBeenCalled();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        "Cannot track exposure event without a distinct_id in the context",
+      );
+    });
+  });
+});

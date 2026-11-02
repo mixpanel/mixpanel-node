@@ -654,4 +654,83 @@ describe("RemoteFeatureFlagProvider", () => {
       expect(scope.isDone()).toBe(true);
     });
   });
+
+  describe("hierarchical groups", () => {
+    let hgProvider;
+    let hgLogger;
+
+    beforeEach(() => {
+      hgLogger = { error: vi.fn(), warn: vi.fn(), info: vi.fn() };
+      hgProvider = new RemoteFeatureFlagsProvider(
+        TEST_TOKEN,
+        { api_host: flagsEndpointHostName, hierarchical_groups: true },
+        mockTracker,
+        hgLogger,
+      );
+    });
+
+    it("forwards $user_id/$company_id and carries them on the exposure", async () => {
+      const scope = nock("https://localhost")
+        .get("/flags")
+        .query((query) => {
+          const context = JSON.parse(query.context);
+          return (
+            context.$user_id === "user-123" && context.$company_id === "acme"
+          );
+        })
+        .reply(200, {
+          code: 200,
+          flags: {
+            "test-flag": { variant_key: "a", variant_value: "value-a" },
+          },
+        });
+
+      const value = await hgProvider.getVariantValue("test-flag", "fallback", {
+        $user_id: "user-123",
+        $company_id: "acme",
+      });
+
+      expect(scope.isDone()).toBe(true);
+      expect(value).toBe("value-a");
+      expect(mockTracker).toHaveBeenCalledTimes(1);
+      const properties = mockTracker.mock.calls[0][1];
+      expect(properties.$user_id).toBe("user-123");
+      expect(properties.$company_id).toBe("acme");
+      expect(properties["Flag evaluation mode"]).toBe("remote");
+      expect("distinct_id" in properties).toBe(false);
+    });
+
+    it("drops the exposure without $company_id or distinct_id, naming $company_id", async () => {
+      mockSuccessResponse({
+        "test-flag": { variant_key: "a", variant_value: "value-a" },
+      });
+
+      await hgProvider.getVariantValue("test-flag", "fallback", {
+        $user_id: "user-123",
+      });
+
+      expect(mockTracker).not.toHaveBeenCalled();
+      expect(hgLogger.error).toHaveBeenCalledWith(
+        "Cannot track exposure event without a $company_id in the context",
+      );
+    });
+
+    it("ignores $user_id/$company_id on exposures without hierarchical_groups", async () => {
+      mockSuccessResponse({
+        "test-flag": { variant_key: "a", variant_value: "value-a" },
+      });
+
+      await provider.getVariantValue("test-flag", "fallback", {
+        distinct_id: "test-user",
+        $user_id: "user-123",
+        $company_id: "acme",
+      });
+
+      const properties = mockTracker.mock.calls[0][1];
+      expect(Object.keys(properties)[0]).toBe("distinct_id");
+      expect(properties.distinct_id).toBe("test-user");
+      expect("$user_id" in properties).toBe(false);
+      expect("$company_id" in properties).toBe(false);
+    });
+  });
 });

@@ -17,6 +17,55 @@ declare namespace mixpanel {
     toString(): string;
   }
 
+  export interface MixpanelIdentityInit {
+    distinct_id?: string | null | undefined;
+    user_id?: string | null | undefined;
+    company_id?: string | null | undefined;
+    device_id?: string | null | undefined;
+  }
+
+  /**
+   * Identifies who an event or profile update belongs to. Unset values are
+   * null and omitted from messages. Instances are frozen.
+   */
+  export class MixpanelIdentity {
+    /**
+     * @throws {MixpanelArgumentError} if a value is empty, a key is unknown,
+     *   or no value is set
+     */
+    constructor(ids: MixpanelIdentityInit);
+    readonly distinct_id: string | null;
+    readonly user_id: string | null;
+    readonly company_id: string | null;
+    readonly device_id: string | null;
+    /** true if this identity names a company */
+    readonly is_hierarchical: boolean;
+    toString(): string;
+  }
+
+  /** An argument cannot be used, e.g. an identity this client cannot send. */
+  export class MixpanelArgumentError extends TypeError {
+    readonly code: "MIXPANEL_INVALID_ARGUMENT";
+  }
+
+  /** The operation has no equivalent on a hierarchical groups project. */
+  export class MixpanelUnsupportedOperationError extends Error {
+    readonly code: "MIXPANEL_UNSUPPORTED_OPERATION";
+  }
+
+  /** A hierarchical groups group profile update has no company; use for_company. */
+  export class MixpanelCompanyRequiredError extends Error {
+    readonly code: "MIXPANEL_COMPANY_REQUIRED";
+  }
+
+  /**
+   * A distinct id, or an identity that names a user profile. On a
+   * hierarchical groups client a distinct id must be of the form
+   * `$company:{company}|$user:{user}`; the update goes to that user's group
+   * profile, and any other distinct id throws MixpanelArgumentError.
+   */
+  export type ProfileId = string | MixpanelIdentity;
+
   export type Callback = (err: Error | undefined) => any;
   export type BatchCallback = (errors: [Error] | undefined) => any;
 
@@ -44,6 +93,8 @@ declare namespace mixpanel {
     logger: CustomLogger;
     local_flags_config?: LocalFlagsConfig;
     remote_flags_config?: RemoteFlagsConfig;
+    /** true for a project that uses hierarchical groups; fixed at init */
+    hierarchical_groups: boolean;
   }
 
   export interface PropertyDict {
@@ -65,6 +116,8 @@ declare namespace mixpanel {
     $ignore_alias?: boolean;
     $latitude?: number;
     $longitude?: number;
+    /** company for a group profile update on a hierarchical groups client */
+    $company_id?: string;
   }
 
   export interface BatchOptions {
@@ -83,8 +136,32 @@ declare namespace mixpanel {
   interface Mixpanel {
     init(mixpanelToken: string, config?: Partial<InitConfig>): Mixpanel;
 
+    /** true if the client was created with `hierarchical_groups: true` */
+    readonly hierarchical_groups: boolean;
+
+    /** the company this client is bound to, see `for_company` */
+    readonly company_id?: string;
+
+    /**
+     * Returns a client bound to the given company, sharing this client's
+     * config, connections and flag providers. Its group profile updates carry
+     * a top-level `$company_id`.
+     */
+    for_company(companyId: string): Mixpanel;
+
     track(eventName: string, callback?: Callback): void;
     track(
+      eventName: string,
+      properties: PropertyDict,
+      callback?: Callback,
+    ): void;
+    track(
+      identity: MixpanelIdentity,
+      eventName: string,
+      callback?: Callback,
+    ): void;
+    track(
+      identity: MixpanelIdentity,
       eventName: string,
       properties: PropertyDict,
       callback?: Callback,
@@ -110,6 +187,19 @@ declare namespace mixpanel {
       callback?: Callback,
     ): void;
     import(eventName: string, time: Date | number, callback: Callback): void;
+    import(
+      identity: MixpanelIdentity,
+      eventName: string,
+      time: Date | number,
+      callback: Callback,
+    ): void;
+    import(
+      identity: MixpanelIdentity,
+      eventName: string,
+      time: Date | number,
+      properties?: PropertyDict,
+      callback?: Callback,
+    ): void;
 
     import_batch(
       eventNames: string[],
@@ -132,30 +222,30 @@ declare namespace mixpanel {
 
   interface People {
     set(
-      distinctId: string,
+      distinctId: ProfileId,
       properties: PropertyDict,
       callback?: Callback,
     ): void;
     set(
-      distinctId: string,
+      distinctId: ProfileId,
       properties: PropertyDict,
       modifiers?: Modifiers,
       callback?: Callback,
     ): void;
     set(
-      distinctId: string,
+      distinctId: ProfileId,
       propertyName: string,
       value: string | number,
       modifiers: Modifiers,
     ): void;
     set(
-      distinctId: string,
+      distinctId: ProfileId,
       propertyName: string,
       value: string | number,
       callback?: Callback,
     ): void;
     set(
-      distinctId: string,
+      distinctId: ProfileId,
       propertyName: string,
       value: string | number,
       modifiers: Modifiers,
@@ -163,37 +253,37 @@ declare namespace mixpanel {
     ): void;
 
     unset(
-      distinctId: string,
+      distinctId: ProfileId,
       propertyName: string | string[],
       callback?: Callback,
     ): void;
     unset(
-      distinctId: string,
+      distinctId: ProfileId,
       propertyName: string | string[],
       modifiers?: Modifiers,
       callback?: Callback,
     ): void;
 
     set_once(
-      distinctId: string,
+      distinctId: ProfileId,
       propertyName: string,
       value: string,
       callback?: Callback,
     ): void;
     set_once(
-      distinctId: string,
+      distinctId: ProfileId,
       propertyName: string,
       value: string,
       modifiers: Modifiers,
       callback?: Callback,
     ): void;
     set_once(
-      distinctId: string,
+      distinctId: ProfileId,
       properties: PropertyDict,
       callback?: Callback,
     ): void;
     set_once(
-      distinctId: string,
+      distinctId: ProfileId,
       properties: PropertyDict,
       modifiers?: Modifiers,
       callback?: Callback,
@@ -256,20 +346,20 @@ declare namespace mixpanel {
     ): void;
 
     union(
-      distinctId: string,
+      distinctId: ProfileId,
       data: UnionData,
       modifiers?: Modifiers,
       callback?: Callback,
     ): void;
-    union(distinctId: string, data: UnionData, callback: Callback): void;
+    union(distinctId: ProfileId, data: UnionData, callback: Callback): void;
 
     remove(
-      distinctId: string,
+      distinctId: ProfileId,
       data: RemoveData,
       modifiers?: Modifiers,
       callback?: Callback,
     ): void;
-    remove(distinctId: string, data: RemoveData, callback: Callback): void;
+    remove(distinctId: ProfileId, data: RemoveData, callback: Callback): void;
 
     track_charge(
       distinctId: string,
@@ -293,11 +383,11 @@ declare namespace mixpanel {
     clear_charges(distinctId: string, callback: Callback): void;
 
     delete_user(
-      distinctId: string,
+      distinctId: ProfileId,
       modifiers?: Modifiers,
       callback?: Callback,
     ): void;
-    delete_user(distinctId: string, callback: Callback): void;
+    delete_user(distinctId: ProfileId, callback: Callback): void;
   }
 
   interface Groups {

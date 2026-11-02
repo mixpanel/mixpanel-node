@@ -37,6 +37,7 @@ class RemoteFeatureFlagsProvider extends FeatureFlagsProvider {
       token: token,
       api_host: mergedConfig.api_host,
       request_timeout_in_seconds: mergedConfig.request_timeout_in_seconds,
+      hierarchical_groups: mergedConfig.hierarchical_groups === true,
     };
 
     super(providerConfig, "/flags", tracker, "remote", logger, credentials);

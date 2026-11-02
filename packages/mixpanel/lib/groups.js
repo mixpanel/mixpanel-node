@@ -11,6 +11,15 @@ class MixpanelGroups extends ProfileHelpers() {
     this.endpoint = "/groups";
   }
 
+  /**
+   * Adds the client's bound company (see `mixpanel.for_company`), else a
+   * `$company_id` modifier, as a top-level `$company_id`. Hierarchical groups
+   * clients require one of them.
+   */
+  _target(identifiers, modifiers) {
+    return this._group_target(identifiers, this.mixpanel.company_id, modifiers);
+  }
+
   /** groups.set_once(group_key, group_id, prop, to, modifiers, callback)
         ---
         The same as groups.set, but adds a property value to a group only if it has not been set before.
