@@ -31,10 +31,12 @@ const FLAG_CONTEXT_KEYS = {
  * new MixpanelIdentity({ company_id: "acme" });                             // a company, no user
  *
  * Which combinations are valid depends on the project, so the client rather
- * than this type decides. On a hierarchical groups project the company is
- * part of the user's identity: a `$user_id` sent without a `$company_id`
- * resolves to a different user that nothing reconciles later, so the client
- * rejects it. A user who belongs to two companies is two users, by design.
+ * than this type decides. On a hierarchical groups project the company is part
+ * of the user's identity: a `$user_id` sent without a `$company_id` resolves to
+ * a different user that nothing reconciles later, so include the company
+ * whenever the user has one. Events still send a user id without one as given;
+ * user profile updates need the company. A user who belongs to two companies is
+ * two users, by design.
  *
  * On a hierarchical groups project Mixpanel builds the distinct id from the
  * user and company, so a raw `distinct_id` names a different, unrelated user.
@@ -177,23 +179,6 @@ function require_identity_matches_project(identity, hierarchical_groups) {
     throw new MixpanelArgumentError(
       `${identity} requires a hierarchical groups client: ` +
         "Mixpanel.init(token, { hierarchical_groups: true })",
-    );
-  }
-  // The company is part of a hierarchical user's identity, not a one-time
-  // association. A $user_id sent without one resolves to a separate user that
-  // nothing reconciles later. A device id rescues that case: Mixpanel ignores
-  // the user id, keeps the event under the device, and links it to the
-  // company-scoped user once a later event carries all three.
-  if (
-    hierarchical_groups &&
-    identity.user_id !== null &&
-    identity.company_id === null &&
-    identity.device_id === null
-  ) {
-    throw new MixpanelArgumentError(
-      `${identity} needs a company on a hierarchical groups project. ` +
-        "A user id sent without one, and without a device id, names a separate user " +
-        "that cannot be merged afterwards. Add company_id to the identity.",
     );
   }
 }

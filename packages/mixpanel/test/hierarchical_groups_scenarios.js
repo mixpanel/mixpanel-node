@@ -408,16 +408,14 @@ describe("hierarchical groups scenarios", () => {
     it("Identify Without Company", () => {
       const user_only = identity({ user_id: USER_ID });
 
+      // The event is sent as given; a user profile needs the company.
       expect_rejected(
         hg,
         () => hg.people.set(user_only, "plan", "pro"),
-        MixpanelArgumentError,
+        MixpanelCompanyRequiredError,
       );
-      expect_rejected(
-        hg,
-        () => hg.track(user_only, "Page View"),
-        MixpanelArgumentError,
-      );
+      hg.track(user_only, "Page View");
+      expect(hg.send_request).toHaveBeenCalledTimes(1);
     });
 
     it("Set User Property Without User", () => {

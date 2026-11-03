@@ -292,14 +292,13 @@ describe("hierarchical groups", () => {
       expect(props).not.toHaveProperty("$company_id");
     });
 
-    it("rejects a user without company or device on a hierarchical groups client", () => {
-      expect(() =>
-        hg.track(identity({ user_id: "user_123" }), "Signup"),
-      ).toThrow(/cannot be merged/);
-      expect(() =>
-        hg.import(identity({ user_id: "user_123" }), "Signup", 1000),
-      ).toThrow(MixpanelArgumentError);
-      expect(hg.send_request).not.toHaveBeenCalled();
+    it("sends a user without a company as given on a hierarchical groups client", () => {
+      hg.track(identity({ user_id: "user_123" }), "Signup");
+
+      const properties = event_properties(hg);
+      expect(properties.$user_id).toBe("user_123");
+      expect(properties).not.toHaveProperty("$company_id");
+      expect(properties).not.toHaveProperty("distinct_id");
     });
 
     it("allows a user with a device but no company on a hierarchical groups client", () => {
