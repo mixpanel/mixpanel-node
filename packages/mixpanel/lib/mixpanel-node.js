@@ -600,7 +600,9 @@ const create_client = function (token, config) {
         without a bound company, its methods throw
         MixpanelCompanyRequiredError.
 
-        People updates for a MixpanelIdentity use the identity's own company.
+        People updates use the identity's own company and do not need a bound
+        company. A bound client throws MixpanelArgumentError for a user from
+        another company.
 
         company_id:string   the id of the top-level company
     */

@@ -73,8 +73,9 @@ class MixpanelPeople extends ProfileHelpers() {
           "the company's profile.",
       );
     }
-    // The identity's own company, not the client's bound company: the
-    // company is part of the user's identity.
+    // The identity's own company: the company is part of the user's identity,
+    // so a bound client only checks that it matches.
+    this._require_bound_company(identity.company_id, String(identity));
     return this._group_target(
       { $group_key: "$user_id", $group_id: identity.user_id },
       identity.company_id,
@@ -99,11 +100,27 @@ class MixpanelPeople extends ProfileHelpers() {
     }
     // The parsed company is part of the user's identity, so it wins over the
     // client's bound company and a $company_id modifier.
+    this._require_bound_company(parsed.company_id, JSON.stringify(distinct_id));
     return this._group_target(
       { $group_key: "$user_id", $group_id: parsed.user_id },
       parsed.company_id,
       modifiers,
     );
+  }
+
+  /**
+   * A client bound with for_company refuses a user from another company
+   * rather than silently updating that company's profile.
+   */
+  _require_bound_company(company_id, described) {
+    const bound = this.mixpanel.company_id;
+    if (company_id !== null && bound && company_id !== bound) {
+      throw new MixpanelArgumentError(
+        `This client is bound to company ${JSON.stringify(bound)}, but ${described} ` +
+          `belongs to company ${JSON.stringify(company_id)}. Update the user ` +
+          "through a client for that company, or one without for_company.",
+      );
+    }
   }
 
   /**

@@ -567,13 +567,17 @@ describe("hierarchical groups", () => {
       expect(unset_options.data.$ip).toBe("1.2.3.4");
     });
 
-    it("uses the combined distinct id's company over for_company and a modifier", () => {
-      hg.for_company("other").people.set(combined_id, { a: 1 });
+    it("uses the combined distinct id's company over a modifier", () => {
       hg.people.set(combined_id, { a: 1 }, { $company_id: "other" });
 
-      for (const [options] of hg.send_request.mock.calls) {
-        expect(options.data.$company_id).toBe("acme");
-      }
+      expect(sent(hg).data.$company_id).toBe("acme");
+    });
+
+    it("refuses a combined distinct id from another company on a bound client", () => {
+      expect(() =>
+        hg.for_company("other").people.set(combined_id, { a: 1 }),
+      ).toThrow(/bound to company "other".*belongs to company "acme"/);
+      expect(hg.send_request).not.toHaveBeenCalled();
     });
 
     it("leaves events with a raw or combined distinct id unchanged", () => {
@@ -660,10 +664,17 @@ describe("hierarchical groups", () => {
       );
     });
 
-    it("uses the identity's company over for_company", () => {
-      hg.for_company("other").people.set(hg_user(), { role: "admin" });
+    it("accepts a user from the bound company", () => {
+      hg.for_company("acme").people.set(hg_user(), { role: "admin" });
 
       expect(sent(hg).data.$company_id).toBe("acme");
+    });
+
+    it("refuses a user from another company on a bound client", () => {
+      expect(() =>
+        hg.for_company("other").people.set(hg_user(), { role: "admin" }),
+      ).toThrow(MixpanelArgumentError);
+      expect(hg.send_request).not.toHaveBeenCalled();
     });
 
     it("sends a distinct id identity to /engage only without hierarchical groups", () => {
