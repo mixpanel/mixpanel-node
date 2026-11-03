@@ -1,6 +1,10 @@
 import LocalFeatureFlagsProvider from "./flags/local_flags";
 import RemoteFeatureFlagsProvider from "./flags/remote_flags";
-import { LocalFlagsConfig, RemoteFlagsConfig } from "./flags/types";
+import {
+  FlagContext,
+  LocalFlagsConfig,
+  RemoteFlagsConfig,
+} from "./flags/types";
 
 declare namespace mixpanel {
   export function init(
@@ -40,6 +44,15 @@ declare namespace mixpanel {
     readonly device_id: string | null;
     /** true if this identity names a company */
     readonly is_hierarchical: boolean;
+    /**
+     * A feature flag evaluation context for this identity: its ids under the
+     * keys flags read, the groups at the top level and the custom properties
+     * nested under custom_properties.
+     */
+    to_flag_context(options?: {
+      groups?: Record<string, any>;
+      custom_properties?: Record<string, any>;
+    }): FlagContext;
     toString(): string;
   }
 

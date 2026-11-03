@@ -8,6 +8,14 @@ const IDENTITY_KEYS = {
   device_id: "$device_id",
 };
 
+// identity field -> the key a flag evaluation context reads it from
+const FLAG_CONTEXT_KEYS = {
+  distinct_id: "distinct_id",
+  user_id: "$user_id",
+  company_id: "$company_id",
+  device_id: "device_id",
+};
+
 /**
  * Identifies who an event or profile update belongs to.
  *
@@ -94,6 +102,38 @@ class MixpanelIdentity {
    */
   get is_hierarchical() {
     return this.company_id !== null;
+  }
+
+  /**
+   * Builds a feature flag evaluation context for this identity, so callers do
+   * not hand-write reserved keys such as `$company_id`.
+   *
+   * @example
+   * identity.to_flag_context({
+   *   groups: { department: "finance" },
+   *   custom_properties: { plan: "enterprise" },
+   * });
+   * // { $user_id: "user_123", $company_id: "acme", department: "finance",
+   * //   custom_properties: { plan: "enterprise" } }
+   *
+   * @param {object} [options]
+   * @param {object} [options.groups] - group keys and values the evaluation is
+   *   for, such as `{ department: "finance" }`
+   * @param {object} [options.custom_properties] - properties used by runtime
+   *   targeting rules
+   * @returns {object} the flag context
+   */
+  to_flag_context({ groups = {}, custom_properties = {} } = {}) {
+    const context = { ...groups };
+    for (const [key, flag_key] of Object.entries(FLAG_CONTEXT_KEYS)) {
+      if (this[key] !== null) {
+        context[flag_key] = this[key];
+      }
+    }
+    if (Object.keys(custom_properties).length > 0) {
+      context.custom_properties = { ...custom_properties };
+    }
+    return context;
   }
 
   toString() {

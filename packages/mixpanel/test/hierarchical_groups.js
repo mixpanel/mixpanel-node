@@ -81,6 +81,33 @@ describe("hierarchical groups", () => {
         "MixpanelIdentity{user_id=user_123, company_id=acme}",
       );
     });
+
+    it("builds a flag context", () => {
+      const id = identity({
+        user_id: "user_123",
+        company_id: "acme",
+        device_id: "device_abc",
+      });
+
+      expect(
+        id.to_flag_context({
+          groups: { department: "finance" },
+          custom_properties: { plan: "enterprise" },
+        }),
+      ).toEqual({
+        $user_id: "user_123",
+        $company_id: "acme",
+        device_id: "device_abc",
+        department: "finance",
+        custom_properties: { plan: "enterprise" },
+      });
+    });
+
+    it("builds a flag context from a plain distinct id", () => {
+      expect(identity({ distinct_id: "user_123" }).to_flag_context()).toEqual({
+        distinct_id: "user_123",
+      });
+    });
   });
 
   describe("mode", () => {
