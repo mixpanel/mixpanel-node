@@ -215,13 +215,6 @@ declare namespace mixpanel {
 
     groups: Groups;
 
-    /**
-     * The bound company's own profile, see `for_company`. Each method is the
-     * matching `groups` method with `('$company_id', company_id)`. On a client
-     * without a bound company, each method throws MixpanelCompanyRequiredError.
-     */
-    company: Company;
-
     local_flags?: LocalFeatureFlagsProvider;
 
     remote_flags?: RemoteFeatureFlagsProvider;
@@ -512,61 +505,6 @@ declare namespace mixpanel {
       callback?: Callback,
     ): void;
     delete_group(groupKey: string, groupId: string, callback: Callback): void;
-  }
-
-  interface Company {
-    set(properties: PropertyDict, callback?: Callback): void;
-    set(
-      properties: PropertyDict,
-      modifiers?: Modifiers,
-      callback?: Callback,
-    ): void;
-    set(
-      propertyName: string,
-      value: string | number,
-      modifiers: Modifiers,
-    ): void;
-    set(
-      propertyName: string,
-      value: string | number,
-      callback?: Callback,
-    ): void;
-    set(
-      propertyName: string,
-      value: string | number,
-      modifiers: Modifiers,
-      callback: Callback,
-    ): void;
-
-    unset(propertyName: string | string[], callback?: Callback): void;
-    unset(
-      propertyName: string | string[],
-      modifiers?: Modifiers,
-      callback?: Callback,
-    ): void;
-
-    set_once(propertyName: string, value: string, callback?: Callback): void;
-    set_once(
-      propertyName: string,
-      value: string,
-      modifiers: Modifiers,
-      callback?: Callback,
-    ): void;
-    set_once(properties: PropertyDict, callback?: Callback): void;
-    set_once(
-      properties: PropertyDict,
-      modifiers?: Modifiers,
-      callback?: Callback,
-    ): void;
-
-    union(data: UnionData, modifiers?: Modifiers, callback?: Callback): void;
-    union(data: UnionData, callback: Callback): void;
-
-    remove(data: RemoveData, modifiers?: Modifiers, callback?: Callback): void;
-    remove(data: RemoveData, callback: Callback): void;
-
-    delete(modifiers?: Modifiers, callback?: Callback): void;
-    delete(callback: Callback): void;
   }
 }
 

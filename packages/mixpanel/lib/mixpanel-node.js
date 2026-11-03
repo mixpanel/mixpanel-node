@@ -16,7 +16,7 @@ const url = require("url");
 const packageInfo = require("../package.json");
 
 const { async_all, ensure_timestamp, assert_logger } = require("./utils");
-const { MixpanelGroups, MixpanelCompany } = require("./groups");
+const { MixpanelGroups } = require("./groups");
 const { MixpanelPeople } = require("./people");
 const {
   LocalFeatureFlagsProvider,
@@ -580,7 +580,6 @@ const create_client = function (token, config) {
   };
 
   metrics.groups = new MixpanelGroups(metrics);
-  metrics.company = new MixpanelCompany(metrics);
   metrics.people = new MixpanelPeople(metrics);
 
   /**
@@ -592,13 +591,8 @@ const create_client = function (token, config) {
         which hierarchical groups projects require on every /groups write:
 
             const acme = mixpanel.for_company('acme');
-            acme.company.set({ tier: 'enterprise' });
+            acme.groups.set('$company_id', 'acme', { tier: 'enterprise' });
             acme.groups.set('department', 'finance', { budget: 100 });
-
-        `company` is the bound company's own profile: each method is the
-        matching `groups` method with ('$company_id', company_id). On a client
-        without a bound company, its methods throw
-        MixpanelCompanyRequiredError.
 
         People updates for a MixpanelIdentity use the identity's own company.
 
@@ -614,7 +608,6 @@ const create_client = function (token, config) {
       enumerable: true,
     });
     view.groups = new MixpanelGroups(view);
-    view.company = new MixpanelCompany(view);
     view.people = new MixpanelPeople(view);
     return view;
   };
