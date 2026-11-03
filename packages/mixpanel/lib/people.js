@@ -69,7 +69,7 @@ class MixpanelPeople extends ProfileHelpers() {
       }
       throw new MixpanelArgumentError(
         `User profile updates require a user id, and ${identity} has none. ` +
-          'Use mixpanel.groups.set("$company_id", company_id, properties) to update ' +
+          "Use mixpanel.for_company(company_id).company.set(properties) to update " +
           "the company's profile.",
       );
     }

@@ -3,6 +3,7 @@
  */
 
 const { ProfileHelpers } = require("./profile_helpers");
+const { MixpanelCompanyRequiredError } = require("./errors");
 
 class MixpanelGroups extends ProfileHelpers() {
   constructor(mp_instance) {
@@ -14,8 +15,7 @@ class MixpanelGroups extends ProfileHelpers() {
   /**
    * Adds the client's bound company (see `mixpanel.for_company`), else a
    * `$company_id` modifier, as a top-level `$company_id`. Hierarchical groups
-   * clients require one of them, except for a `$company_id` profile, whose
-   * company is its own group id.
+   * clients require one of them.
    */
   _target(identifiers, modifiers) {
     return this._group_target(identifiers, this.mixpanel.company_id, modifiers);
@@ -115,4 +115,107 @@ class MixpanelGroups extends ProfileHelpers() {
   }
 }
 
+/**
+ * The bound company's own profile (see `mixpanel.for_company`). Each method is
+ * the matching `groups` method with `('$company_id', <bound company id>)`, so
+ * the company is named once.
+ */
+class MixpanelCompany {
+  constructor(mp_instance) {
+    this.mixpanel = mp_instance;
+  }
+
+  /**
+   * The bound client's groups, called with the company profile's key and id.
+   * Throws MixpanelCompanyRequiredError on a client without a bound company.
+   */
+  _groups(method, ...args) {
+    const company_id = this.mixpanel.company_id;
+    if (!company_id) {
+      throw new MixpanelCompanyRequiredError(
+        "Company profile updates require a company. " +
+          "Use mixpanel.for_company(company_id) to send them. Nothing sent for " +
+          `company.${method}`,
+      );
+    }
+    this.mixpanel.groups[method]("$company_id", company_id, ...args);
+  }
+
+  /**
+        company.set(prop, to, modifiers, callback)
+        ---
+        set properties on the bound company's profile
+
+        usage:
+
+            const acme = mixpanel.for_company('acme');
+            acme.company.set({ tier: 'enterprise' });
+    */
+  set(prop, to, modifiers, callback) {
+    this._groups("set", prop, to, modifiers, callback);
+  }
+
+  /**
+        company.set_once(prop, to, modifiers, callback)
+        ---
+        The same as company.set, but adds a property value only if it has not been set before.
+    */
+  set_once(prop, to, modifiers, callback) {
+    this._groups("set_once", prop, to, modifiers, callback);
+  }
+
+  /**
+        company.union(data, modifiers, callback)
+        ---
+        merge value(s) into a list-valued property of the bound company's profile
+
+        usage:
+
+        mixpanel.for_company('acme').company.union({'products': 'anvil'});
+    */
+  union(data, modifiers, callback) {
+    this._groups("union", data, modifiers, callback);
+  }
+
+  /**
+        company.remove(data, modifiers, callback)
+        ---
+        remove a value from a list-valued property of the bound company's profile
+
+        usage:
+
+        mixpanel.for_company('acme').company.remove({'products': 'anvil'});
+    */
+  remove(data, modifiers, callback) {
+    this._groups("remove", data, modifiers, callback);
+  }
+
+  /**
+        company.unset(prop, modifiers, callback)
+        ---
+        delete a property on the bound company's profile
+
+        usage:
+
+        mixpanel.for_company('acme').company.unset(['products', 'customer segments']);
+    */
+  unset(prop, modifiers, callback) {
+    this._groups("unset", prop, modifiers, callback);
+  }
+
+  /**
+        company.delete(modifiers, callback)
+        ---
+        delete the bound company's profile permanently
+
+        usage:
+
+        mixpanel.for_company('acme').company.delete();
+    */
+  delete(modifiers, callback) {
+    this._groups("delete_group", modifiers, callback);
+  }
+}
+
 exports.MixpanelGroups = MixpanelGroups;
+exports.MixpanelCompany = MixpanelCompany;
