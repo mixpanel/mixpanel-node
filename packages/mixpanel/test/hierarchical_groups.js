@@ -676,10 +676,10 @@ describe("hierarchical groups", () => {
       );
     });
 
-    it("rejects a company-only identity and points at groups.set", () => {
+    it("rejects a company-only identity and points at the company profile", () => {
       expect(() =>
         hg.people.set(identity({ company_id: "acme" }), { tier: "ent" }),
-      ).toThrow(/groups\.set\("\$company_id"/);
+      ).toThrow(/for_company\(company_id\)\.company\.set/);
     });
 
     it("takes the company from a $company_id modifier when the identity has none", () => {
