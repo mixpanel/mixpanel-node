@@ -3,7 +3,10 @@
  */
 
 const { ensure_timestamp } = require("./utils");
-const { MixpanelCompanyRequiredError } = require("./errors");
+const {
+  MixpanelArgumentError,
+  MixpanelCompanyRequiredError,
+} = require("./errors");
 
 // /groups has no $add, $append or $merge, so these are all a hierarchical
 // groups profile supports
@@ -72,18 +75,34 @@ exports.ProfileHelpers = (Base = Object) =>
     /**
      * Target for a group profile. Hierarchical groups projects require a
      * top-level $company_id on every /groups write, so the company comes from
-     * the given company_id, else a $company_id modifier.
+     * the given company_id, else a $company_id modifier. A `$company_id` group
+     * profile is the company's own profile, so without either its company is
+     * its group id.
      */
     _group_target(identifiers, company_id, modifiers) {
       modifiers = modifiers_or_none(modifiers);
       // a $company_id modifier is only honoured on hierarchical groups clients;
       // other clients drop it, as they always have
-      const company =
+      let company =
         company_id ||
         (this.mixpanel.hierarchical_groups &&
           modifiers &&
           modifiers.$company_id) ||
         undefined;
+      if (
+        this.mixpanel.hierarchical_groups &&
+        identifiers.$group_key === "$company_id"
+      ) {
+        const group_id = identifiers.$group_id;
+        if (!company) {
+          company = group_id;
+        } else if (String(company) !== String(group_id)) {
+          throw new MixpanelArgumentError(
+            `The company profile $company_id=${group_id} belongs to company ` +
+              `${group_id}, its own id, not ${company}. Nothing sent.`,
+          );
+        }
+      }
       if (this.mixpanel.hierarchical_groups && !company) {
         throw new MixpanelCompanyRequiredError(
           "Group profile updates for hierarchical groups projects require a company. " +

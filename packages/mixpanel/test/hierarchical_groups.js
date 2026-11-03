@@ -800,6 +800,79 @@ describe("hierarchical groups", () => {
       expect(sent(hg).data.$company_id).toBe("acme");
     });
 
+    it("infers the company of a $company_id profile from its group id", () => {
+      hg.groups.set("$company_id", "acme", { tier: "ent" });
+      hg.groups.set("$company_id", "acme", "tier", "ent");
+      hg.groups.set_once("$company_id", "acme", { tier: "ent" });
+      hg.groups.union("$company_id", "acme", { tags: ["a"] });
+      hg.groups.remove("$company_id", "acme", { tags: "a" });
+      hg.groups.unset("$company_id", "acme", ["tier"]);
+      hg.groups.delete_group("$company_id", "acme");
+
+      const calls = hg.send_request.mock.calls;
+      expect(calls).toHaveLength(7);
+      for (const [options] of calls) {
+        expect(options.endpoint).toBe("/groups");
+        expect(options.data.$group_key).toBe("$company_id");
+        expect(options.data.$group_id).toBe("acme");
+        expect(options.data.$company_id).toBe("acme");
+      }
+      expect(calls[0][0].data).toEqual({
+        $token: token,
+        $group_key: "$company_id",
+        $group_id: "acme",
+        $company_id: "acme",
+        $set: { tier: "ent" },
+      });
+    });
+
+    it("accepts a matching company for a $company_id profile", () => {
+      hg.for_company("acme").groups.set("$company_id", "acme", { a: 1 });
+      hg.groups.set("$company_id", "acme", { a: 1 }, { $company_id: "acme" });
+
+      const calls = hg.send_request.mock.calls;
+      expect(calls).toHaveLength(2);
+      for (const [options] of calls) {
+        expect(options.data.$company_id).toBe("acme");
+      }
+    });
+
+    it("rejects a different company for a $company_id profile and sends nothing", () => {
+      const other = hg.for_company("other");
+      const ops = [
+        (g, m) => g.set("$company_id", "acme", { a: 1 }, m),
+        (g, m) => g.set_once("$company_id", "acme", { a: 1 }, m),
+        (g, m) => g.union("$company_id", "acme", { tags: ["a"] }, m),
+        (g, m) => g.remove("$company_id", "acme", { tags: "a" }, m),
+        (g, m) => g.unset("$company_id", "acme", ["a"], m),
+        (g, m) => g.delete_group("$company_id", "acme", m),
+      ];
+      for (const op of ops) {
+        expect(() => op(other.groups)).toThrow(MixpanelArgumentError);
+        expect(() => op(other.groups)).toThrow(/its own id/);
+        expect(() => op(hg.groups, { $company_id: "other" })).toThrow(
+          MixpanelArgumentError,
+        );
+      }
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("still requires a company for a custom group", () => {
+      expect(() => hg.groups.set("company", "acme", { a: 1 })).toThrow(
+        MixpanelCompanyRequiredError,
+      );
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("does not infer a company for a $company_id profile on a legacy client", () => {
+      legacy.groups.set("$company_id", "acme", { a: 1 });
+      legacy.for_company("other").groups.set("$company_id", "acme", { a: 1 });
+
+      const [plain, bound] = legacy.send_request.mock.calls.map((c) => c[0]);
+      expect(plain.data).not.toHaveProperty("$company_id");
+      expect(bound.data.$company_id).toBe("other");
+    });
+
     it("leaves every pre-existing method unchanged on a legacy client", () => {
       legacy.people.set("u", { a: 1 });
       legacy.people.set_once("u", "a", 1);

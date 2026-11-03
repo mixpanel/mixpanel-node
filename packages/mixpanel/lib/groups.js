@@ -14,7 +14,8 @@ class MixpanelGroups extends ProfileHelpers() {
   /**
    * Adds the client's bound company (see `mixpanel.for_company`), else a
    * `$company_id` modifier, as a top-level `$company_id`. Hierarchical groups
-   * clients require one of them.
+   * clients require one of them, except for a `$company_id` profile, whose
+   * company is its own group id.
    */
   _target(identifiers, modifiers) {
     return this._group_target(identifiers, this.mixpanel.company_id, modifiers);

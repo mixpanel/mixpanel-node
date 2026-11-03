@@ -335,6 +335,12 @@ describe("hierarchical groups scenarios", () => {
 
       expect_company_update(hg, { $unset: ["tier"] });
     });
+
+    it("Set Company Property Without for_company", () => {
+      hg.groups.set("$company_id", COMPANY_ID, "tier", "enterprise");
+
+      expect_company_update(hg, { $set: { tier: "enterprise" } });
+    });
   });
 
   describe("custom groups", () => {
@@ -429,11 +435,14 @@ describe("hierarchical groups scenarios", () => {
       );
     });
 
-    it("Set Company Property Without Company", () => {
+    it("Set Company Property For Another Company", () => {
       expect_rejected(
         hg,
-        () => hg.groups.set("$company_id", COMPANY_ID, "tier", "enterprise"),
-        MixpanelCompanyRequiredError,
+        () =>
+          hg
+            .for_company("other_company")
+            .groups.set("$company_id", COMPANY_ID, "tier", "enterprise"),
+        MixpanelArgumentError,
       );
     });
 

@@ -591,8 +591,12 @@ const create_client = function (token, config) {
         which hierarchical groups projects require on every /groups write:
 
             const acme = mixpanel.for_company('acme');
-            acme.groups.set('$company_id', 'acme', { tier: 'enterprise' });
             acme.groups.set('department', 'finance', { budget: 100 });
+
+        The company's own profile needs no for_company, since its company is
+        its own id:
+
+            mixpanel.groups.set('$company_id', 'acme', { tier: 'enterprise' });
 
         People updates for a MixpanelIdentity use the identity's own company.
 
