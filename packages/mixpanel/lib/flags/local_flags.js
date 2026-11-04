@@ -27,7 +27,7 @@ const { apply } = require("json-logic-js");
 require("./custom_operators");
 
 // A {property} placeholder in a context value template.
-const CONTEXT_PLACEHOLDER = /\{([^}]+)\}/g;
+const CONTEXT_PLACEHOLDER = /\{([^{}]+)\}/g;
 
 class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
   /**
