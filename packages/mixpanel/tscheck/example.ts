@@ -33,7 +33,7 @@ acme.company.unset(["tier"]);
 acme.company.delete((err) => err);
 hg.groups.set("department", "finance", { budget: 1 }, { $company_id: "acme" });
 const hierarchical: boolean = user.is_hierarchical && acme.hierarchical_groups;
-const company: string | undefined = acme.company_id;
+const company: string | number | undefined = acme.company_id;
 try {
   hg.people.increment("user_123", "logins");
 } catch (err) {
