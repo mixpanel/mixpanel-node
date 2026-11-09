@@ -106,8 +106,11 @@ declare namespace mixpanel {
     logger: CustomLogger;
     local_flags_config?: LocalFlagsConfig;
     remote_flags_config?: RemoteFlagsConfig;
-    /** true for a project that uses hierarchical groups; fixed at init */
-    hierarchical_groups: boolean;
+    /**
+     * true for a project that uses hierarchical groups; fixed at init
+     * @default false
+     */
+    hierarchical_groups?: boolean;
   }
 
   export interface PropertyDict {
