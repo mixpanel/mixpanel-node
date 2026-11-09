@@ -60,11 +60,14 @@ const create_client = function (token, config) {
   if (
     config &&
     config.hierarchical_groups !== undefined &&
+    config.hierarchical_groups !== null &&
     typeof config.hierarchical_groups !== "boolean"
   ) {
     throw new MixpanelArgumentError("hierarchical_groups must be a boolean");
   }
-  const hierarchical_groups = Boolean(config && config.hierarchical_groups);
+  const hierarchical_groups = Boolean(
+    config && config.hierarchical_groups === true,
+  );
 
   const metrics = {
     token,

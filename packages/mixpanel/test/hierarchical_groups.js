@@ -127,6 +127,21 @@ describe("hierarchical groups", () => {
       ).toThrow(MixpanelArgumentError);
     });
 
+    it("treats null and false as off without throwing", () => {
+      for (const value of [null, false, undefined]) {
+        const client = Mixpanel.init(token, { hierarchical_groups: value });
+        expect(client.hierarchical_groups).toBe(false);
+      }
+    });
+
+    it("still rejects non-boolean values like strings and numbers", () => {
+      for (const value of ["true", "false", 1, 0]) {
+        expect(() =>
+          Mixpanel.init(token, { hierarchical_groups: value }),
+        ).toThrow(MixpanelArgumentError);
+      }
+    });
+
     it("is read once at init, like the flags configs", () => {
       legacy.set_config({ hierarchical_groups: true });
       hg.set_config({ hierarchical_groups: false });
