@@ -28,9 +28,11 @@ class MixpanelPeople extends ProfileHelpers() {
    * On a hierarchical groups client nothing is sent to /engage. A user's
    * profile is the group profile $group_key "$user_id" within its company,
    * sent to /groups. The user and company come from the identity's user_id
-   * and company_id (else a $company_id modifier), or are parsed from a
-   * distinct id of the form $company:{company}|$user:{user}. Any other
-   * distinct id is rejected.
+   * and company_id, or are parsed from a distinct id of the form
+   * $company:{company}|$user:{user}; any other distinct id is rejected. An
+   * identity with a user id but no company uses the client's bound company
+   * (see for_company); only a client without one honours a $company_id
+   * modifier, and without either the update is refused.
    */
   _target(identifiers, modifiers) {
     const identity = identifiers.$distinct_id;
@@ -74,11 +76,16 @@ class MixpanelPeople extends ProfileHelpers() {
       );
     }
     // The identity's own company: the company is part of the user's identity,
-    // so a bound client only checks that it matches.
+    // so a bound client only checks that it matches. Without one, the bound
+    // company is the user's, and a $company_id modifier never overrides it.
     this._require_bound_company(identity.company_id, String(identity));
+    const company_id =
+      identity.company_id !== null
+        ? identity.company_id
+        : this._bound_company();
     return this._group_target(
       { $group_key: "$user_id", $group_id: identity.user_id },
-      identity.company_id,
+      company_id,
       modifiers,
     );
   }
@@ -108,13 +115,24 @@ class MixpanelPeople extends ProfileHelpers() {
     );
   }
 
+  /** The company this client is bound to with for_company, else null. */
+  _bound_company() {
+    const bound = this.mixpanel.company_id;
+    return bound === undefined || bound === null ? null : bound;
+  }
+
   /**
    * A client bound with for_company refuses a user from another company
    * rather than silently updating that company's profile.
    */
   _require_bound_company(company_id, described) {
-    const bound = this.mixpanel.company_id;
-    if (company_id !== null && bound && company_id !== bound) {
+    const bound = this._bound_company();
+    // ids may be strings or integers, so "42" and 42 name the same company
+    if (
+      company_id !== null &&
+      bound !== null &&
+      String(company_id) !== String(bound)
+    ) {
       throw new MixpanelArgumentError(
         `This client is bound to company ${JSON.stringify(bound)}, but ${described} ` +
           `belongs to company ${JSON.stringify(company_id)}. Update the user ` +

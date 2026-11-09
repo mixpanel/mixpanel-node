@@ -131,7 +131,7 @@ class MixpanelCompany {
    */
   _groups(method, ...args) {
     const company_id = this.mixpanel.company_id;
-    if (!company_id) {
+    if (company_id === undefined || company_id === null) {
       throw new MixpanelCompanyRequiredError(
         "Company profile updates require a company. " +
           "Use mixpanel.for_company(company_id) to send them. Nothing sent for " +

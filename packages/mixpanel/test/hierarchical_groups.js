@@ -36,13 +36,34 @@ describe("hierarchical groups", () => {
       }
     });
 
-    it("rejects non-string values and unknown keys", () => {
-      expect(() => identity({ user_id: 123 })).toThrow(MixpanelArgumentError);
+    it("rejects values that are neither strings nor integers, and unknown keys", () => {
+      for (const key of ["distinct_id", "user_id", "company_id", "device_id"]) {
+        for (const value of [1.5, NaN, Infinity, true, {}, [], ["a"]]) {
+          expect(() => identity({ [key]: value })).toThrow(
+            MixpanelArgumentError,
+          );
+        }
+      }
       expect(() => identity({ userId: "user_123" })).toThrow(/Unknown/);
       expect(() => new MixpanelIdentity()).toThrow(MixpanelArgumentError);
       expect(() => new MixpanelIdentity("user_123")).toThrow(
         MixpanelArgumentError,
       );
+    });
+
+    it("accepts integer ids and keeps them as numbers", () => {
+      const id = identity({
+        distinct_id: 1,
+        user_id: 123,
+        company_id: 0,
+        device_id: -7,
+      });
+
+      expect(id.distinct_id).toBe(1);
+      expect(id.user_id).toBe(123);
+      expect(id.company_id).toBe(0);
+      expect(id.device_id).toBe(-7);
+      expect(id.is_hierarchical).toBe(true);
     });
 
     it("needs at least one value", () => {
@@ -294,6 +315,14 @@ describe("hierarchical groups", () => {
       expect(props.$company_id).toBe("acme");
       expect(props.time).toBe(time.getTime());
       expect(props).not.toHaveProperty("distinct_id");
+    });
+
+    it("sends integer ids as numbers", () => {
+      hg.track(identity({ user_id: 123, company_id: 42 }), "Signup");
+
+      const props = event_properties(hg);
+      expect(props.$user_id).toBe(123);
+      expect(props.$company_id).toBe(42);
     });
 
     it("accepts user and device without a company for simplified id merge", () => {
@@ -734,6 +763,95 @@ describe("hierarchical groups", () => {
       ).toThrow(/for_company\(company_id\)\.company\.set/);
     });
 
+    it("uses the bound company for a user-only identity on a bound client", () => {
+      const acme = hg.for_company("acme");
+      const id = identity({ user_id: "user_123" });
+
+      acme.people.set(id, { plan: "pro" });
+      acme.people.set_once(id, "plan", "pro");
+      acme.people.union(id, { tags: ["a"] });
+      acme.people.remove(id, { tags: "a" });
+      acme.people.unset(id, "plan");
+      acme.people.delete_user(id);
+
+      const operations = [
+        "$set",
+        "$set_once",
+        "$union",
+        "$remove",
+        "$unset",
+        "$delete",
+      ];
+      const calls = hg.send_request.mock.calls;
+      expect(calls).toHaveLength(operations.length);
+      calls.forEach((call, i) => {
+        expect(call[0].endpoint).toBe("/groups");
+        expect(call[0].data).toHaveProperty(operations[i]);
+        expect(call[0].data.$group_key).toBe("$user_id");
+        expect(call[0].data.$group_id).toBe("user_123");
+        expect(call[0].data.$company_id).toBe("acme");
+        expect(call[0].data).not.toHaveProperty("$distinct_id");
+      });
+    });
+
+    it("never lets a $company_id modifier override the bound company", () => {
+      const acme = hg.for_company("acme");
+
+      acme.people.set(
+        identity({ user_id: "user_123", device_id: "d" }),
+        { plan: "pro" },
+        { $company_id: "other" },
+      );
+      expect(sent(hg).data.$company_id).toBe("acme");
+
+      hg.send_request.mockClear();
+      acme.people.set(hg_user(), { plan: "pro" }, { $company_id: "other" });
+      expect(sent(hg).data.$company_id).toBe("acme");
+    });
+
+    it("still refuses a user-only identity's company that differs from the bound one", () => {
+      expect(() =>
+        hg
+          .for_company("other")
+          .people.set(identity({ user_id: "user_123", company_id: "acme" }), {
+            plan: "pro",
+          }),
+      ).toThrow(MixpanelArgumentError);
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("compares integer and string company ids as strings", () => {
+      hg.for_company(42).people.set(
+        identity({ user_id: 7, company_id: "42" }),
+        { plan: "pro" },
+      );
+      expect(sent(hg).data.$company_id).toBe("42");
+      expect(sent(hg).data.$group_id).toBe(7);
+
+      hg.send_request.mockClear();
+      hg.for_company("42").people.set(
+        identity({ user_id: 7, company_id: 42 }),
+        { plan: "pro" },
+      );
+      expect(sent(hg).data.$company_id).toBe(42);
+
+      hg.send_request.mockClear();
+      hg.for_company(0).people.set(identity({ user_id: 7 }), { plan: "pro" });
+      expect(sent(hg).data.$company_id).toBe(0);
+
+      hg.send_request.mockClear();
+      expect(() =>
+        hg
+          .for_company(42)
+          .people.set(identity({ user_id: 7, company_id: 43 }), { a: 1 }),
+      ).toThrow(MixpanelArgumentError);
+      expect(() =>
+        hg.for_company(42).people.set("$company:43|$user:7", { a: 1 }),
+      ).toThrow(MixpanelArgumentError);
+      hg.for_company(43).people.set("$company:43|$user:7", { a: 1 });
+      expect(hg.send_request).toHaveBeenCalledTimes(1);
+    });
+
     it("takes the company from a $company_id modifier when the identity has none", () => {
       const id = identity({ user_id: "user_123", device_id: "d" });
 
@@ -906,6 +1024,25 @@ describe("hierarchical groups", () => {
       expect(() => hg.for_company("")).toThrow(MixpanelArgumentError);
       expect(() => hg.for_company(null)).toThrow(MixpanelArgumentError);
       expect(() => hg.for_company()).toThrow(MixpanelArgumentError);
+    });
+
+    it("accepts an integer company and sends it as given", () => {
+      const acme = hg.for_company(42);
+      expect(acme.company_id).toBe(42);
+
+      acme.groups.set("department", "finance", { a: 1 });
+      expect(sent(hg).data.$company_id).toBe(42);
+
+      hg.send_request.mockClear();
+      hg.for_company(0).company.set({ tier: "ent" });
+      expect(sent(hg).data.$group_id).toBe(0);
+      expect(sent(hg).data.$company_id).toBe(0);
+    });
+
+    it("rejects companies that are neither strings nor integers", () => {
+      for (const value of [1.5, NaN, true, {}, [], ["acme"]]) {
+        expect(() => hg.for_company(value)).toThrow(MixpanelArgumentError);
+      }
     });
 
     it("keeps $add and $append refused", () => {

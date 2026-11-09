@@ -49,14 +49,16 @@ const FLAG_CONTEXT_KEYS = {
 class MixpanelIdentity {
   /**
    * @param {object} ids
-   * @param {string} [ids.distinct_id] - a distinct id Mixpanel resolves directly
-   * @param {string} [ids.user_id] - the user's id; on a hierarchical groups
+   * Each id is a string or an integer and is sent as given.
+   *
+   * @param {string|number} [ids.distinct_id] - a distinct id Mixpanel resolves directly
+   * @param {string|number} [ids.user_id] - the user's id; on a hierarchical groups
    *   project it only needs to be unique within the company
-   * @param {string} [ids.company_id] - the id of the top-level company, on a
+   * @param {string|number} [ids.company_id] - the id of the top-level company, on a
    *   hierarchical groups project
-   * @param {string} [ids.device_id] - the client's device id
-   * @throws {MixpanelArgumentError} if a value is empty or not a string, a key
-   *   is unknown, or no value is set
+   * @param {string|number} [ids.device_id] - the client's device id
+   * @throws {MixpanelArgumentError} if a value is empty or neither a string nor
+   *   an integer, a key is unknown, or no value is set
    */
   constructor(ids) {
     if (ids === null || typeof ids !== "object" || Array.isArray(ids)) {
@@ -76,8 +78,10 @@ class MixpanelIdentity {
       const value = ids[key];
       if (value === undefined || value === null) {
         this[key] = null;
-      } else if (typeof value !== "string") {
-        throw new MixpanelArgumentError(`${key} must be a string`);
+      } else if (typeof value !== "string" && !Number.isInteger(value)) {
+        throw new MixpanelArgumentError(
+          `${key} must be a string or an integer`,
+        );
       } else if (value === "") {
         throw new MixpanelArgumentError(`${key} must be non-empty`);
       } else {

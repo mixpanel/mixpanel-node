@@ -603,15 +603,22 @@ const create_client = function (token, config) {
         without a bound company, its methods throw
         MixpanelCompanyRequiredError.
 
-        People updates use the identity's own company and do not need a bound
-        company. A bound client throws MixpanelArgumentError for a user from
-        another company.
+        People updates use the identity's own company. An identity with a
+        user id but no company uses the bound company; a $company_id modifier
+        never overrides it. A bound client throws MixpanelArgumentError for a
+        user from another company.
 
-        company_id:string   the id of the top-level company
+        company_id:string|number   the id of the top-level company, sent as
+                                   given
     */
   metrics.for_company = function (company_id) {
-    if (typeof company_id !== "string" || company_id === "") {
-      throw new MixpanelArgumentError("company_id must be a non-empty string");
+    if (
+      !(typeof company_id === "string" && company_id !== "") &&
+      !Number.isInteger(company_id)
+    ) {
+      throw new MixpanelArgumentError(
+        "company_id must be a non-empty string or an integer",
+      );
     }
     const view = Object.create(metrics);
     Object.defineProperty(view, "company_id", {

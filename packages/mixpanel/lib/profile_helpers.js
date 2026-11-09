@@ -77,14 +77,21 @@ exports.ProfileHelpers = (Base = Object) =>
     _group_target(identifiers, company_id, modifiers) {
       modifiers = modifiers_or_none(modifiers);
       // a $company_id modifier is only honoured on hierarchical groups clients;
-      // other clients drop it, as they always have
-      const company =
-        company_id ||
-        (this.mixpanel.hierarchical_groups &&
-          modifiers &&
-          modifiers.$company_id) ||
-        undefined;
-      if (this.mixpanel.hierarchical_groups && !company) {
+      // other clients drop it, as they always have. A company id may be an
+      // integer (including 0), so presence is checked against null.
+      let company =
+        company_id === undefined || company_id === null
+          ? undefined
+          : company_id;
+      if (
+        company === undefined &&
+        this.mixpanel.hierarchical_groups &&
+        modifiers &&
+        modifiers.$company_id
+      ) {
+        company = modifiers.$company_id;
+      }
+      if (this.mixpanel.hierarchical_groups && company === undefined) {
         throw new MixpanelCompanyRequiredError(
           "Group profile updates for hierarchical groups projects require a company. " +
             "Use mixpanel.for_company(company_id) to send them. Nothing sent for group " +
@@ -92,7 +99,7 @@ exports.ProfileHelpers = (Base = Object) =>
         );
       }
       const target = { endpoint: "/groups", identifiers };
-      if (company) {
+      if (company !== undefined) {
         target.company_id = company;
       }
       return target;
@@ -117,7 +124,7 @@ exports.ProfileHelpers = (Base = Object) =>
 
       // $company_id must be top-level, not inside the operation payload, and
       // the resolved company wins over a $company_id modifier
-      if (target.company_id) {
+      if (target.company_id !== undefined && target.company_id !== null) {
         data.$company_id = target.company_id;
       }
 

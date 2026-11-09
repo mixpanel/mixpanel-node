@@ -22,15 +22,16 @@ declare namespace mixpanel {
   }
 
   export interface MixpanelIdentityInit {
-    distinct_id?: string | null | undefined;
-    user_id?: string | null | undefined;
-    company_id?: string | null | undefined;
-    device_id?: string | null | undefined;
+    distinct_id?: string | number | null | undefined;
+    user_id?: string | number | null | undefined;
+    company_id?: string | number | null | undefined;
+    device_id?: string | number | null | undefined;
   }
 
   /**
-   * Identifies who an event or profile update belongs to. Unset values are
-   * null and omitted from messages. Instances are frozen.
+   * Identifies who an event or profile update belongs to. Ids are strings or
+   * integers and are sent as given. Unset values are null and omitted from
+   * messages. Instances are frozen.
    */
   export class MixpanelIdentity {
     /**
@@ -38,10 +39,10 @@ declare namespace mixpanel {
      *   or no value is set
      */
     constructor(ids: MixpanelIdentityInit);
-    readonly distinct_id: string | null;
-    readonly user_id: string | null;
-    readonly company_id: string | null;
-    readonly device_id: string | null;
+    readonly distinct_id: string | number | null;
+    readonly user_id: string | number | null;
+    readonly company_id: string | number | null;
+    readonly device_id: string | number | null;
     /** true if this identity names a company */
     readonly is_hierarchical: boolean;
     /**
@@ -156,14 +157,15 @@ declare namespace mixpanel {
     readonly hierarchical_groups: boolean;
 
     /** the company this client is bound to, see `for_company` */
-    readonly company_id?: string;
+    readonly company_id?: string | number;
 
     /**
      * Returns a client bound to the given company, sharing this client's
      * config, connections and flag providers. Its group profile updates carry
-     * a top-level `$company_id`.
+     * a top-level `$company_id`. A user profile update for an identity with a
+     * user id but no company uses this company.
      */
-    for_company(companyId: string): Mixpanel;
+    for_company(companyId: string | number): Mixpanel;
 
     track(eventName: string, callback?: Callback): void;
     track(
