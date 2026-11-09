@@ -10,6 +10,13 @@ export interface FlagsConfig {
   api_host?: string;
   /** Request timeout in seconds (default: 10) */
   request_timeout_in_seconds?: number;
+  /**
+   * Whether the project uses hierarchical groups (default: false). When true,
+   * exposure events can be attributed by `$company_id` and carry `$user_id`
+   * and `$company_id` from the context. Providers created by
+   * `Mixpanel.init` take this from the client's `hierarchical_groups` option.
+   */
+  hierarchical_groups?: boolean;
 }
 
 /**
@@ -107,6 +114,12 @@ export interface ExperimentationFlag {
   is_experiment_active?: boolean;
   /** Hash salt for variant assignment */
   hash_salt?: string;
+  /**
+   * Template for the assignment key, filled from the evaluation context, e.g.
+   * `"$company:{$company_id}|$user:{$user_id}"`. When a placeholder is
+   * missing, the raw `context` value is used instead.
+   */
+  context_value_template?: string;
 }
 
 /**
@@ -177,6 +190,10 @@ export interface LocalFlagsResponse {
 }
 
 export interface FlagContext {
-  distinct_id: string;
+  /**
+   * Optional on hierarchical groups projects, where a context may carry
+   * `$user_id` and `$company_id` instead.
+   */
+  distinct_id?: string;
   [key: string]: any;
 }

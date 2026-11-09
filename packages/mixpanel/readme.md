@@ -268,6 +268,52 @@ mixpanel_importer.import_batch([
 ]);
 ```
 
+## Hierarchical Groups
+
+On a project that uses hierarchical groups, Mixpanel builds the distinct id
+from `$user_id` and `$company_id`. Create the client with
+`hierarchical_groups: true` and identify users with a `MixpanelIdentity`:
+
+```javascript
+const Mixpanel = require("mixpanel");
+const { MixpanelIdentity } = Mixpanel;
+
+const mixpanel = Mixpanel.init("<YOUR_TOKEN>", { hierarchical_groups: true });
+const user = new MixpanelIdentity({ user_id: "user_123", company_id: "acme" });
+
+// events take the identity as the first argument
+mixpanel.track(user, "Signup", { plan: "enterprise" });
+mixpanel.import(user, "Signup", new Date(2024, 0, 1));
+
+// user profiles: set, set_once, unset, union, remove and delete_user
+mixpanel.people.set(user, { role: "admin" });
+// or a distinct id Mixpanel built from the company and user
+mixpanel.people.set("$company:acme|$user:user_123", { role: "admin" });
+
+// group profiles need a company: bind one with for_company
+const acme = mixpanel.for_company("acme");
+acme.groups.set("$company_id", "acme", { tier: "enterprise" });
+acme.groups.set("department", "finance", { budget: 100000 });
+```
+
+A `MixpanelIdentity` takes any of `distinct_id`, `user_id`, `company_id` and
+`device_id`. An identity with only a `device_id` tracks anonymous events.
+
+User profiles on these projects are group profiles keyed by `$user_id` within
+the company, so every user profile update goes to `/groups` and nothing is
+sent to `/engage`. A user profile update takes a `MixpanelIdentity` with a
+`user_id` and `company_id`, or a distinct id of the form
+`$company:{company}|$user:{user}`; any other distinct id throws
+`MixpanelArgumentError`. Events are unaffected: `track` and `import` send a
+distinct id as given. `people.increment`, `people.append`,
+`people.track_charge`, `people.clear_charges` and `alias` throw
+`MixpanelUnsupportedOperationError`. A user id sent without a company (and
+without a device id) names a separate user that cannot be merged afterwards,
+so it throws `MixpanelArgumentError`, as does a hierarchical identity on a
+client created without `hierarchical_groups`. A group profile update without a
+company throws `MixpanelCompanyRequiredError`. These errors are thrown when
+the method is called, before anything is sent.
+
 ## Service Account Authentication
 
 **Documentation:** https://developer.mixpanel.com/reference/service-accounts-api

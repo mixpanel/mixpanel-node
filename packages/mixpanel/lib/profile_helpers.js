@@ -3,6 +3,24 @@
  */
 
 const { ensure_timestamp } = require("./utils");
+const { MixpanelCompanyRequiredError } = require("./errors");
+
+// /groups has no $add, $append or $merge, so these are all a hierarchical
+// groups profile supports
+const GROUP_OPERATIONS = Object.freeze([
+  "$set",
+  "$set_once",
+  "$unset",
+  "$union",
+  "$remove",
+  "$delete",
+]);
+exports.GROUP_OPERATIONS = GROUP_OPERATIONS;
+
+/** modifiers can be omitted, in which case the callback takes their place */
+function modifiers_or_none(modifiers) {
+  return modifiers && typeof modifiers === "object" ? modifiers : undefined;
+}
 
 function merge_modifiers(data, modifiers) {
   if (modifiers) {
@@ -40,6 +58,90 @@ exports.ProfileHelpers = (Base = Object) =>
       return this.mixpanel.config;
     }
 
+    /**
+     * Resolves where a profile update goes. Called before the message is
+     * built, so a caller wiring mistake throws even when the data is invalid.
+     * @param {object} identifiers - as passed by the people/groups method
+     * @param {object} [modifiers]
+     * @returns {{endpoint: string, identifiers: object, company_id?: string}}
+     */
+    _target(identifiers, _modifiers) {
+      return { endpoint: this.endpoint, identifiers };
+    }
+
+    /**
+     * Target for a group profile. Hierarchical groups projects require a
+     * top-level $company_id on every /groups write, so the company comes from
+     * the given company_id, else a $company_id modifier.
+     */
+    _group_target(identifiers, company_id, modifiers) {
+      modifiers = modifiers_or_none(modifiers);
+      // a $company_id modifier is only honoured on hierarchical groups clients;
+      // other clients drop it, as they always have. A company id may be an
+      // integer (including 0), so presence is checked against null.
+      let company =
+        company_id === undefined || company_id === null
+          ? undefined
+          : company_id;
+      if (
+        company === undefined &&
+        this.mixpanel.hierarchical_groups &&
+        modifiers &&
+        modifiers.$company_id
+      ) {
+        company = modifiers.$company_id;
+      }
+      if (this.mixpanel.hierarchical_groups && company === undefined) {
+        throw new MixpanelCompanyRequiredError(
+          "Group profile updates for hierarchical groups projects require a company. " +
+            "Use mixpanel.for_company(company_id) to send them. Nothing sent for group " +
+            `${identifiers.$group_key}=${identifiers.$group_id}`,
+        );
+      }
+      const target = { endpoint: "/groups", identifiers };
+      if (company !== undefined) {
+        target.company_id = company;
+      }
+      return target;
+    }
+
+    /** builds the message for the target and sends it */
+    _send_profile_update(
+      target,
+      data,
+      modifiers,
+      callback,
+      debug_message,
+      debug_data,
+    ) {
+      data = {
+        ...data,
+        $token: this.token,
+        ...target.identifiers,
+      };
+
+      data = merge_modifiers(data, modifiers_or_none(modifiers));
+
+      // $company_id must be top-level, not inside the operation payload, and
+      // the resolved company wins over a $company_id modifier
+      if (target.company_id !== undefined && target.company_id !== null) {
+        data.$company_id = target.company_id;
+      }
+
+      if (this.config.debug) {
+        this.mixpanel.config.logger.debug(
+          debug_message ||
+            `Sending the following data to Mixpanel (${target.endpoint})`,
+          debug_data || { data },
+        );
+      }
+
+      this.mixpanel.send_request(
+        { method: "GET", endpoint: target.endpoint, data },
+        callback,
+      );
+    }
+
     _set(prop, to, modifiers, callback, { identifiers, set_once = false }) {
       let $set = {};
 
@@ -58,13 +160,14 @@ exports.ProfileHelpers = (Base = Object) =>
         }
       }
 
-      let data = {
-        $token: this.token,
-        ...identifiers,
-      };
+      const target = this._target(identifiers, modifiers);
 
       const set_key = set_once ? "$set_once" : "$set";
-      data[set_key] = $set;
+      const data = {
+        $token: this.token,
+        ...target.identifiers,
+        [set_key]: $set,
+      };
 
       if ("ip" in $set) {
         data.$ip = $set.ip;
@@ -76,46 +179,30 @@ exports.ProfileHelpers = (Base = Object) =>
         delete $set.$ignore_time;
       }
 
-      data = merge_modifiers(data, modifiers);
-
-      if (this.config.debug) {
-        this.mixpanel.config.logger.debug(
-          `Sending the following data to Mixpanel (${this.endpoint})`,
-          { data },
-        );
-      }
-
-      this.mixpanel.send_request(
-        { method: "GET", endpoint: this.endpoint, data },
-        callback,
-      );
+      this._send_profile_update(target, data, modifiers, callback);
     }
 
     _delete_profile({ identifiers, modifiers, callback }) {
-      let data = {
-        $delete: "",
-        $token: this.token,
-        ...identifiers,
-      };
-
       if (typeof modifiers === "function") {
         callback = modifiers;
       }
 
-      data = merge_modifiers(data, modifiers);
+      const target = this._target(identifiers, modifiers);
 
-      if (this.config.debug) {
-        this.mixpanel.config.logger.debug("Deleting profile", { identifiers });
-      }
-
-      this.mixpanel.send_request(
-        { method: "GET", endpoint: this.endpoint, data },
+      this._send_profile_update(
+        target,
+        { $delete: "" },
+        modifiers,
         callback,
+        "Deleting profile",
+        { identifiers },
       );
     }
 
     _remove({ identifiers, data, modifiers, callback }) {
       let $remove = {};
+
+      const target = this._target(identifiers, modifiers);
 
       if (typeof data !== "object" || Array.isArray(data)) {
         if (this.config.debug) {
@@ -144,33 +231,17 @@ exports.ProfileHelpers = (Base = Object) =>
         return;
       }
 
-      data = {
-        $remove: $remove,
-        $token: this.token,
-        ...identifiers,
-      };
-
       if (typeof modifiers === "function") {
         callback = modifiers;
       }
 
-      data = merge_modifiers(data, modifiers);
-
-      if (this.config.debug) {
-        this.mixpanel.config.logger.debug(
-          `Sending the following data to Mixpanel (${this.endpoint})`,
-          { data },
-        );
-      }
-
-      this.mixpanel.send_request(
-        { method: "GET", endpoint: this.endpoint, data },
-        callback,
-      );
+      this._send_profile_update(target, { $remove }, modifiers, callback);
     }
 
     _union({ identifiers, data, modifiers, callback }) {
       let $union = {};
+
+      const target = this._target(identifiers, modifiers);
 
       if (typeof data !== "object" || Array.isArray(data)) {
         if (this.config.debug) {
@@ -205,33 +276,17 @@ exports.ProfileHelpers = (Base = Object) =>
         return;
       }
 
-      data = {
-        $union: $union,
-        $token: this.token,
-        ...identifiers,
-      };
-
       if (typeof modifiers === "function") {
         callback = modifiers;
       }
 
-      data = merge_modifiers(data, modifiers);
-
-      if (this.config.debug) {
-        this.mixpanel.config.logger.debug(
-          `Sending the following data to Mixpanel (${this.endpoint})`,
-          { data },
-        );
-      }
-
-      this.mixpanel.send_request(
-        { method: "GET", endpoint: this.endpoint, data },
-        callback,
-      );
+      this._send_profile_update(target, { $union }, modifiers, callback);
     }
 
     _unset({ identifiers, prop, modifiers, callback }) {
       let $unset = [];
+
+      const target = this._target(identifiers, modifiers);
 
       if (Array.isArray(prop)) {
         $unset = prop;
@@ -247,28 +302,10 @@ exports.ProfileHelpers = (Base = Object) =>
         return;
       }
 
-      let data = {
-        $unset: $unset,
-        $token: this.token,
-        ...identifiers,
-      };
-
       if (typeof modifiers === "function") {
         callback = modifiers;
       }
 
-      data = merge_modifiers(data, modifiers);
-
-      if (this.config.debug) {
-        this.mixpanel.config.logger.debug(
-          `Sending the following data to Mixpanel (${this.endpoint})`,
-          { data },
-        );
-      }
-
-      this.mixpanel.send_request(
-        { method: "GET", endpoint: this.endpoint, data },
-        callback,
-      );
+      this._send_profile_update(target, { $unset }, modifiers, callback);
     }
   };

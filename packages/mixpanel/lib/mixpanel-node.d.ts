@@ -1,6 +1,10 @@
 import LocalFeatureFlagsProvider from "./flags/local_flags";
 import RemoteFeatureFlagsProvider from "./flags/remote_flags";
-import { LocalFlagsConfig, RemoteFlagsConfig } from "./flags/types";
+import {
+  FlagContext,
+  LocalFlagsConfig,
+  RemoteFlagsConfig,
+} from "./flags/types";
 
 declare namespace mixpanel {
   export function init(
@@ -16,6 +20,65 @@ declare namespace mixpanel {
     toHttpBasicAuth(): string;
     toString(): string;
   }
+
+  export interface MixpanelIdentityInit {
+    distinct_id?: string | number | null | undefined;
+    user_id?: string | number | null | undefined;
+    company_id?: string | number | null | undefined;
+    device_id?: string | number | null | undefined;
+  }
+
+  /**
+   * Identifies who an event or profile update belongs to. Ids are strings or
+   * integers and are sent as given. Unset values are null and omitted from
+   * messages. Instances are frozen.
+   */
+  export class MixpanelIdentity {
+    /**
+     * @throws {MixpanelArgumentError} if a value is empty, a key is unknown,
+     *   or no value is set
+     */
+    constructor(ids: MixpanelIdentityInit);
+    readonly distinct_id: string | number | null;
+    readonly user_id: string | number | null;
+    readonly company_id: string | number | null;
+    readonly device_id: string | number | null;
+    /** true if this identity names a company */
+    readonly is_hierarchical: boolean;
+    /**
+     * A feature flag evaluation context for this identity: its ids under the
+     * keys flags read, the groups at the top level and the custom properties
+     * nested under custom_properties.
+     */
+    to_flag_context(options?: {
+      groups?: Record<string, any>;
+      custom_properties?: Record<string, any>;
+    }): FlagContext;
+    toString(): string;
+  }
+
+  /** An argument cannot be used, e.g. an identity this client cannot send. */
+  export class MixpanelArgumentError extends TypeError {
+    readonly code: "MIXPANEL_INVALID_ARGUMENT";
+  }
+
+  /** The operation has no equivalent on a hierarchical groups project. */
+  export class MixpanelUnsupportedOperationError extends Error {
+    readonly code: "MIXPANEL_UNSUPPORTED_OPERATION";
+  }
+
+  /** A hierarchical groups group profile update has no company; use for_company. */
+  export class MixpanelCompanyRequiredError extends Error {
+    readonly code: "MIXPANEL_COMPANY_REQUIRED";
+  }
+
+  /**
+   * A distinct id, or an identity that names a user profile. On a
+   * hierarchical groups client a distinct id must be of the form
+   * `$company:{company}|$user:{user}`; the update goes to that user's group
+   * profile, and any other distinct id throws MixpanelArgumentError.
+   */
+  export type ProfileId = string | MixpanelIdentity;
 
   export type Callback = (err: Error | undefined) => any;
   export type BatchCallback = (errors: [Error] | undefined) => any;
@@ -44,6 +107,11 @@ declare namespace mixpanel {
     logger: CustomLogger;
     local_flags_config?: LocalFlagsConfig;
     remote_flags_config?: RemoteFlagsConfig;
+    /**
+     * true for a project that uses hierarchical groups; fixed at init
+     * @default false
+     */
+    hierarchical_groups?: boolean;
   }
 
   export interface PropertyDict {
@@ -65,6 +133,8 @@ declare namespace mixpanel {
     $ignore_alias?: boolean;
     $latitude?: number;
     $longitude?: number;
+    /** company for a group profile update on a hierarchical groups client */
+    $company_id?: string;
   }
 
   export interface BatchOptions {
@@ -83,8 +153,33 @@ declare namespace mixpanel {
   interface Mixpanel {
     init(mixpanelToken: string, config?: Partial<InitConfig>): Mixpanel;
 
+    /** true if the client was created with `hierarchical_groups: true` */
+    readonly hierarchical_groups: boolean;
+
+    /** the company this client is bound to, see `for_company` */
+    readonly company_id?: string | number;
+
+    /**
+     * Returns a client bound to the given company, sharing this client's
+     * config, connections and flag providers. Its group profile updates carry
+     * a top-level `$company_id`. A user profile update for an identity with a
+     * user id but no company uses this company.
+     */
+    for_company(companyId: string | number): Mixpanel;
+
     track(eventName: string, callback?: Callback): void;
     track(
+      eventName: string,
+      properties: PropertyDict,
+      callback?: Callback,
+    ): void;
+    track(
+      identity: MixpanelIdentity,
+      eventName: string,
+      callback?: Callback,
+    ): void;
+    track(
+      identity: MixpanelIdentity,
       eventName: string,
       properties: PropertyDict,
       callback?: Callback,
@@ -110,6 +205,19 @@ declare namespace mixpanel {
       callback?: Callback,
     ): void;
     import(eventName: string, time: Date | number, callback: Callback): void;
+    import(
+      identity: MixpanelIdentity,
+      eventName: string,
+      time: Date | number,
+      callback: Callback,
+    ): void;
+    import(
+      identity: MixpanelIdentity,
+      eventName: string,
+      time: Date | number,
+      properties?: PropertyDict,
+      callback?: Callback,
+    ): void;
 
     import_batch(
       eventNames: string[],
@@ -125,6 +233,13 @@ declare namespace mixpanel {
 
     groups: Groups;
 
+    /**
+     * The bound company's own profile, see `for_company`. Each method is the
+     * matching `groups` method with `('$company_id', company_id)`. On a client
+     * without a bound company, each method throws MixpanelCompanyRequiredError.
+     */
+    company: Company;
+
     local_flags?: LocalFeatureFlagsProvider;
 
     remote_flags?: RemoteFeatureFlagsProvider;
@@ -132,30 +247,30 @@ declare namespace mixpanel {
 
   interface People {
     set(
-      distinctId: string,
+      distinctId: ProfileId,
       properties: PropertyDict,
       callback?: Callback,
     ): void;
     set(
-      distinctId: string,
+      distinctId: ProfileId,
       properties: PropertyDict,
       modifiers?: Modifiers,
       callback?: Callback,
     ): void;
     set(
-      distinctId: string,
+      distinctId: ProfileId,
       propertyName: string,
       value: string | number,
       modifiers: Modifiers,
     ): void;
     set(
-      distinctId: string,
+      distinctId: ProfileId,
       propertyName: string,
       value: string | number,
       callback?: Callback,
     ): void;
     set(
-      distinctId: string,
+      distinctId: ProfileId,
       propertyName: string,
       value: string | number,
       modifiers: Modifiers,
@@ -163,37 +278,37 @@ declare namespace mixpanel {
     ): void;
 
     unset(
-      distinctId: string,
+      distinctId: ProfileId,
       propertyName: string | string[],
       callback?: Callback,
     ): void;
     unset(
-      distinctId: string,
+      distinctId: ProfileId,
       propertyName: string | string[],
       modifiers?: Modifiers,
       callback?: Callback,
     ): void;
 
     set_once(
-      distinctId: string,
+      distinctId: ProfileId,
       propertyName: string,
       value: string,
       callback?: Callback,
     ): void;
     set_once(
-      distinctId: string,
+      distinctId: ProfileId,
       propertyName: string,
       value: string,
       modifiers: Modifiers,
       callback?: Callback,
     ): void;
     set_once(
-      distinctId: string,
+      distinctId: ProfileId,
       properties: PropertyDict,
       callback?: Callback,
     ): void;
     set_once(
-      distinctId: string,
+      distinctId: ProfileId,
       properties: PropertyDict,
       modifiers?: Modifiers,
       callback?: Callback,
@@ -256,20 +371,20 @@ declare namespace mixpanel {
     ): void;
 
     union(
-      distinctId: string,
+      distinctId: ProfileId,
       data: UnionData,
       modifiers?: Modifiers,
       callback?: Callback,
     ): void;
-    union(distinctId: string, data: UnionData, callback: Callback): void;
+    union(distinctId: ProfileId, data: UnionData, callback: Callback): void;
 
     remove(
-      distinctId: string,
+      distinctId: ProfileId,
       data: RemoveData,
       modifiers?: Modifiers,
       callback?: Callback,
     ): void;
-    remove(distinctId: string, data: RemoveData, callback: Callback): void;
+    remove(distinctId: ProfileId, data: RemoveData, callback: Callback): void;
 
     track_charge(
       distinctId: string,
@@ -293,11 +408,11 @@ declare namespace mixpanel {
     clear_charges(distinctId: string, callback: Callback): void;
 
     delete_user(
-      distinctId: string,
+      distinctId: ProfileId,
       modifiers?: Modifiers,
       callback?: Callback,
     ): void;
-    delete_user(distinctId: string, callback: Callback): void;
+    delete_user(distinctId: ProfileId, callback: Callback): void;
   }
 
   interface Groups {
@@ -415,6 +530,61 @@ declare namespace mixpanel {
       callback?: Callback,
     ): void;
     delete_group(groupKey: string, groupId: string, callback: Callback): void;
+  }
+
+  interface Company {
+    set(properties: PropertyDict, callback?: Callback): void;
+    set(
+      properties: PropertyDict,
+      modifiers?: Modifiers,
+      callback?: Callback,
+    ): void;
+    set(
+      propertyName: string,
+      value: string | number,
+      modifiers: Modifiers,
+    ): void;
+    set(
+      propertyName: string,
+      value: string | number,
+      callback?: Callback,
+    ): void;
+    set(
+      propertyName: string,
+      value: string | number,
+      modifiers: Modifiers,
+      callback: Callback,
+    ): void;
+
+    unset(propertyName: string | string[], callback?: Callback): void;
+    unset(
+      propertyName: string | string[],
+      modifiers?: Modifiers,
+      callback?: Callback,
+    ): void;
+
+    set_once(propertyName: string, value: string, callback?: Callback): void;
+    set_once(
+      propertyName: string,
+      value: string,
+      modifiers: Modifiers,
+      callback?: Callback,
+    ): void;
+    set_once(properties: PropertyDict, callback?: Callback): void;
+    set_once(
+      properties: PropertyDict,
+      modifiers?: Modifiers,
+      callback?: Callback,
+    ): void;
+
+    union(data: UnionData, modifiers?: Modifiers, callback?: Callback): void;
+    union(data: UnionData, callback: Callback): void;
+
+    remove(data: RemoveData, modifiers?: Modifiers, callback?: Callback): void;
+    remove(data: RemoveData, callback: Callback): void;
+
+    delete(modifiers?: Modifiers, callback?: Callback): void;
+    delete(callback: Callback): void;
   }
 }
 
