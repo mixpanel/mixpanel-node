@@ -710,6 +710,29 @@ describe("LocalFeatureFlagsProvider", () => {
       expect(properties["$is_qa_tester"]).toBe(true);
     });
 
+    it("should add $openfeature_provider to exposure when marked in context (SDK-448)", async () => {
+      await createFlagAndLoadItIntoSDK({}, provider);
+
+      provider.getVariant(FLAG_KEY, FALLBACK, {
+        ...TEST_CONTEXT,
+        $openfeature_provider: true,
+      });
+
+      expect(mockTracker).toHaveBeenCalledTimes(1);
+      const properties = mockTracker.mock.calls[0][1];
+      expect(properties["$openfeature_provider"]).toBe(true);
+    });
+
+    it("should not add $openfeature_provider to exposure for direct calls", async () => {
+      await createFlagAndLoadItIntoSDK({}, provider);
+
+      provider.getVariant(FLAG_KEY, FALLBACK, TEST_CONTEXT);
+
+      expect(mockTracker).toHaveBeenCalledTimes(1);
+      const properties = mockTracker.mock.calls[0][1];
+      expect(properties).not.toHaveProperty("$openfeature_provider");
+    });
+
     it("should not track exposure on fallback", async () => {
       mockFlagDefinitionsResponse([]);
       await provider.startPollingForDefinitions();

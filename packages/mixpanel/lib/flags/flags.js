@@ -183,6 +183,11 @@ class FeatureFlagsProvider {
       properties["$is_qa_tester"] = selectedVariant.is_qa_tester;
     }
 
+    // SDK-448: the OpenFeature provider marks its evaluations via the context.
+    if (context.$openfeature_provider === true) {
+      properties["$openfeature_provider"] = true;
+    }
+
     // Use the tracker function provided (bound to the main mixpanel instance)
     this.tracker(EXPOSURE_EVENT, properties, (err) => {
       if (err) {

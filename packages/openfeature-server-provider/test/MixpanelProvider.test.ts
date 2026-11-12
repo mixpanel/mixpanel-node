@@ -85,7 +85,7 @@ describe("MixpanelProvider", () => {
       expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
         "flag",
         expect.anything(),
-        context,
+        { ...context, $openfeature_provider: true },
         true,
       );
     });
@@ -105,7 +105,7 @@ describe("MixpanelProvider", () => {
       expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
         "flag",
         expect.anything(),
-        {},
+        { $openfeature_provider: true },
         true,
       );
     });
@@ -843,7 +843,7 @@ describe("MixpanelProvider", () => {
       expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
         "flag",
         expect.anything(),
-        evalContext,
+        { ...evalContext, $openfeature_provider: true },
         true,
       );
     });
@@ -867,7 +867,7 @@ describe("MixpanelProvider", () => {
       expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
         "flag",
         expect.anything(),
-        { distinct_id: "eval-user", plan: "free" },
+        { distinct_id: "eval-user", plan: "free", $openfeature_provider: true },
         true,
       );
     });
@@ -891,7 +891,7 @@ describe("MixpanelProvider", () => {
       expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
         "flag",
         expect.anything(),
-        { distinct_id: "user-1", plan: "premium" },
+        { distinct_id: "user-1", plan: "premium", $openfeature_provider: true },
         true,
       );
     });
@@ -915,7 +915,11 @@ describe("MixpanelProvider", () => {
       expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
         "theme",
         expect.anything(),
-        { distinct_id: "user-1", tier: "enterprise" },
+        {
+          distinct_id: "user-1",
+          tier: "enterprise",
+          $openfeature_provider: true,
+        },
         true,
       );
     });
@@ -986,6 +990,7 @@ describe("MixpanelProvider", () => {
         {
           distinct_id: "user-1",
           settings: { theme: "dark", notifications: { email: true } },
+          $openfeature_provider: true,
         },
         true,
       );
@@ -1017,6 +1022,7 @@ describe("MixpanelProvider", () => {
         {
           distinct_id: "user-1",
           tags: ["vip", "beta"],
+          $openfeature_provider: true,
         },
         true,
       );
@@ -1049,6 +1055,7 @@ describe("MixpanelProvider", () => {
         {
           distinct_id: "user-1",
           created_at: "2025-06-15T12:00:00.000Z",
+          $openfeature_provider: true,
         },
         true,
       );
@@ -1080,6 +1087,7 @@ describe("MixpanelProvider", () => {
         {
           distinct_id: "user-1",
           config: { value: "production", region: "us-east" },
+          $openfeature_provider: true,
         },
         true,
       );
@@ -1113,6 +1121,7 @@ describe("MixpanelProvider", () => {
           distinct_id: "user-1",
           nullable: null,
           missing: undefined,
+          $openfeature_provider: true,
         }),
         true,
       );
@@ -1145,7 +1154,50 @@ describe("MixpanelProvider", () => {
         {
           events: [{ timestamp: "2025-01-01T00:00:00.000Z" }],
           meta: { updated: "2025-01-01T00:00:00.000Z" },
+          $openfeature_provider: true,
         },
+        true,
+      );
+    });
+
+    it("should add $openfeature_provider marker to the context (SDK-448)", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize({ distinct_id: "user-1" });
+
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+
+      await provider.resolveBooleanEvaluation("flag", false, {}, mockLogger);
+
+      const passedContext = mockFlagsProvider.getVariant.mock.calls[0][2];
+      expect(passedContext.$openfeature_provider).toBe(true);
+    });
+
+    it("should not let customer attributes override the $openfeature_provider marker", async () => {
+      const provider = new MixpanelProvider(mockFlagsProvider);
+      await provider.initialize({
+        distinct_id: "user-1",
+        $openfeature_provider: "init-value",
+      });
+
+      mockFlags.set("flag", {
+        variant_key: "on",
+        variant_value: true,
+      });
+
+      await provider.resolveBooleanEvaluation(
+        "flag",
+        false,
+        { $openfeature_provider: false },
+        mockLogger,
+      );
+
+      expect(mockFlagsProvider.getVariant).toHaveBeenCalledWith(
+        "flag",
+        expect.anything(),
+        { distinct_id: "user-1", $openfeature_provider: true },
         true,
       );
     });
