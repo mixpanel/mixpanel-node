@@ -944,6 +944,12 @@ describe("hierarchical groups", () => {
       expect(sent(hg).data.$company_id).toBe("acme");
     });
 
+    it("accepts an integer $company_id modifier, including 0", () => {
+      hg.groups.set("department", "finance", { plan: "x" }, { $company_id: 0 });
+
+      expect(sent(hg).data.$company_id).toBe(0);
+    });
+
     it("drops a $company_id modifier on a legacy client, as before", () => {
       legacy.groups.set(
         "department",

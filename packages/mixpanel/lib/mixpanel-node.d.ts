@@ -134,7 +134,7 @@ declare namespace mixpanel {
     $latitude?: number;
     $longitude?: number;
     /** company for a group profile update on a hierarchical groups client */
-    $company_id?: string;
+    $company_id?: string | number;
   }
 
   export interface BatchOptions {

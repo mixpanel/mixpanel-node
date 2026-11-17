@@ -87,7 +87,8 @@ exports.ProfileHelpers = (Base = Object) =>
         company === undefined &&
         this.mixpanel.hierarchical_groups &&
         modifiers &&
-        modifiers.$company_id
+        modifiers.$company_id !== undefined &&
+        modifiers.$company_id !== null
       ) {
         company = modifiers.$company_id;
       }

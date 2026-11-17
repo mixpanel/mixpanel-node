@@ -32,6 +32,7 @@ acme.company.remove({ tags: "a" });
 acme.company.unset(["tier"]);
 acme.company.delete((err) => err);
 hg.groups.set("department", "finance", { budget: 1 }, { $company_id: "acme" });
+hg.groups.set("department", "finance", { budget: 1 }, { $company_id: 42 });
 const hierarchical: boolean = user.is_hierarchical && acme.hierarchical_groups;
 const company: string | number | undefined = acme.company_id;
 try {
