@@ -43,6 +43,50 @@ function normalizedHash(key, salt) {
 }
 
 /**
+ * Allocation bucket, 0 to 99, for the experiment entries of a multi-experiment flag.
+ * Uses the same mixed hash as mixedNormalizedHash, so every bucket bit depends on
+ * every input byte.
+ * @param {string} key - The key to hash (usually distinct_id or other identifier)
+ * @param {string} salt - Salt value (flag key followed by the flag's hash_salt)
+ * @returns {number} - Allocation bucket in the range [0, 99]
+ */
+function allocationBucket(key, salt) {
+  const combined = Buffer.from(key + salt, "utf-8");
+  const hashValue = _fmix64(_fnv1a64(combined));
+  return Number(hashValue % BigInt(100));
+}
+
+/**
+ * MurmurHash3 64-bit finalizer, so every output bit depends on every input bit
+ * @param {BigInt} value - Unsigned 64-bit value
+ * @returns {BigInt} - Unsigned 64-bit value
+ */
+function _fmix64(value) {
+  const MASK_64 = BigInt("0xFFFFFFFFFFFFFFFF");
+  const SHIFT = BigInt(33);
+  value ^= value >> SHIFT;
+  value = (value * BigInt("0xFF51AFD7ED558CCD")) & MASK_64;
+  value ^= value >> SHIFT;
+  value = (value * BigInt("0xC4CEB9FE1A85EC53")) & MASK_64;
+  value ^= value >> SHIFT;
+  return value;
+}
+
+/**
+ * Variant hash for the experiment entries of a multi-experiment flag, between 0.0 and 1.0.
+ * Passes FNV-1a through the MurmurHash3 finalizer so experiments that reuse an
+ * allocation range assign variants independently of each other.
+ * @param {string} key - The key to hash (usually distinct_id or other identifier)
+ * @param {string} salt - Salt value
+ * @returns {number} - Hash value normalized to the non-inclusive range, [0.0, 1.0)
+ */
+function mixedNormalizedHash(key, salt) {
+  const combined = Buffer.from(key + salt, "utf-8");
+  const hashValue = _fmix64(_fnv1a64(combined));
+  return Number(hashValue % BigInt(100)) / 100.0;
+}
+
+/**
  * Prepare common query parameters for feature flags API requests
  * @param {string} token - Mixpanel project token
  * @param {string} sdkVersion - SDK version string
@@ -111,6 +155,8 @@ module.exports = {
   EXPOSURE_EVENT,
   REQUEST_HEADERS,
   normalizedHash,
+  allocationBucket,
+  mixedNormalizedHash,
   prepareCommonQueryParams,
   generateTraceparent,
   lowercaseAllKeysAndValues,

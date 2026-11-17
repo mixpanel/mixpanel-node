@@ -14,6 +14,8 @@
 const FeatureFlagsProvider = require("./flags");
 const {
   normalizedHash,
+  allocationBucket,
+  mixedNormalizedHash,
   lowercaseAllKeysAndValues,
   lowercaseLeafNodes,
 } = require("./utils");
@@ -25,6 +27,9 @@ const {
 } = require("./variant_source");
 const { apply } = require("json-logic-js");
 require("./custom_operators");
+
+const ROLLOUT_TYPE_EXPERIMENT = "experiment";
+const EXPERIMENT_STATUS_DRAFT = "draft";
 
 class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
   /**
@@ -331,19 +336,26 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
     for (let index = 0; index < flag.ruleset.rollout.length; index++) {
       const rollout = flag.ruleset.rollout[index];
 
-      let salt;
-      if (flag.hash_salt != null) {
-        salt = flag.key + flag.hash_salt + index.toString();
+      let isInRollout;
+      if (rollout.type === ROLLOUT_TYPE_EXPERIMENT) {
+        isInRollout = this._isContextInExperimentAllocation(
+          flag,
+          contextValue,
+          rollout,
+        );
       } else {
-        salt = flag.key + "rollout";
+        let salt;
+        if (flag.hash_salt != null) {
+          salt = flag.key + flag.hash_salt + index.toString();
+        } else {
+          salt = flag.key + "rollout";
+        }
+
+        const rolloutHash = normalizedHash(String(contextValue), salt);
+        isInRollout = rolloutHash < rollout.rollout_percentage;
       }
 
-      const rolloutHash = normalizedHash(String(contextValue), salt);
-
-      if (
-        rolloutHash < rollout.rollout_percentage &&
-        this._isRuntimeEvaluationSatisfied(rollout, context)
-      ) {
+      if (isInRollout && this._isRuntimeEvaluationSatisfied(rollout, context)) {
         return rollout;
       }
     }
@@ -351,20 +363,59 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
     return null;
   }
 
+  _isContextInExperimentAllocation(flag, contextValue, rollout) {
+    if (rollout.experiment_status === EXPERIMENT_STATUS_DRAFT) {
+      return false;
+    }
+    if (!flag.hash_salt) {
+      return false;
+    }
+    const bucket = allocationBucket(
+      String(contextValue),
+      flag.key + flag.hash_salt,
+    );
+    return (rollout.allocation || []).some(
+      (allocationRange) =>
+        allocationRange.start <= bucket && bucket < allocationRange.end,
+    );
+  }
+
+  _experimentAttribution(flag, rollout) {
+    if (rollout.type === ROLLOUT_TYPE_EXPERIMENT) {
+      return {
+        experiment_id: rollout.experiment_id,
+        is_experiment_active: Boolean(rollout.is_experiment_active),
+      };
+    }
+    return {
+      experiment_id: flag.experiment_id,
+      is_experiment_active: flag.is_experiment_active,
+    };
+  }
+
   _getAssignedVariant(flag, contextValue, flagKey, rollout) {
+    const experimentAttribution = this._experimentAttribution(flag, rollout);
+
     if (rollout.variant_override) {
       const variant = this._getMatchingVariant(
         rollout.variant_override.key,
         flag,
       );
       if (variant) {
-        return { ...variant, is_qa_tester: false };
+        return { ...variant, ...experimentAttribution, is_qa_tester: false };
       }
     }
 
     const storedSalt = flag.hash_salt != null ? flag.hash_salt : "";
-    const salt = flagKey + storedSalt + "variant";
-    const variantHash = normalizedHash(String(contextValue), salt);
+    let variantHash;
+    if (rollout.type === ROLLOUT_TYPE_EXPERIMENT) {
+      const salt =
+        flagKey + storedSalt + (rollout.experiment_id ?? "") + "variant";
+      variantHash = mixedNormalizedHash(String(contextValue), salt);
+    } else {
+      const salt = flagKey + storedSalt + "variant";
+      variantHash = normalizedHash(String(contextValue), salt);
+    }
 
     const variants = flag.ruleset.variants.map((v) => ({ ...v }));
     if (rollout.variant_splits) {
@@ -388,8 +439,7 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
     return {
       variant_key: selected.key,
       variant_value: selected.value,
-      experiment_id: flag.experiment_id,
-      is_experiment_active: flag.is_experiment_active,
+      ...experimentAttribution,
       is_qa_tester: false,
     };
   }

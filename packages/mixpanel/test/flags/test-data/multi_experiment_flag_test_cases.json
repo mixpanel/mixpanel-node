@@ -1,0 +1,233 @@
+{
+  "TestMultiExperimentFlagEvaluationScenarios": [
+    {
+      "name": "multi-experiment flag assigns subject to the experiment allocating its position",
+      "context": {
+        "distinct_id": "user123"
+      },
+      "flags": [
+        {
+          "id": "multi-experiment-1",
+          "project_id": 31,
+          "workspace_id": 1,
+          "name": "Checkout",
+          "key": "checkout",
+          "status": "enabled",
+          "context": "distinct_id",
+          "hash_salt": "salt1",
+          "ruleset": {
+            "variants": [
+              {
+                "key": "control",
+                "value": "control",
+                "is_control": true,
+                "split": 0.5
+              },
+              {
+                "key": "treatment",
+                "value": "treatment",
+                "is_control": false,
+                "split": 0.5
+              }
+            ],
+            "rollout": [
+              {
+                "type": "experiment",
+                "experiment_id": "e_cta",
+                "experiment_status": "active",
+                "is_experiment_active": true,
+                "allocation": [
+                  {
+                    "start": 0,
+                    "end": 40
+                  }
+                ],
+                "rollout_percentage": 0,
+                "cohort_hash": "abc123",
+                "variant_splits": {
+                  "control": 0.5,
+                  "treatment": 0.5
+                }
+              },
+              {
+                "type": "experiment",
+                "experiment_id": "e_search",
+                "experiment_status": "concluded",
+                "allocation": [
+                  {
+                    "start": 40,
+                    "end": 65
+                  }
+                ],
+                "rollout_percentage": 0,
+                "cohort_hash": "abc123",
+                "variant_splits": {
+                  "control": 0.1,
+                  "treatment": 0.9
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "expected": {
+        "checkout": {
+          "variant_key": "control",
+          "variant_value": "control",
+          "experiment_id": "e_cta",
+          "is_experiment_active": true
+        }
+      }
+    },
+    {
+      "name": "multi-experiment flag attributes a concluded experiment as inactive",
+      "context": {
+        "distinct_id": "user456"
+      },
+      "flags": [
+        {
+          "id": "multi-experiment-1",
+          "project_id": 31,
+          "workspace_id": 1,
+          "name": "Checkout",
+          "key": "checkout",
+          "status": "enabled",
+          "context": "distinct_id",
+          "hash_salt": "salt1",
+          "ruleset": {
+            "variants": [
+              {
+                "key": "control",
+                "value": "control",
+                "is_control": true,
+                "split": 0.5
+              },
+              {
+                "key": "treatment",
+                "value": "treatment",
+                "is_control": false,
+                "split": 0.5
+              }
+            ],
+            "rollout": [
+              {
+                "type": "experiment",
+                "experiment_id": "e_cta",
+                "experiment_status": "active",
+                "is_experiment_active": true,
+                "allocation": [
+                  {
+                    "start": 0,
+                    "end": 40
+                  }
+                ],
+                "rollout_percentage": 0,
+                "cohort_hash": "abc123",
+                "variant_splits": {
+                  "control": 0.5,
+                  "treatment": 0.5
+                }
+              },
+              {
+                "type": "experiment",
+                "experiment_id": "e_search",
+                "experiment_status": "concluded",
+                "allocation": [
+                  {
+                    "start": 40,
+                    "end": 65
+                  }
+                ],
+                "rollout_percentage": 0,
+                "cohort_hash": "abc123",
+                "variant_splits": {
+                  "control": 0.1,
+                  "treatment": 0.9
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "expected": {
+        "checkout": {
+          "variant_key": "treatment",
+          "variant_value": "treatment",
+          "experiment_id": "e_search"
+        }
+      }
+    },
+    {
+      "name": "multi-experiment flag returns nothing for an unallocated position",
+      "context": {
+        "distinct_id": "alice"
+      },
+      "flags": [
+        {
+          "id": "multi-experiment-1",
+          "project_id": 31,
+          "workspace_id": 1,
+          "name": "Checkout",
+          "key": "checkout",
+          "status": "enabled",
+          "context": "distinct_id",
+          "hash_salt": "salt1",
+          "ruleset": {
+            "variants": [
+              {
+                "key": "control",
+                "value": "control",
+                "is_control": true,
+                "split": 0.5
+              },
+              {
+                "key": "treatment",
+                "value": "treatment",
+                "is_control": false,
+                "split": 0.5
+              }
+            ],
+            "rollout": [
+              {
+                "type": "experiment",
+                "experiment_id": "e_cta",
+                "experiment_status": "active",
+                "is_experiment_active": true,
+                "allocation": [
+                  {
+                    "start": 0,
+                    "end": 40
+                  }
+                ],
+                "rollout_percentage": 0,
+                "cohort_hash": "abc123",
+                "variant_splits": {
+                  "control": 0.5,
+                  "treatment": 0.5
+                }
+              },
+              {
+                "type": "experiment",
+                "experiment_id": "e_search",
+                "experiment_status": "concluded",
+                "allocation": [
+                  {
+                    "start": 40,
+                    "end": 65
+                  }
+                ],
+                "rollout_percentage": 0,
+                "cohort_hash": "abc123",
+                "variant_splits": {
+                  "control": 0.1,
+                  "treatment": 0.9
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "expected": {}
+    }
+  ]
+}
