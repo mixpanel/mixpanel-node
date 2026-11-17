@@ -50,6 +50,14 @@ export interface VariantOverride {
 }
 
 /**
+ * Half-open range of allocation buckets, [start, end)
+ */
+export interface AllocationRange {
+  start: number;
+  end: number;
+}
+
+/**
  * Rollout configuration for a feature flag
  */
 export interface Rollout {
@@ -61,6 +69,16 @@ export interface Rollout {
   variant_override?: VariantOverride;
   /** Variant split percentages (variant_key -> percentage) */
   variant_splits?: Record<string, number>;
+  /** 'experiment' on the experiment entries of a multi-experiment flag, which assign subjects by allocation instead of rollout_percentage */
+  type?: string;
+  /** Experiment this entry belongs to */
+  experiment_id?: string;
+  /** Experiment status, e.g. 'draft', 'active', 'concluded' */
+  experiment_status?: string;
+  /** Whether this entry's experiment is active */
+  is_experiment_active?: boolean;
+  /** Allocation buckets (0-99) assigned to this entry's experiment */
+  allocation?: AllocationRange[];
 }
 
 /**

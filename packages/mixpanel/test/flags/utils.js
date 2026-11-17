@@ -1,6 +1,8 @@
 const {
   generateTraceparent,
   normalizedHash,
+  allocationBucket,
+  mixedNormalizedHash,
 } = require("../../lib/flags/utils");
 
 describe("Utils", function () {
@@ -102,6 +104,28 @@ describe("Utils", function () {
           }
         }
       });
+    });
+  });
+
+  describe("allocationBucket", function () {
+    const testCases = [
+      // Matches FnvHashMixed("abc") == 0.37 in the flags Go service.
+      { key: "abc", salt: "", expectedBucket: 37 },
+      { key: "user123", salt: "checkoutsalt1", expectedBucket: 32 },
+      { key: "user456", salt: "checkoutsalt1", expectedBucket: 58 },
+    ];
+
+    testCases.forEach(({ key, salt, expectedBucket }) => {
+      it(`should return bucket ${expectedBucket} for '${key}' with salt '${salt}'`, function () {
+        expect(allocationBucket(key, salt)).equals(expectedBucket);
+      });
+    });
+  });
+
+  describe("mixedNormalizedHash", function () {
+    it("should match known test vectors", function () {
+      // Matches FnvHashMixed("abc") == 0.37 in the flags Go service.
+      expect(mixedNormalizedHash("abc", "")).equals(0.37);
     });
   });
 });
