@@ -7,6 +7,7 @@ const {
   MixpanelIdentity,
   parse_combined_distinct_id,
   require_consistent_combined_distinct_id,
+  require_identity_distinct_id_agrees,
   require_identity_matches_project,
 } = require("./identity");
 const {
@@ -51,6 +52,7 @@ class MixpanelPeople extends ProfileHelpers() {
       return this._combined_distinct_id_target(identity, modifiers);
     }
     require_identity_matches_project(identity, hierarchical_groups);
+    require_identity_distinct_id_agrees(identity, hierarchical_groups);
     if (identity.distinct_id !== null) {
       if (hierarchical_groups) {
         return this._combined_distinct_id_target(

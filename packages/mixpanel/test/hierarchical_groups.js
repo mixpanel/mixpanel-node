@@ -634,6 +634,93 @@ describe("hierarchical groups", () => {
     });
   });
 
+  describe("identity whose distinct id disagrees with its ids", () => {
+    const old_user_id = "$company:acme|$user:old";
+    const user_conflict = () =>
+      identity({
+        distinct_id: old_user_id,
+        user_id: "new",
+        company_id: "acme",
+      });
+    const user_message = `distinct_id ${old_user_id} names user old, but user_id is new. Nothing sent`;
+
+    it("refuses a profile set, a delete and an event naming another user", () => {
+      for (const call of [
+        () => hg.people.set(user_conflict(), { plan: "pro" }),
+        () => hg.people.set_once(user_conflict(), { plan: "pro" }),
+        () => hg.people.unset(user_conflict(), "plan"),
+        () => hg.people.union(user_conflict(), { tags: ["a"] }),
+        () => hg.people.remove(user_conflict(), { tags: "a" }),
+        () => hg.people.delete_user(user_conflict()),
+        () => hg.track(user_conflict(), "Signup"),
+        () => hg.import(user_conflict(), "Signup", 1000),
+      ]) {
+        expect(call).toThrow(MixpanelArgumentError);
+        expect(call).toThrow(user_message);
+      }
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("refuses an identity whose distinct id names another company", () => {
+      const company_conflict = () =>
+        identity({ distinct_id: combined_id, company_id: "other" });
+      const message = `distinct_id ${combined_id} names company acme, but company_id is other. Nothing sent`;
+      for (const call of [
+        () => hg.people.set(company_conflict(), { plan: "pro" }),
+        () => hg.people.delete_user(company_conflict()),
+        () => hg.track(company_conflict(), "Signup"),
+      ]) {
+        expect(call).toThrow(MixpanelArgumentError);
+        expect(call).toThrow(message);
+      }
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("accepts an identity whose ids agree with its distinct id", () => {
+      hg.people.set(
+        identity({
+          distinct_id: combined_id,
+          user_id: "user_123",
+          company_id: "acme",
+        }),
+        { plan: "pro" },
+      );
+      hg.people.delete_user(
+        identity({
+          distinct_id: "$company:42|$user:7",
+          user_id: 7,
+          company_id: 42,
+        }),
+      );
+      hg.track(
+        identity({ distinct_id: "$company:42|$user:7", user_id: 7 }),
+        "Signup",
+      );
+
+      const [[set], [deleted], [tracked]] = hg.send_request.mock.calls;
+      expect(set.data.$group_id).toBe("user_123");
+      expect(set.data.$company_id).toBe("acme");
+      expect(deleted.data.$group_id).toBe("7");
+      expect(deleted.data.$company_id).toBe("42");
+      expect(tracked.data.properties.$user_id).toBe("7");
+    });
+
+    it("leaves a legacy client unchanged", () => {
+      const legacy_identity = identity({
+        distinct_id: old_user_id,
+        user_id: "new",
+      });
+
+      legacy.track(legacy_identity, "Signup");
+      legacy.people.set(legacy_identity, { plan: "pro" });
+
+      const [[tracked], [set]] = legacy.send_request.mock.calls;
+      expect(tracked.data.properties.distinct_id).toBe(old_user_id);
+      expect(tracked.data.properties.$user_id).toBe("new");
+      expect(set.data.$distinct_id).toBe(old_user_id);
+    });
+  });
+
   describe("alias", () => {
     it("refuses alias on a hierarchical groups client", () => {
       expect(() =>

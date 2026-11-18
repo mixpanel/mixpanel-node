@@ -256,6 +256,9 @@ function parse_combined_distinct_id(distinct_id) {
  *   when absent
  * @param {*} [ids.user_id] - the call's `$user_id`; null or undefined when
  *   absent
+ * @param {object} [labels] - how the message names the call's ids
+ * @param {string} [labels.company_label]
+ * @param {string} [labels.user_label]
  * @returns {{company_id: string, user_id: string} | null} the parsed id, or
  *   null if the distinct id is not a combined one
  * @throws {MixpanelArgumentError} on a conflict or an empty or blank part
@@ -263,6 +266,7 @@ function parse_combined_distinct_id(distinct_id) {
 function require_consistent_combined_distinct_id(
   distinct_id,
   { company_id, user_id } = {},
+  { company_label = "$company_id", user_label = "$user_id" } = {},
 ) {
   const parsed = parse_combined_distinct_id(distinct_id);
   if (parsed === null) {
@@ -275,7 +279,7 @@ function require_consistent_combined_distinct_id(
   ) {
     throw new MixpanelArgumentError(
       `distinct_id ${distinct_id} names company ${parsed.company_id}, ` +
-        `but $company_id is ${String(company_id)}. Nothing sent`,
+        `but ${company_label} is ${String(company_id)}. Nothing sent`,
     );
   }
   if (
@@ -285,10 +289,30 @@ function require_consistent_combined_distinct_id(
   ) {
     throw new MixpanelArgumentError(
       `distinct_id ${distinct_id} names user ${parsed.user_id}, ` +
-        `but $user_id is ${String(user_id)}. Nothing sent`,
+        `but ${user_label} is ${String(user_id)}. Nothing sent`,
     );
   }
   return parsed;
+}
+
+/**
+ * On a hierarchical groups client, refuses an identity whose combined
+ * distinct id names a different user or company than its own user_id or
+ * company_id. Profile updates target the distinct id while events resolve
+ * the user id, so the two would silently name different users.
+ *
+ * @param {MixpanelIdentity} identity
+ * @param {boolean} hierarchical_groups - the client's mode
+ * @throws {MixpanelArgumentError} on a conflict or an empty or blank part
+ */
+function require_identity_distinct_id_agrees(identity, hierarchical_groups) {
+  if (hierarchical_groups) {
+    require_consistent_combined_distinct_id(
+      identity.distinct_id,
+      { company_id: identity.company_id, user_id: identity.user_id },
+      { company_label: "company_id", user_label: "user_id" },
+    );
+  }
 }
 
 module.exports = {
@@ -297,5 +321,6 @@ module.exports = {
   is_blank,
   parse_combined_distinct_id,
   require_consistent_combined_distinct_id,
+  require_identity_distinct_id_agrees,
   require_identity_matches_project,
 };
