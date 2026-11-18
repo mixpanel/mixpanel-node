@@ -12,6 +12,7 @@ export interface FeatureFlagsConfig {
   token: string;
   api_host: string;
   request_timeout_in_seconds: number;
+  hierarchical_groups?: boolean;
 }
 
 /**

@@ -16,13 +16,26 @@ const url = require("url");
 const packageInfo = require("../package.json");
 
 const { async_all, ensure_timestamp, assert_logger } = require("./utils");
-const { MixpanelGroups } = require("./groups");
+const { MixpanelGroups, MixpanelCompany } = require("./groups");
 const { MixpanelPeople } = require("./people");
 const {
   LocalFeatureFlagsProvider,
   RemoteFeatureFlagsProvider,
 } = require("./flags");
 const { ServiceAccountCredentials } = require("./credentials");
+const {
+  MixpanelIdentity,
+  identity_properties,
+  is_blank,
+  require_consistent_combined_distinct_id,
+  require_identity_distinct_id_agrees,
+  require_identity_matches_project,
+} = require("./identity");
+const {
+  MixpanelArgumentError,
+  MixpanelUnsupportedOperationError,
+  MixpanelCompanyRequiredError,
+} = require("./errors");
 
 const DEFAULT_CONFIG = {
   test: false,
@@ -36,6 +49,8 @@ const DEFAULT_CONFIG = {
   // e.g., when running under electron
   geolocate: false,
   logger: console,
+  // `hierarchical_groups: true` marks a project that uses hierarchical groups.
+  // It is read once at init and exposed as `mixpanel.hierarchical_groups`.
 };
 
 const create_client = function (token, config) {
@@ -45,10 +60,28 @@ const create_client = function (token, config) {
     );
   }
 
+  if (
+    config &&
+    config.hierarchical_groups !== undefined &&
+    config.hierarchical_groups !== null &&
+    typeof config.hierarchical_groups !== "boolean"
+  ) {
+    throw new MixpanelArgumentError("hierarchical_groups must be a boolean");
+  }
+  const hierarchical_groups = Boolean(
+    config && config.hierarchical_groups === true,
+  );
+
   const metrics = {
     token,
     config: { ...DEFAULT_CONFIG },
   };
+  // Hierarchical groups is a project setting: it gates validation only, and
+  // never changes after the client is created.
+  Object.defineProperty(metrics, "hierarchical_groups", {
+    value: hierarchical_groups,
+    enumerable: true,
+  });
   const { keepAlive } = metrics.config;
 
   // mixpanel constants
@@ -241,6 +274,61 @@ const create_client = function (token, config) {
   };
 
   /**
+   * Validates an identity against this client's mode and merges its keys into
+   * a copy of the caller's properties. Identity keys replace caller-supplied
+   * values for the same keys; unset identity values are omitted. On a
+   * hierarchical groups client `$user_id` and `$company_id` are sent as
+   * strings, and a combined distinct id with an empty or blank company or
+   * user, or naming another user or company than the identity's user_id or
+   * company_id, is refused.
+   * @param {MixpanelIdentity} identity
+   * @param {object} properties
+   * @returns {object}
+   * @throws {MixpanelArgumentError}
+   */
+  const with_identity = function (identity, properties) {
+    require_identity_matches_project(identity, hierarchical_groups);
+    require_identity_distinct_id_agrees(identity, hierarchical_groups);
+    return {
+      ...properties,
+      ...identity_properties(identity, hierarchical_groups),
+    };
+  };
+
+  /**
+   * On a hierarchical groups client, refuses an event whose combined distinct
+   * id ($company:{company}|$user:{user}) names a different company or user
+   * than its $company_id or $user_id property. Any other distinct id is sent
+   * as given.
+   * @param {object} properties
+   * @throws {MixpanelArgumentError}
+   */
+  const require_consistent_event_ids = function (properties) {
+    if (hierarchical_groups) {
+      require_consistent_combined_distinct_id(properties.distinct_id, {
+        company_id: properties.$company_id,
+        user_id: properties.$user_id,
+      });
+    }
+  };
+
+  /**
+   * Applies require_consistent_event_ids to every event of a batch before any
+   * of it is sent, so a refused event never leaves part of the batch sent.
+   * @param {Array} event_list
+   * @throws {MixpanelArgumentError}
+   */
+  const require_consistent_batch_ids = function (event_list) {
+    if (hierarchical_groups && Array.isArray(event_list)) {
+      for (const event of event_list) {
+        if (event && event.properties) {
+          require_consistent_event_ids(event.properties);
+        }
+      }
+    }
+  };
+
+  /**
    * breaks array into equal-sized chunks, with the last chunk being the remainder
    * @param {Array} arr
    * @param {number} size
@@ -347,18 +435,38 @@ const create_client = function (token, config) {
 
   /**
          track(event, properties, callback)
+         track(identity, event, properties, callback)
          ---
          this function sends an event to mixpanel.
 
+         identity:MixpanelIdentity       optional; who the event belongs to. Its
+                                         keys replace the same keys in properties
          event:string                    the event name
          properties:object               additional event properties to send
          callback:function(err:Error)    callback is called when the request is
                                          finished or an error occurs
+
+         On a hierarchical groups client, throws MixpanelArgumentError if a
+         combined distinct id ($company:{company}|$user:{user}) in properties
+         names a different company or user than $company_id or $user_id.
      */
   metrics.track = function (event, properties, callback) {
-    if (!properties || typeof properties === "function") {
-      callback = properties;
-      properties = {};
+    if (event instanceof MixpanelIdentity) {
+      const identity = event;
+      event = properties;
+      properties = callback;
+      callback = arguments[3];
+      if (!properties || typeof properties === "function") {
+        callback = properties;
+        properties = {};
+      }
+      properties = with_identity(identity, properties);
+    } else {
+      if (!properties || typeof properties === "function") {
+        callback = properties;
+        properties = {};
+      }
+      require_consistent_event_ids(properties);
     }
 
     // time is optional for `track`
@@ -390,11 +498,13 @@ const create_client = function (token, config) {
       max_batch_size: options.max_batch_size,
     };
 
+    require_consistent_batch_ids(event_list);
     send_batch_requests(batch_options, callback);
   };
 
   /**
         import(event, time, properties, callback)
+        import(identity, event, time, properties, callback)
         ---
         This function sends an event to mixpanel using the import
         endpoint.  The time argument should be either a Date or Number,
@@ -407,16 +517,36 @@ const create_client = function (token, config) {
         For more information look at:
         https://mixpanel.com/docs/api-documentation/importing-events-older-than-31-days
 
+        identity:MixpanelIdentity       optional; who the event belongs to. Its
+                                        keys replace the same keys in properties
         event:string                    the event name
         time:date|number                the time of the event
         properties:object               additional event properties to send
         callback:function(err:Error)    callback is called when the request is
                                         finished or an error occurs
+
+        On a hierarchical groups client, throws MixpanelArgumentError if a
+        combined distinct id in properties names a different company or user
+        than $company_id or $user_id, as track does.
     */
   metrics.import = function (event, time, properties, callback) {
-    if (!properties || typeof properties === "function") {
-      callback = properties;
-      properties = {};
+    if (event instanceof MixpanelIdentity) {
+      const identity = event;
+      event = time;
+      time = properties;
+      properties = callback;
+      callback = arguments[4];
+      if (!properties || typeof properties === "function") {
+        callback = properties;
+        properties = {};
+      }
+      properties = with_identity(identity, properties);
+    } else {
+      if (!properties || typeof properties === "function") {
+        callback = properties;
+        properties = {};
+      }
+      require_consistent_event_ids(properties);
     }
 
     properties.time = ensure_timestamp(time);
@@ -479,6 +609,7 @@ const create_client = function (token, config) {
       max_concurrent_requests: options.max_concurrent_requests,
       max_batch_size: options.max_batch_size,
     };
+    require_consistent_batch_ids(event_list);
     send_batch_requests(batch_options, callback);
   };
 
@@ -492,8 +623,18 @@ const create_client = function (token, config) {
 
         distinct_id:string              the current identifier
         alias:string                    the future alias
+
+        On a hierarchical groups client, throws
+        MixpanelUnsupportedOperationError before anything is sent.
     */
   metrics.alias = function (distinct_id, alias, callback) {
+    if (metrics.hierarchical_groups) {
+      throw new MixpanelUnsupportedOperationError(
+        "alias is not supported for hierarchical groups projects, which " +
+          "identify a user by company and user id. Track with a " +
+          "MixpanelIdentity({user_id, company_id}) instead.",
+      );
+    }
     const properties = {
       distinct_id: distinct_id,
       alias: alias,
@@ -503,7 +644,57 @@ const create_client = function (token, config) {
   };
 
   metrics.groups = new MixpanelGroups(metrics);
+  metrics.company = new MixpanelCompany(metrics);
   metrics.people = new MixpanelPeople(metrics);
+
+  /**
+        for_company(company_id)
+        ---
+        Returns a client bound to the given company. It shares this client's
+        config, connections and feature flag providers; this client is
+        unchanged. Its group profile updates carry a top-level $company_id,
+        which hierarchical groups projects require on every /groups write:
+
+            const acme = mixpanel.for_company('acme');
+            acme.company.set({ tier: 'enterprise' });
+            acme.groups.set('department', 'finance', { budget: 100 });
+
+        `company` is the bound company's own profile: each method is the
+        matching `groups` method with ('$company_id', company_id). On a client
+        without a bound company, its methods throw
+        MixpanelCompanyRequiredError.
+
+        People updates use the identity's own company. An identity with a
+        user id but no company uses the bound company; a $company_id modifier
+        never overrides it. A bound client throws MixpanelArgumentError for a
+        user from another company.
+
+        company_id:string|number   the id of the top-level company; sent as
+                                   a string on a hierarchical groups client,
+                                   as given otherwise
+    */
+  metrics.for_company = function (company_id) {
+    if (
+      !(typeof company_id === "string" && company_id !== "") &&
+      !Number.isInteger(company_id)
+    ) {
+      throw new MixpanelArgumentError(
+        "company_id must be a non-empty string or an integer",
+      );
+    }
+    if (is_blank(company_id)) {
+      throw new MixpanelArgumentError("company_id must not be only whitespace");
+    }
+    const view = Object.create(metrics);
+    Object.defineProperty(view, "company_id", {
+      value: company_id,
+      enumerable: true,
+    });
+    view.groups = new MixpanelGroups(view);
+    view.company = new MixpanelCompany(view);
+    view.people = new MixpanelPeople(view);
+    return view;
+  };
 
   /**
         set_config(config)
@@ -546,7 +737,7 @@ const create_client = function (token, config) {
   if (config && config.local_flags_config) {
     metrics.local_flags = new LocalFeatureFlagsProvider(
       token,
-      config.local_flags_config,
+      { ...config.local_flags_config, hierarchical_groups },
       metrics.track.bind(metrics),
       config.logger,
       config.credentials,
@@ -556,7 +747,7 @@ const create_client = function (token, config) {
   if (config && config.remote_flags_config) {
     metrics.remote_flags = new RemoteFeatureFlagsProvider(
       token,
-      config.remote_flags_config,
+      { ...config.remote_flags_config, hierarchical_groups },
       metrics.track.bind(metrics),
       config.logger,
       config.credentials,
@@ -570,4 +761,8 @@ const create_client = function (token, config) {
 module.exports = {
   init: create_client,
   ServiceAccountCredentials: ServiceAccountCredentials,
+  MixpanelIdentity: MixpanelIdentity,
+  MixpanelArgumentError: MixpanelArgumentError,
+  MixpanelUnsupportedOperationError: MixpanelUnsupportedOperationError,
+  MixpanelCompanyRequiredError: MixpanelCompanyRequiredError,
 };

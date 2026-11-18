@@ -151,20 +151,36 @@ class FeatureFlagsProvider {
    * @param {number|null} latencyMs - Optionally included latency in milliseconds that assignment took.
    */
   trackExposureEvent(flagKey, selectedVariant, context, latencyMs = null) {
-    if (!context.distinct_id) {
+    const hierarchicalGroups = this.providerConfig.hierarchical_groups === true;
+    // On a hierarchical groups project Mixpanel attributes the event from
+    // $company_id (plus $user_id when present), so a distinct_id is optional.
+    const canAttribute =
+      (hierarchicalGroups && isPresent(context.$company_id)) ||
+      context.distinct_id;
+    if (!canAttribute) {
       this.logger?.error(
-        "Cannot track exposure event without a distinct_id in the context",
+        `Cannot track exposure event without a ${hierarchicalGroups ? "$company_id" : "distinct_id"} in the context`,
       );
       return;
     }
 
-    const properties = {
-      distinct_id: context.distinct_id,
+    const properties = {};
+    if (context.distinct_id) {
+      properties.distinct_id = context.distinct_id;
+    }
+    if (hierarchicalGroups) {
+      for (const key of ["$user_id", "$company_id"]) {
+        if (isPresent(context[key])) {
+          properties[key] = String(context[key]);
+        }
+      }
+    }
+    Object.assign(properties, {
       "Experiment name": flagKey,
       "Variant name": selectedVariant.variant_key,
       $experiment_type: "feature_flag",
       "Flag evaluation mode": this.evaluationMode,
-    };
+    });
 
     if (latencyMs != null) {
       properties["Variant fetch latency (ms)"] = latencyMs;
@@ -183,15 +199,33 @@ class FeatureFlagsProvider {
       properties["$is_qa_tester"] = selectedVariant.is_qa_tester;
     }
 
-    // Use the tracker function provided (bound to the main mixpanel instance)
-    this.tracker(EXPOSURE_EVENT, properties, (err) => {
-      if (err) {
-        this.logger?.error(
-          `[flags]Failed to track exposure event for flag '${flagKey}': ${err.message}`,
-        );
-      }
-    });
+    const logFailure = (err) => {
+      this.logger?.error(
+        `[flags]Failed to track exposure event for flag '${flagKey}': ${err.message}`,
+      );
+    };
+    // Use the tracker function provided (bound to the main mixpanel instance).
+    // A hierarchical groups tracker can refuse the event, for example when the
+    // context's combined distinct_id conflicts with its $company_id; that is
+    // logged like a send failure so the variant is still returned.
+    try {
+      this.tracker(EXPOSURE_EVENT, properties, (err) => {
+        if (err) {
+          logFailure(err);
+        }
+      });
+    } catch (err) {
+      logFailure(err);
+    }
   }
+}
+
+/**
+ * @param {*} value
+ * @returns {boolean} true if value is set and not an empty string
+ */
+function isPresent(value) {
+  return value != null && String(value) !== "";
 }
 
 module.exports = FeatureFlagsProvider;
