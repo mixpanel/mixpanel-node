@@ -6,6 +6,7 @@ const {
 const {
   MixpanelIdentity,
   parse_combined_distinct_id,
+  require_consistent_combined_distinct_id,
   require_identity_matches_project,
 } = require("./identity");
 const {
@@ -32,7 +33,9 @@ class MixpanelPeople extends ProfileHelpers() {
    * $company:{company}|$user:{user}; any other distinct id is rejected. An
    * identity with a user id but no company uses the client's bound company
    * (see for_company); only a client without one honours a $company_id
-   * modifier, and without either the update is refused.
+   * modifier, and without either the update is refused. A combined distinct
+   * id passed directly refuses a $company_id modifier naming another
+   * company. The user and company are sent as strings.
    */
   _target(identifiers, modifiers) {
     const identity = identifiers.$distinct_id;
@@ -41,6 +44,10 @@ class MixpanelPeople extends ProfileHelpers() {
       if (!hierarchical_groups) {
         return { endpoint: this.endpoint, identifiers };
       }
+      // a $company_id modifier must agree with a combined distinct id
+      require_consistent_combined_distinct_id(identity, {
+        company_id: this._modifier_company(modifiers),
+      });
       return this._combined_distinct_id_target(identity, modifiers);
     }
     require_identity_matches_project(identity, hierarchical_groups);
@@ -84,7 +91,7 @@ class MixpanelPeople extends ProfileHelpers() {
         ? identity.company_id
         : this._bound_company();
     return this._group_target(
-      { $group_key: "$user_id", $group_id: identity.user_id },
+      { $group_key: "$user_id", $group_id: String(identity.user_id) },
       company_id,
       modifiers,
     );

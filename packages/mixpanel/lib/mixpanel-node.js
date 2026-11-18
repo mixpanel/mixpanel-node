@@ -26,6 +26,8 @@ const { ServiceAccountCredentials } = require("./credentials");
 const {
   MixpanelIdentity,
   identity_properties,
+  is_blank,
+  require_consistent_combined_distinct_id,
   require_identity_matches_project,
 } = require("./identity");
 const {
@@ -273,14 +275,36 @@ const create_client = function (token, config) {
   /**
    * Validates an identity against this client's mode and merges its keys into
    * a copy of the caller's properties. Identity keys replace caller-supplied
-   * values for the same keys; unset identity values are omitted.
+   * values for the same keys; unset identity values are omitted. On a
+   * hierarchical groups client `$user_id` and `$company_id` are sent as
+   * strings.
    * @param {MixpanelIdentity} identity
    * @param {object} properties
    * @returns {object}
    */
   const with_identity = function (identity, properties) {
     require_identity_matches_project(identity, hierarchical_groups);
-    return { ...properties, ...identity_properties(identity) };
+    return {
+      ...properties,
+      ...identity_properties(identity, hierarchical_groups),
+    };
+  };
+
+  /**
+   * On a hierarchical groups client, refuses an event whose combined distinct
+   * id ($company:{company}|$user:{user}) names a different company or user
+   * than its $company_id or $user_id property. Any other distinct id is sent
+   * as given.
+   * @param {object} properties
+   * @throws {MixpanelArgumentError}
+   */
+  const require_consistent_event_ids = function (properties) {
+    if (hierarchical_groups) {
+      require_consistent_combined_distinct_id(properties.distinct_id, {
+        company_id: properties.$company_id,
+        user_id: properties.$user_id,
+      });
+    }
   };
 
   /**
@@ -400,6 +424,10 @@ const create_client = function (token, config) {
          properties:object               additional event properties to send
          callback:function(err:Error)    callback is called when the request is
                                          finished or an error occurs
+
+         On a hierarchical groups client, throws MixpanelArgumentError if a
+         combined distinct id ($company:{company}|$user:{user}) in properties
+         names a different company or user than $company_id or $user_id.
      */
   metrics.track = function (event, properties, callback) {
     if (event instanceof MixpanelIdentity) {
@@ -412,9 +440,12 @@ const create_client = function (token, config) {
         properties = {};
       }
       properties = with_identity(identity, properties);
-    } else if (!properties || typeof properties === "function") {
-      callback = properties;
-      properties = {};
+    } else {
+      if (!properties || typeof properties === "function") {
+        callback = properties;
+        properties = {};
+      }
+      require_consistent_event_ids(properties);
     }
 
     // time is optional for `track`
@@ -471,6 +502,10 @@ const create_client = function (token, config) {
         properties:object               additional event properties to send
         callback:function(err:Error)    callback is called when the request is
                                         finished or an error occurs
+
+        On a hierarchical groups client, throws MixpanelArgumentError if a
+        combined distinct id in properties names a different company or user
+        than $company_id or $user_id, as track does.
     */
   metrics.import = function (event, time, properties, callback) {
     if (event instanceof MixpanelIdentity) {
@@ -484,9 +519,12 @@ const create_client = function (token, config) {
         properties = {};
       }
       properties = with_identity(identity, properties);
-    } else if (!properties || typeof properties === "function") {
-      callback = properties;
-      properties = {};
+    } else {
+      if (!properties || typeof properties === "function") {
+        callback = properties;
+        properties = {};
+      }
+      require_consistent_event_ids(properties);
     }
 
     properties.time = ensure_timestamp(time);
@@ -608,8 +646,9 @@ const create_client = function (token, config) {
         never overrides it. A bound client throws MixpanelArgumentError for a
         user from another company.
 
-        company_id:string|number   the id of the top-level company, sent as
-                                   given
+        company_id:string|number   the id of the top-level company; sent as
+                                   a string on a hierarchical groups client,
+                                   as given otherwise
     */
   metrics.for_company = function (company_id) {
     if (
@@ -619,6 +658,9 @@ const create_client = function (token, config) {
       throw new MixpanelArgumentError(
         "company_id must be a non-empty string or an integer",
       );
+    }
+    if (is_blank(company_id)) {
+      throw new MixpanelArgumentError("company_id must not be only whitespace");
     }
     const view = Object.create(metrics);
     Object.defineProperty(view, "company_id", {

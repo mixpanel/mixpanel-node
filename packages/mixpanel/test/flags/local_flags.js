@@ -1565,6 +1565,19 @@ describe("LocalFeatureFlagsProvider hierarchical groups", () => {
       expect(properties.$company_id).toBe("acme");
     });
 
+    it("sends integer $user_id and $company_id as strings", () => {
+      provider.trackExposureEvent(
+        FLAG_KEY_HG,
+        { variant_key: "a", variant_value: true },
+        { $user_id: 3190316, $company_id: 3190317, department: 1 },
+      );
+
+      const properties = exposureProperties();
+      expect(properties.$user_id).toBe("3190316");
+      expect(properties.$company_id).toBe("3190317");
+      expect("department" in properties).toBe(false);
+    });
+
     it("attributes by $company_id alone", async () => {
       await load([createTestFlag({ context: "department" })]);
       provider.getVariant(FLAG_KEY_HG, FALLBACK, {

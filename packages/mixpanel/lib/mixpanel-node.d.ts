@@ -30,13 +30,14 @@ declare namespace mixpanel {
 
   /**
    * Identifies who an event or profile update belongs to. Ids are strings or
-   * integers and are sent as given. Unset values are null and omitted from
-   * messages. Instances are frozen.
+   * integers. On a hierarchical groups client the user and company ids are
+   * sent as strings; other ids are sent as given. Unset values are null and
+   * omitted from messages. Instances are frozen.
    */
   export class MixpanelIdentity {
     /**
-     * @throws {MixpanelArgumentError} if a value is empty, a key is unknown,
-     *   or no value is set
+     * @throws {MixpanelArgumentError} if a value is empty, a user or company
+     *   id is only whitespace, a key is unknown, or no value is set
      */
     constructor(ids: MixpanelIdentityInit);
     readonly distinct_id: string | number | null;

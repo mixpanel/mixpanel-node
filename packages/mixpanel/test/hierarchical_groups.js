@@ -51,6 +51,31 @@ describe("hierarchical groups", () => {
       );
     });
 
+    it("rejects whitespace-only user and company ids", () => {
+      for (const key of ["user_id", "company_id"]) {
+        for (const value of [" ", "  ", "\t\n"]) {
+          expect(() => identity({ [key]: value })).toThrow(
+            MixpanelArgumentError,
+          );
+          expect(() => identity({ [key]: value })).toThrow(/only whitespace/);
+        }
+      }
+    });
+
+    it("keeps non-blank ids with whitespace, and blank distinct and device ids, as given", () => {
+      const id = identity({
+        user_id: " u ",
+        company_id: " c",
+        distinct_id: " ",
+        device_id: " ",
+      });
+
+      expect(id.user_id).toBe(" u ");
+      expect(id.company_id).toBe(" c");
+      expect(id.distinct_id).toBe(" ");
+      expect(id.device_id).toBe(" ");
+    });
+
     it("accepts integer ids and keeps them as numbers", () => {
       const id = identity({
         distinct_id: 1,
@@ -317,12 +342,120 @@ describe("hierarchical groups", () => {
       expect(props).not.toHaveProperty("distinct_id");
     });
 
-    it("sends integer ids as numbers", () => {
+    it("sends integer user and company ids as strings", () => {
+      // ingestion drops an integer $user_id, so the wire value is a string
       hg.track(identity({ user_id: 123, company_id: 42 }), "Signup");
+      hg.import(identity({ user_id: 0, company_id: 0 }), "Signup", 1000);
+
+      const [[track], [imported]] = hg.send_request.mock.calls;
+      expect(track.data.properties.$user_id).toBe("123");
+      expect(track.data.properties.$company_id).toBe("42");
+      expect(imported.data.properties.$user_id).toBe("0");
+      expect(imported.data.properties.$company_id).toBe("0");
+    });
+
+    it("sends string ids and other identity keys unchanged", () => {
+      hg.track(
+        identity({ user_id: "u", company_id: "c", device_id: 7 }),
+        "Signup",
+        { $user_id: 1, other: 2 },
+      );
 
       const props = event_properties(hg);
+      expect(props.$user_id).toBe("u");
+      expect(props.$company_id).toBe("c");
+      expect(props.$device_id).toBe(7);
+      expect(props.other).toBe(2);
+    });
+
+    it("sends an integer identity user id as given on a legacy client", () => {
+      legacy.track(identity({ user_id: 123, device_id: 7 }), "Signup");
+
+      const props = event_properties(legacy);
       expect(props.$user_id).toBe(123);
-      expect(props.$company_id).toBe(42);
+      expect(props.$device_id).toBe(7);
+    });
+
+    it("refuses an event whose combined distinct id names another company or user", () => {
+      for (const call of [
+        () =>
+          hg.track("Signup", { distinct_id: combined_id, $company_id: "zz" }),
+        () =>
+          hg.import("Signup", 1000, {
+            distinct_id: combined_id,
+            $company_id: "zz",
+          }),
+      ]) {
+        expect(call).toThrow(MixpanelArgumentError);
+        expect(call).toThrow(
+          `distinct_id ${combined_id} names company acme, but $company_id is zz. Nothing sent`,
+        );
+      }
+      for (const call of [
+        () => hg.track("Signup", { distinct_id: combined_id, $user_id: "zz" }),
+        () =>
+          hg.import("Signup", 1000, {
+            distinct_id: combined_id,
+            $user_id: "zz",
+          }),
+      ]) {
+        expect(call).toThrow(
+          `distinct_id ${combined_id} names user user_123, but $user_id is zz. Nothing sent`,
+        );
+      }
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("sends a combined distinct id with matching ids unchanged", () => {
+      const properties = {
+        distinct_id: "$company:42|$user:7",
+        $company_id: 42,
+        $user_id: "7",
+      };
+      hg.track("Signup", { ...properties });
+      hg.import("Signup", 1000, { ...properties });
+
+      for (const call of hg.send_request.mock.calls) {
+        expect(call[0].data.properties).toMatchObject(properties);
+      }
+    });
+
+    it("leaves a conflicting combined distinct id event unchanged on a legacy client", () => {
+      legacy.track("Signup", { distinct_id: combined_id, $company_id: "zz" });
+
+      expect(event_properties(legacy)).toEqual({
+        distinct_id: combined_id,
+        $company_id: "zz",
+        token,
+        mp_lib: "node",
+        $lib_version: expect.any(String),
+      });
+    });
+
+    it("leaves an explicit identity's combined distinct id unchanged", () => {
+      hg.track(identity({ distinct_id: combined_id }), "Signup", {
+        $company_id: "zz",
+      });
+
+      expect(event_properties(hg).$company_id).toBe("zz");
+    });
+
+    it("refuses a combined distinct id with a blank company or user", () => {
+      for (const distinct_id of ["$company: |$user:u", "$company:c|$user:  "]) {
+        expect(() => hg.track("Signup", { distinct_id })).toThrow(
+          MixpanelArgumentError,
+        );
+        expect(() => hg.people.set(distinct_id, { a: 1 })).toThrow(
+          MixpanelArgumentError,
+        );
+      }
+      expect(hg.send_request).not.toHaveBeenCalled();
+
+      // a whitespace distinct id that is not a combined one is sent as given
+      hg.track("Signup", { distinct_id: "  " });
+      legacy.track("Signup", { distinct_id: "$company: |$user:u" });
+      expect(event_properties(hg).distinct_id).toBe("  ");
+      expect(event_properties(legacy).distinct_id).toBe("$company: |$user:u");
     });
 
     it("accepts user and device without a company for simplified id merge", () => {
@@ -610,8 +743,36 @@ describe("hierarchical groups", () => {
       expect(unset_options.data.$ip).toBe("1.2.3.4");
     });
 
-    it("uses the combined distinct id's company over a modifier", () => {
-      hg.people.set(combined_id, { a: 1 }, { $company_id: "other" });
+    it("refuses a $company_id modifier naming another company than the combined distinct id", () => {
+      const call = () =>
+        hg.people.set(combined_id, { a: 1 }, { $company_id: "other" });
+
+      expect(call).toThrow(MixpanelArgumentError);
+      expect(call).toThrow(
+        `distinct_id ${combined_id} names company acme, but $company_id is other. Nothing sent`,
+      );
+      expect(() =>
+        hg.people.unset(combined_id, "a", { $company_id: "other" }),
+      ).toThrow(MixpanelArgumentError);
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("accepts a $company_id modifier matching the combined distinct id", () => {
+      hg.people.set("$company:42|$user:7", { a: 1 }, { $company_id: 42 });
+      hg.people.set(combined_id, { a: 1 }, { $company_id: "" });
+
+      const [[matching], [empty]] = hg.send_request.mock.calls;
+      expect(matching.data.$company_id).toBe("42");
+      expect(matching.data.$group_id).toBe("7");
+      expect(empty.data.$company_id).toBe("acme");
+    });
+
+    it("keeps an identity's combined distinct id company over a modifier", () => {
+      hg.people.set(
+        identity({ distinct_id: combined_id }),
+        { a: 1 },
+        { $company_id: "other" },
+      );
 
       expect(sent(hg).data.$company_id).toBe("acme");
     });
@@ -826,18 +987,18 @@ describe("hierarchical groups", () => {
         { plan: "pro" },
       );
       expect(sent(hg).data.$company_id).toBe("42");
-      expect(sent(hg).data.$group_id).toBe(7);
+      expect(sent(hg).data.$group_id).toBe("7");
 
       hg.send_request.mockClear();
       hg.for_company("42").people.set(
         identity({ user_id: 7, company_id: 42 }),
         { plan: "pro" },
       );
-      expect(sent(hg).data.$company_id).toBe(42);
+      expect(sent(hg).data.$company_id).toBe("42");
 
       hg.send_request.mockClear();
       hg.for_company(0).people.set(identity({ user_id: 7 }), { plan: "pro" });
-      expect(sent(hg).data.$company_id).toBe(0);
+      expect(sent(hg).data.$company_id).toBe("0");
 
       hg.send_request.mockClear();
       expect(() =>
@@ -944,10 +1105,107 @@ describe("hierarchical groups", () => {
       expect(sent(hg).data.$company_id).toBe("acme");
     });
 
-    it("accepts an integer $company_id modifier, including 0", () => {
+    it("accepts an integer $company_id modifier, including 0, and sends it as a string", () => {
       hg.groups.set("department", "finance", { plan: "x" }, { $company_id: 0 });
 
-      expect(sent(hg).data.$company_id).toBe(0);
+      expect(sent(hg).data.$company_id).toBe("0");
+    });
+
+    it("treats an empty $company_id modifier as missing", () => {
+      expect(() =>
+        hg.people.set(
+          identity({ user_id: "u" }),
+          { a: 1 },
+          { $company_id: "" },
+        ),
+      ).toThrow(MixpanelCompanyRequiredError);
+      expect(() =>
+        hg.groups.set("department", "finance", { a: 1 }, { $company_id: "" }),
+      ).toThrow(MixpanelCompanyRequiredError);
+      expect(hg.send_request).not.toHaveBeenCalled();
+
+      // a bound client still uses its company
+      hg.for_company("acme").groups.set(
+        "department",
+        "finance",
+        { a: 1 },
+        { $company_id: "" },
+      );
+      expect(sent(hg).data.$company_id).toBe("acme");
+    });
+
+    it("rejects a $company_id modifier that is not a string or an integer", () => {
+      for (const value of [{ x: 1 }, [], ["acme"], true, false, 1.5, NaN]) {
+        for (const call of [
+          () =>
+            hg.groups.set(
+              "department",
+              "finance",
+              { a: 1 },
+              { $company_id: value },
+            ),
+          () =>
+            hg.for_company("acme").groups.unset("department", "finance", "a", {
+              $company_id: value,
+            }),
+          () =>
+            hg.people.set(
+              identity({ user_id: "u" }),
+              { a: 1 },
+              { $company_id: value },
+            ),
+          () => hg.people.set(combined_id, { a: 1 }, { $company_id: value }),
+        ]) {
+          expect(call).toThrow(MixpanelArgumentError);
+        }
+      }
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("rejects a whitespace-only $company_id modifier", () => {
+      for (const value of [" ", "  ", "\t\n"]) {
+        expect(() =>
+          hg.groups.set(
+            "department",
+            "finance",
+            { a: 1 },
+            { $company_id: value },
+          ),
+        ).toThrow(/only whitespace/);
+        expect(() =>
+          hg.people.set(
+            identity({ user_id: "u" }),
+            { a: 1 },
+            { $company_id: value },
+          ),
+        ).toThrow(MixpanelArgumentError);
+      }
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("sends a valid $company_id modifier unchanged", () => {
+      hg.groups.set("department", "finance", { a: 1 }, { $company_id: " a " });
+
+      expect(sent(hg).data.$company_id).toBe(" a ");
+    });
+
+    it("still drops any $company_id modifier on a legacy client", () => {
+      for (const value of ["", " ", { x: 1 }, true]) {
+        legacy.groups.set(
+          "department",
+          "finance",
+          { a: 1 },
+          { $company_id: value },
+        );
+      }
+      for (const [options] of legacy.send_request.mock.calls) {
+        expect(options.data).toEqual({
+          $token: token,
+          $group_key: "department",
+          $group_id: "finance",
+          $set: { a: 1 },
+        });
+      }
     });
 
     it("drops a $company_id modifier on a legacy client, as before", () => {
@@ -1036,7 +1294,7 @@ describe("hierarchical groups", () => {
         (c) => c[0].data,
       );
       expect(bound.$group_id).toBe("7");
-      expect(bound.$company_id).toBe(7);
+      expect(bound.$company_id).toBe("7");
       expect(modifier.$group_id).toBe(0);
       expect(modifier.$company_id).toBe("0");
     });
@@ -1111,17 +1369,38 @@ describe("hierarchical groups", () => {
       expect(() => hg.for_company()).toThrow(MixpanelArgumentError);
     });
 
-    it("accepts an integer company and sends it as given", () => {
+    it("accepts an integer company and sends it as a string", () => {
       const acme = hg.for_company(42);
       expect(acme.company_id).toBe(42);
 
       acme.groups.set("department", "finance", { a: 1 });
-      expect(sent(hg).data.$company_id).toBe(42);
+      expect(sent(hg).data.$company_id).toBe("42");
 
       hg.send_request.mockClear();
       hg.for_company(0).company.set({ tier: "ent" });
-      expect(sent(hg).data.$group_id).toBe(0);
-      expect(sent(hg).data.$company_id).toBe(0);
+      expect(sent(hg).data.$group_id).toBe("0");
+      expect(sent(hg).data.$company_id).toBe("0");
+    });
+
+    it("sends an integer company as given on a legacy client", () => {
+      legacy.for_company(42).groups.set("department", "finance", { a: 1 });
+      legacy.for_company(0).company.set({ tier: "ent" });
+
+      const [[group], [company]] = legacy.send_request.mock.calls;
+      expect(group.data.$company_id).toBe(42);
+      expect(company.data.$group_id).toBe(0);
+      expect(company.data.$company_id).toBe(0);
+    });
+
+    it("rejects a whitespace-only company", () => {
+      for (const client of [hg, legacy]) {
+        for (const value of [" ", "  ", "\t"]) {
+          expect(() => client.for_company(value)).toThrow(
+            MixpanelArgumentError,
+          );
+        }
+      }
+      expect(hg.for_company(" acme ").company_id).toBe(" acme ");
     });
 
     it("rejects companies that are neither strings nor integers", () => {

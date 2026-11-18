@@ -715,6 +715,20 @@ describe("RemoteFeatureFlagProvider", () => {
       );
     });
 
+    it("sends integer $user_id/$company_id on the exposure as strings", () => {
+      hgProvider.trackExposureEvent(
+        "test-flag",
+        { variant_key: "a", variant_value: "value-a" },
+        { $user_id: 3190316, $company_id: 0, distinct_id: 5 },
+      );
+
+      const properties = mockTracker.mock.calls[0][1];
+      expect(properties.$user_id).toBe("3190316");
+      expect(properties.$company_id).toBe("0");
+      // other context keys are sent as given
+      expect(properties.distinct_id).toBe(5);
+    });
+
     it("ignores $user_id/$company_id on exposures without hierarchical_groups", async () => {
       mockSuccessResponse({
         "test-flag": { variant_key: "a", variant_value: "value-a" },

@@ -49,7 +49,8 @@ const FLAG_CONTEXT_KEYS = {
 class MixpanelIdentity {
   /**
    * @param {object} ids
-   * Each id is a string or an integer and is sent as given.
+   * Each id is a string or an integer. On a hierarchical groups client the
+   * user and company ids are sent as strings; other ids are sent as given.
    *
    * @param {string|number} [ids.distinct_id] - a distinct id Mixpanel resolves directly
    * @param {string|number} [ids.user_id] - the user's id; on a hierarchical groups
@@ -58,7 +59,8 @@ class MixpanelIdentity {
    *   hierarchical groups project
    * @param {string|number} [ids.device_id] - the client's device id
    * @throws {MixpanelArgumentError} if a value is empty or neither a string nor
-   *   an integer, a key is unknown, or no value is set
+   *   an integer, a user or company id is only whitespace, a key is unknown,
+   *   or no value is set
    */
   constructor(ids) {
     if (ids === null || typeof ids !== "object" || Array.isArray(ids)) {
@@ -84,6 +86,11 @@ class MixpanelIdentity {
         );
       } else if (value === "") {
         throw new MixpanelArgumentError(`${key} must be non-empty`);
+      } else if (
+        (key === "user_id" || key === "company_id") &&
+        is_blank(value)
+      ) {
+        throw new MixpanelArgumentError(`${key} must not be only whitespace`);
       } else {
         this[key] = value;
       }
@@ -151,15 +158,29 @@ class MixpanelIdentity {
 }
 
 /**
+ * True for a non-empty string of only whitespace, which names no one.
+ * @param {*} value
+ * @returns {boolean}
+ */
+function is_blank(value) {
+  return typeof value === "string" && value !== "" && value.trim() === "";
+}
+
+/**
  * The identity's keys as event properties; unset values are omitted.
  * @param {MixpanelIdentity} identity
+ * @param {boolean} [hierarchical_groups] - on a hierarchical groups client,
+ *   `$user_id` and `$company_id` are sent as strings
  * @returns {object}
  */
-function identity_properties(identity) {
+function identity_properties(identity, hierarchical_groups = false) {
   const properties = {};
   for (const [key, property] of Object.entries(IDENTITY_KEYS)) {
     if (identity[key] !== null) {
-      properties[property] = identity[key];
+      properties[property] =
+        hierarchical_groups && (key === "user_id" || key === "company_id")
+          ? String(identity[key])
+          : identity[key];
     }
   }
   return properties;
@@ -198,6 +219,7 @@ const USER_SEPARATOR = "|$user:";
  * @param {*} distinct_id
  * @returns {{company_id: string, user_id: string} | null} null unless both
  *   parts are present and non-empty
+ * @throws {MixpanelArgumentError} if either part is only whitespace
  */
 function parse_combined_distinct_id(distinct_id) {
   if (
@@ -216,12 +238,66 @@ function parse_combined_distinct_id(distinct_id) {
   if (company_id === "" || user_id === "") {
     return null;
   }
+  if (is_blank(company_id) || is_blank(user_id)) {
+    throw new MixpanelArgumentError(
+      `distinct_id ${JSON.stringify(distinct_id)} names a blank ` +
+        `${is_blank(company_id) ? "company" : "user"}. Nothing sent`,
+    );
+  }
   return { company_id, user_id };
+}
+
+/**
+ * A combined distinct id names its user and company, so a call that also
+ * names a different `$company_id` or `$user_id` is ambiguous: ingestion would
+ * keep one and silently drop the other. Ids compare as strings.
+ *
+ * @param {*} distinct_id
+ * @param {object} ids
+ * @param {*} [ids.company_id] - the call's `$company_id`; null or undefined
+ *   when absent
+ * @param {*} [ids.user_id] - the call's `$user_id`; null or undefined when
+ *   absent
+ * @returns {{company_id: string, user_id: string} | null} the parsed id, or
+ *   null if the distinct id is not a combined one
+ * @throws {MixpanelArgumentError} on a conflict or a blank part
+ */
+function require_consistent_combined_distinct_id(
+  distinct_id,
+  { company_id, user_id } = {},
+) {
+  const parsed = parse_combined_distinct_id(distinct_id);
+  if (parsed === null) {
+    return null;
+  }
+  if (
+    company_id !== undefined &&
+    company_id !== null &&
+    String(company_id) !== parsed.company_id
+  ) {
+    throw new MixpanelArgumentError(
+      `distinct_id ${distinct_id} names company ${parsed.company_id}, ` +
+        `but $company_id is ${String(company_id)}. Nothing sent`,
+    );
+  }
+  if (
+    user_id !== undefined &&
+    user_id !== null &&
+    String(user_id) !== parsed.user_id
+  ) {
+    throw new MixpanelArgumentError(
+      `distinct_id ${distinct_id} names user ${parsed.user_id}, ` +
+        `but $user_id is ${String(user_id)}. Nothing sent`,
+    );
+  }
+  return parsed;
 }
 
 module.exports = {
   MixpanelIdentity,
   identity_properties,
+  is_blank,
   parse_combined_distinct_id,
+  require_consistent_combined_distinct_id,
   require_identity_matches_project,
 };

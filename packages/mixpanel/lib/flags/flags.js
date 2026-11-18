@@ -171,7 +171,7 @@ class FeatureFlagsProvider {
     if (hierarchicalGroups) {
       for (const key of ["$user_id", "$company_id"]) {
         if (isPresent(context[key])) {
-          properties[key] = context[key];
+          properties[key] = String(context[key]);
         }
       }
     }

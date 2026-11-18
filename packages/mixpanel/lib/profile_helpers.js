@@ -7,6 +7,7 @@ const {
   MixpanelArgumentError,
   MixpanelCompanyRequiredError,
 } = require("./errors");
+const { is_blank } = require("./identity");
 
 // /groups has no $add, $append or $merge, so these are all a hierarchical
 // groups profile supports
@@ -73,29 +74,51 @@ exports.ProfileHelpers = (Base = Object) =>
     }
 
     /**
+     * The $company_id modifier on a hierarchical groups client, else
+     * undefined. Other clients drop it, as they always have. A company id may
+     * be an integer (including 0); null, undefined and an empty string count
+     * as missing.
+     * @throws {MixpanelArgumentError} if it is neither a string nor an
+     *   integer, or is only whitespace
+     */
+    _modifier_company(modifiers) {
+      modifiers = modifiers_or_none(modifiers);
+      if (!this.mixpanel.hierarchical_groups || !modifiers) {
+        return undefined;
+      }
+      const company = modifiers.$company_id;
+      if (company === undefined || company === null || company === "") {
+        return undefined;
+      }
+      if (typeof company !== "string" && !Number.isInteger(company)) {
+        throw new MixpanelArgumentError(
+          `The $company_id modifier must be a string or an integer, not ${JSON.stringify(company)}. Nothing sent`,
+        );
+      }
+      if (is_blank(company)) {
+        throw new MixpanelArgumentError(
+          "The $company_id modifier must not be only whitespace. Nothing sent",
+        );
+      }
+      return company;
+    }
+
+    /**
      * Target for a group profile. Hierarchical groups projects require a
      * top-level $company_id on every /groups write, so the company comes from
      * the given company_id, else a $company_id modifier. A $company_id group
-     * must name that same company.
+     * must name that same company. On a hierarchical groups client the
+     * company is sent as a string.
      */
     _group_target(identifiers, company_id, modifiers) {
-      modifiers = modifiers_or_none(modifiers);
-      // a $company_id modifier is only honoured on hierarchical groups clients;
-      // other clients drop it, as they always have. A company id may be an
-      // integer (including 0), so presence is checked against null.
+      // validated even when the given company wins, so a malformed modifier
+      // is never silently ignored. A company id may be an integer (including
+      // 0), so presence is checked against null.
+      const modifier_company = this._modifier_company(modifiers);
       let company =
         company_id === undefined || company_id === null
-          ? undefined
+          ? modifier_company
           : company_id;
-      if (
-        company === undefined &&
-        this.mixpanel.hierarchical_groups &&
-        modifiers &&
-        modifiers.$company_id !== undefined &&
-        modifiers.$company_id !== null
-      ) {
-        company = modifiers.$company_id;
-      }
       if (this.mixpanel.hierarchical_groups && company === undefined) {
         throw new MixpanelCompanyRequiredError(
           "Group profile updates for hierarchical groups projects require a company. " +
@@ -117,7 +140,9 @@ exports.ProfileHelpers = (Base = Object) =>
       }
       const target = { endpoint: "/groups", identifiers };
       if (company !== undefined) {
-        target.company_id = company;
+        target.company_id = this.mixpanel.hierarchical_groups
+          ? String(company)
+          : company;
       }
       return target;
     }

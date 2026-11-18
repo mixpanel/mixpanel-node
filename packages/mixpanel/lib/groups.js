@@ -139,7 +139,11 @@ class MixpanelCompany {
           `company.${method}`,
       );
     }
-    this.mixpanel.groups[method]("$company_id", company_id, ...args);
+    // a hierarchical groups client sends the company as a string
+    const group_id = this.mixpanel.hierarchical_groups
+      ? String(company_id)
+      : company_id;
+    this.mixpanel.groups[method]("$company_id", group_id, ...args);
   }
 
   /**
