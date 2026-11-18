@@ -47,3 +47,29 @@ try {
     console.log(err.code);
   }
 }
+
+// feature flag contexts: a distinct id, or on a hierarchical groups project a
+// user and company instead
+const hg_flags = Mixpanel.init("asjdf", {
+  hierarchical_groups: true,
+  local_flags_config: {},
+  remote_flags_config: {},
+});
+hg_flags.local_flags?.getVariantValue("color", "blue", {
+  distinct_id: "user_1",
+  plan: "pro",
+});
+hg_flags.local_flags?.getVariantValue("color", "blue", {
+  $user_id: "user_123",
+  $company_id: "acme",
+});
+void hg_flags.remote_flags?.isEnabled("color", {
+  $user_id: 7,
+  $company_id: 42,
+  distinct_id: "$company:42|$user:7",
+});
+hg_flags.local_flags?.getAllVariants(user.to_flag_context());
+// @ts-expect-error a context needs a distinct_id, or a $user_id and $company_id
+hg_flags.local_flags?.getVariantValue("color", "blue", { plan: "pro" });
+// @ts-expect-error a $company_id alone does not identify a flag context
+hg_flags.local_flags?.isEnabled("color", { $company_id: "acme" });

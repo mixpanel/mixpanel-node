@@ -189,11 +189,20 @@ export interface LocalFlagsResponse {
   flags: ExperimentationFlag[];
 }
 
-export interface FlagContext {
-  /**
-   * Optional on hierarchical groups projects, where a context may carry
-   * `$user_id` and `$company_id` instead.
-   */
-  distinct_id?: string;
-  [key: string]: any;
-}
+/**
+ * A feature flag evaluation context: a `distinct_id`, or on a hierarchical
+ * groups project a `$user_id` and `$company_id` instead.
+ */
+export type FlagContext =
+  | {
+      distinct_id: string;
+      [key: string]: any;
+    }
+  | {
+      /** The user's id; sent as a string */
+      $user_id: string | number;
+      /** The id of the user's company; sent as a string */
+      $company_id: string | number;
+      distinct_id?: string;
+      [key: string]: any;
+    };

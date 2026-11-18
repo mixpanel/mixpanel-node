@@ -440,22 +440,53 @@ describe("hierarchical groups", () => {
       expect(event_properties(hg).$company_id).toBe("zz");
     });
 
+    // combined-shaped distinct ids with an empty or whitespace-only part
+    const blank_part_ids = [
+      ["$company:|$user:u", "company"],
+      ["$company:c|$user:", "user"],
+      ["$company:|$user:", "company"],
+      ["$company: |$user:u", "company"],
+      ["$company:c|$user:  ", "user"],
+    ];
+
     it("refuses a combined distinct id with a blank company or user", () => {
-      for (const distinct_id of ["$company: |$user:u", "$company:c|$user:  "]) {
-        expect(() => hg.track("Signup", { distinct_id })).toThrow(
-          MixpanelArgumentError,
-        );
-        expect(() => hg.people.set(distinct_id, { a: 1 })).toThrow(
-          MixpanelArgumentError,
-        );
+      for (const [distinct_id, part] of blank_part_ids) {
+        const message = `distinct_id ${JSON.stringify(distinct_id)} names a blank ${part}. Nothing sent`;
+        const event_list = [{ event: "Signup", properties: { distinct_id } }];
+        for (const call of [
+          () => hg.track("Signup", { distinct_id }),
+          () => hg.import("Signup", 1000, { distinct_id }),
+          () => hg.track_batch(event_list),
+          () => hg.import_batch(event_list),
+          () => hg.people.set(distinct_id, { a: 1 }),
+          () => hg.people.set(identity({ distinct_id }), { a: 1 }),
+          () => hg.people.delete_user(distinct_id),
+        ]) {
+          expect(call).toThrow(MixpanelArgumentError);
+          expect(call).toThrow(message);
+        }
       }
       expect(hg.send_request).not.toHaveBeenCalled();
+    });
 
-      // a whitespace distinct id that is not a combined one is sent as given
-      hg.track("Signup", { distinct_id: "  " });
-      legacy.track("Signup", { distinct_id: "$company: |$user:u" });
-      expect(event_properties(hg).distinct_id).toBe("  ");
-      expect(event_properties(legacy).distinct_id).toBe("$company: |$user:u");
+    it("sends a non-combined distinct id with a blank-looking part as given", () => {
+      for (const distinct_id of ["  ", "$company:acme", "$company:|user:u"]) {
+        hg.track("Signup", { distinct_id });
+      }
+      expect(
+        hg.send_request.mock.calls.map((c) => c[0].data.properties.distinct_id),
+      ).toEqual(["  ", "$company:acme", "$company:|user:u"]);
+    });
+
+    it("sends a combined distinct id with a blank part unchanged on a legacy client", () => {
+      for (const [distinct_id] of blank_part_ids) {
+        legacy.track("Signup", { distinct_id });
+        legacy.people.set(distinct_id, { a: 1 });
+      }
+      const ids = legacy.send_request.mock.calls.map(
+        (c) => c[0].data.properties?.distinct_id ?? c[0].data.$distinct_id,
+      );
+      expect(ids).toEqual(blank_part_ids.flatMap(([id]) => [id, id]));
     });
 
     it("accepts user and device without a company for simplified id merge", () => {
@@ -1632,6 +1663,53 @@ describe("hierarchical groups", () => {
           "Failed to track exposure event for flag 'my-flag'",
         ),
       );
+    });
+
+    it("logs and keeps the variant when the exposure's combined distinct id has a blank part", () => {
+      const logger = {
+        trace: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        info: vi.fn(),
+        debug: vi.fn(),
+      };
+      const client = Mixpanel.init(token, {
+        hierarchical_groups: true,
+        remote_flags_config: {},
+        logger,
+      });
+      vi.spyOn(client, "send_request").mockImplementation(() => {});
+      const provider = client.remote_flags;
+      provider.logger = logger;
+
+      for (const distinct_id of [
+        "$company:|$user:u",
+        "$company:c|$user:",
+        "$company:|$user:",
+        "$company: |$user:u",
+        "$company:c|$user:  ",
+      ]) {
+        expect(() =>
+          provider.trackExposureEvent(
+            "my-flag",
+            { variant_key: "on", variant_value: true },
+            { distinct_id },
+          ),
+        ).not.toThrow();
+        expect(logger.error).toHaveBeenLastCalledWith(
+          expect.stringContaining(
+            `Failed to track exposure event for flag 'my-flag': distinct_id ${JSON.stringify(distinct_id)} names a blank`,
+          ),
+        );
+      }
+      expect(client.send_request).not.toHaveBeenCalled();
+
+      provider.trackExposureEvent(
+        "my-flag",
+        { variant_key: "on", variant_value: true },
+        { distinct_id: combined_id },
+      );
+      expect(sent(client).data.properties.distinct_id).toBe(combined_id);
     });
 
     it("sends exposure events through the client's track", () => {

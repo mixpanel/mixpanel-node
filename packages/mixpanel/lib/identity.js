@@ -217,9 +217,9 @@ const USER_SEPARATOR = "|$user:";
  * ends at the first `|$user:`; the user is everything after it.
  *
  * @param {*} distinct_id
- * @returns {{company_id: string, user_id: string} | null} null unless both
- *   parts are present and non-empty
- * @throws {MixpanelArgumentError} if either part is only whitespace
+ * @returns {{company_id: string, user_id: string} | null} null unless the
+ *   id has that shape
+ * @throws {MixpanelArgumentError} if either part is empty or only whitespace
  */
 function parse_combined_distinct_id(distinct_id) {
   if (
@@ -235,13 +235,11 @@ function parse_combined_distinct_id(distinct_id) {
   }
   const company_id = rest.slice(0, separator);
   const user_id = rest.slice(separator + USER_SEPARATOR.length);
-  if (company_id === "" || user_id === "") {
-    return null;
-  }
-  if (is_blank(company_id) || is_blank(user_id)) {
+  const blank_company = company_id.trim() === "";
+  if (blank_company || user_id.trim() === "") {
     throw new MixpanelArgumentError(
       `distinct_id ${JSON.stringify(distinct_id)} names a blank ` +
-        `${is_blank(company_id) ? "company" : "user"}. Nothing sent`,
+        `${blank_company ? "company" : "user"}. Nothing sent`,
     );
   }
   return { company_id, user_id };
@@ -260,7 +258,7 @@ function parse_combined_distinct_id(distinct_id) {
  *   absent
  * @returns {{company_id: string, user_id: string} | null} the parsed id, or
  *   null if the distinct id is not a combined one
- * @throws {MixpanelArgumentError} on a conflict or a blank part
+ * @throws {MixpanelArgumentError} on a conflict or an empty or blank part
  */
 function require_consistent_combined_distinct_id(
   distinct_id,
