@@ -535,6 +535,26 @@ describe("hierarchical groups", () => {
       ).toThrow(MixpanelArgumentError);
       expect(legacy.send_request).not.toHaveBeenCalled();
     });
+    it("refuses a batch with a conflicting combined distinct id before sending any of it", () => {
+      const event_list = [
+        {
+          event: "Ok",
+          properties: { distinct_id: combined_id, $company_id: "acme" },
+        },
+        {
+          event: "Bad",
+          properties: { distinct_id: combined_id, $company_id: "zz" },
+        },
+      ];
+      expect(() => hg.track_batch(event_list)).toThrow(
+        `distinct_id ${combined_id} names company acme, but $company_id is zz. Nothing sent`,
+      );
+      expect(() => hg.import_batch(event_list)).toThrow(MixpanelArgumentError);
+      expect(hg.send_request).not.toHaveBeenCalled();
+
+      legacy.track_batch(event_list);
+      expect(legacy.send_request).toHaveBeenCalled();
+    });
   });
 
   describe("alias", () => {
@@ -1580,6 +1600,38 @@ describe("hierarchical groups", () => {
           );
         }
       }
+    });
+
+    it("logs and keeps the variant when the client refuses the exposure event", () => {
+      const logger = {
+        trace: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        info: vi.fn(),
+        debug: vi.fn(),
+      };
+      const client = Mixpanel.init(token, {
+        hierarchical_groups: true,
+        remote_flags_config: {},
+        logger,
+      });
+      vi.spyOn(client, "send_request").mockImplementation(() => {});
+      const provider = client.remote_flags;
+      provider.logger = logger;
+
+      expect(() =>
+        provider.trackExposureEvent(
+          "my-flag",
+          { variant_key: "on", variant_value: true },
+          { distinct_id: combined_id, $company_id: "zz" },
+        ),
+      ).not.toThrow();
+      expect(client.send_request).not.toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "Failed to track exposure event for flag 'my-flag'",
+        ),
+      );
     });
 
     it("sends exposure events through the client's track", () => {

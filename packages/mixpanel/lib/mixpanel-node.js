@@ -308,6 +308,22 @@ const create_client = function (token, config) {
   };
 
   /**
+   * Applies require_consistent_event_ids to every event of a batch before any
+   * of it is sent, so a refused event never leaves part of the batch sent.
+   * @param {Array} event_list
+   * @throws {MixpanelArgumentError}
+   */
+  const require_consistent_batch_ids = function (event_list) {
+    if (hierarchical_groups && Array.isArray(event_list)) {
+      for (const event of event_list) {
+        if (event && event.properties) {
+          require_consistent_event_ids(event.properties);
+        }
+      }
+    }
+  };
+
+  /**
    * breaks array into equal-sized chunks, with the last chunk being the remainder
    * @param {Array} arr
    * @param {number} size
@@ -477,6 +493,7 @@ const create_client = function (token, config) {
       max_batch_size: options.max_batch_size,
     };
 
+    require_consistent_batch_ids(event_list);
     send_batch_requests(batch_options, callback);
   };
 
@@ -587,6 +604,7 @@ const create_client = function (token, config) {
       max_concurrent_requests: options.max_concurrent_requests,
       max_batch_size: options.max_batch_size,
     };
+    require_consistent_batch_ids(event_list);
     send_batch_requests(batch_options, callback);
   };
 

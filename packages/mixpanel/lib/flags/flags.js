@@ -199,14 +199,24 @@ class FeatureFlagsProvider {
       properties["$is_qa_tester"] = selectedVariant.is_qa_tester;
     }
 
-    // Use the tracker function provided (bound to the main mixpanel instance)
-    this.tracker(EXPOSURE_EVENT, properties, (err) => {
-      if (err) {
-        this.logger?.error(
-          `[flags]Failed to track exposure event for flag '${flagKey}': ${err.message}`,
-        );
-      }
-    });
+    const logFailure = (err) => {
+      this.logger?.error(
+        `[flags]Failed to track exposure event for flag '${flagKey}': ${err.message}`,
+      );
+    };
+    // Use the tracker function provided (bound to the main mixpanel instance).
+    // A hierarchical groups tracker can refuse the event, for example when the
+    // context's combined distinct_id conflicts with its $company_id; that is
+    // logged like a send failure so the variant is still returned.
+    try {
+      this.tracker(EXPOSURE_EVENT, properties, (err) => {
+        if (err) {
+          logFailure(err);
+        }
+      });
+    } catch (err) {
+      logFailure(err);
+    }
   }
 }
 
