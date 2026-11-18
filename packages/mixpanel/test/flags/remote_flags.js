@@ -186,6 +186,39 @@ describe("RemoteFeatureFlagProvider", () => {
       );
     });
 
+    it("adds $openfeature_provider to exposure when marked in context (SDK-448)", async () => {
+      mockSuccessResponse({
+        "test-flag": {
+          variant_key: "treatment",
+          variant_value: true,
+        },
+      });
+
+      await provider.getVariant("test-flag", null, {
+        ...TEST_CONTEXT,
+        $openfeature_provider: true,
+      });
+
+      expect(mockTracker).toHaveBeenCalledTimes(1);
+      const properties = mockTracker.mock.calls[0][1];
+      expect(properties["$openfeature_provider"]).toBe(true);
+    });
+
+    it("does not add $openfeature_provider to exposure for direct calls", async () => {
+      mockSuccessResponse({
+        "test-flag": {
+          variant_key: "treatment",
+          variant_value: true,
+        },
+      });
+
+      await provider.getVariant("test-flag", null, TEST_CONTEXT);
+
+      expect(mockTracker).toHaveBeenCalledTimes(1);
+      const properties = mockTracker.mock.calls[0][1];
+      expect(properties).not.toHaveProperty("$openfeature_provider");
+    });
+
     it("tags the fallback as BACKEND_ERROR with the backend message on HTTP error (SDK-83)", async () => {
       nock("https://localhost")
         .get("/flags")
