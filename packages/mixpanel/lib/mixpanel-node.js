@@ -27,6 +27,7 @@ const {
   MixpanelIdentity,
   identity_properties,
   is_blank,
+  parse_combined_distinct_id,
   require_consistent_combined_distinct_id,
   require_identity_matches_project,
 } = require("./identity");
@@ -277,13 +278,18 @@ const create_client = function (token, config) {
    * a copy of the caller's properties. Identity keys replace caller-supplied
    * values for the same keys; unset identity values are omitted. On a
    * hierarchical groups client `$user_id` and `$company_id` are sent as
-   * strings.
+   * strings, and a combined distinct id with an empty or blank company or
+   * user is refused.
    * @param {MixpanelIdentity} identity
    * @param {object} properties
    * @returns {object}
+   * @throws {MixpanelArgumentError}
    */
   const with_identity = function (identity, properties) {
     require_identity_matches_project(identity, hierarchical_groups);
+    if (hierarchical_groups) {
+      parse_combined_distinct_id(identity.distinct_id);
+    }
     return {
       ...properties,
       ...identity_properties(identity, hierarchical_groups),

@@ -469,6 +469,52 @@ describe("hierarchical groups", () => {
       expect(hg.send_request).not.toHaveBeenCalled();
     });
 
+    it("refuses an identity whose combined distinct id has a blank part", () => {
+      for (const [distinct_id, part] of blank_part_ids) {
+        const message = `distinct_id ${JSON.stringify(distinct_id)} names a blank ${part}. Nothing sent`;
+        for (const call of [
+          () => hg.track(identity({ distinct_id }), "Signup"),
+          () => hg.import(identity({ distinct_id }), "Signup", 1000),
+          () =>
+            hg.track(
+              identity({ distinct_id, user_id: "u", company_id: "c" }),
+              "Signup",
+            ),
+          () => hg.people.set(identity({ distinct_id }), { a: 1 }),
+          () => hg.people.delete_user(identity({ distinct_id })),
+        ]) {
+          expect(call).toThrow(MixpanelArgumentError);
+          expect(call).toThrow(message);
+        }
+      }
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("sends an identity's valid combined distinct id unchanged", () => {
+      hg.track(identity({ distinct_id: combined_id }), "Signup");
+      hg.import(identity({ distinct_id: combined_id }), "Signup", 1000);
+
+      expect(hg.send_request).toHaveBeenCalledTimes(2);
+      for (const call of hg.send_request.mock.calls) {
+        expect(call[0].data.properties.distinct_id).toBe(combined_id);
+      }
+    });
+
+    it("sends an identity's blank-part combined distinct id on a legacy client", () => {
+      for (const [distinct_id] of blank_part_ids) {
+        legacy.track(identity({ distinct_id }), "Signup");
+        legacy.import(identity({ distinct_id }), "Signup", 1000);
+      }
+
+      expect(
+        legacy.send_request.mock.calls.map(
+          (call) => call[0].data.properties.distinct_id,
+        ),
+      ).toEqual(
+        blank_part_ids.flatMap(([distinct_id]) => [distinct_id, distinct_id]),
+      );
+    });
+
     it("sends a non-combined distinct id with a blank-looking part as given", () => {
       for (const distinct_id of ["  ", "$company:acme", "$company:|user:u"]) {
         hg.track("Signup", { distinct_id });
