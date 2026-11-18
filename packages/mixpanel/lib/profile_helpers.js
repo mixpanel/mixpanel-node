@@ -3,7 +3,10 @@
  */
 
 const { ensure_timestamp } = require("./utils");
-const { MixpanelCompanyRequiredError } = require("./errors");
+const {
+  MixpanelArgumentError,
+  MixpanelCompanyRequiredError,
+} = require("./errors");
 
 // /groups has no $add, $append or $merge, so these are all a hierarchical
 // groups profile supports
@@ -72,7 +75,8 @@ exports.ProfileHelpers = (Base = Object) =>
     /**
      * Target for a group profile. Hierarchical groups projects require a
      * top-level $company_id on every /groups write, so the company comes from
-     * the given company_id, else a $company_id modifier.
+     * the given company_id, else a $company_id modifier. A $company_id group
+     * must name that same company.
      */
     _group_target(identifiers, company_id, modifiers) {
       modifiers = modifiers_or_none(modifiers);
@@ -97,6 +101,18 @@ exports.ProfileHelpers = (Base = Object) =>
           "Group profile updates for hierarchical groups projects require a company. " +
             "Use mixpanel.for_company(company_id) to send them. Nothing sent for group " +
             `${identifiers.$group_key}=${identifiers.$group_id}`,
+        );
+      }
+      // The top-level $company_id wins over $group_id for a company profile,
+      // so a mismatch would update the other company's profile
+      if (
+        this.mixpanel.hierarchical_groups &&
+        identifiers.$group_key === "$company_id" &&
+        String(company) !== String(identifiers.$group_id)
+      ) {
+        throw new MixpanelArgumentError(
+          `Group $company_id=${identifiers.$group_id} does not match company ${company}. ` +
+            `A company profile is updated through for_company(${identifiers.$group_id}).company. Nothing sent`,
         );
       }
       const target = { endpoint: "/groups", identifiers };

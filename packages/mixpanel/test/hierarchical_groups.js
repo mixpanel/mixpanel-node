@@ -976,6 +976,85 @@ describe("hierarchical groups", () => {
       expect(sent(hg).data.$company_id).toBe("acme");
     });
 
+    it("refuses a $company_id group that is not the bound company", () => {
+      const acme = hg.for_company("acme");
+      for (const call of [
+        () => acme.groups.set("$company_id", "globex", { plan: "pro" }),
+        () => acme.groups.set_once("$company_id", "globex", "plan", "pro"),
+        () => acme.groups.delete_group("$company_id", "globex"),
+        () => acme.groups.remove("$company_id", "globex", { tags: "a" }),
+        () => acme.groups.union("$company_id", "globex", { tags: ["a"] }),
+        () => acme.groups.unset("$company_id", "globex", "plan"),
+      ]) {
+        expect(call).toThrow(MixpanelArgumentError);
+        expect(call).toThrow(
+          "Group $company_id=globex does not match company acme. " +
+            "A company profile is updated through for_company(globex).company. Nothing sent",
+        );
+      }
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("refuses a $company_id group that is not the $company_id modifier", () => {
+      expect(() =>
+        hg.groups.set(
+          "$company_id",
+          "globex",
+          { plan: "pro" },
+          { $company_id: "acme" },
+        ),
+      ).toThrow(MixpanelArgumentError);
+      expect(() =>
+        hg.groups.delete_group("$company_id", "globex", { $company_id: 0 }),
+      ).toThrow(/does not match company 0/);
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("sends a $company_id group that is the bound company unchanged", () => {
+      hg.for_company("acme").groups.set("$company_id", "acme", {
+        plan: "pro",
+      });
+
+      expect(sent(hg)).toEqual({
+        method: "GET",
+        endpoint: "/groups",
+        data: {
+          $token: token,
+          $group_key: "$company_id",
+          $group_id: "acme",
+          $set: { plan: "pro" },
+          $company_id: "acme",
+        },
+      });
+    });
+
+    it("compares a $company_id group with its company as strings", () => {
+      hg.for_company(7).groups.set("$company_id", "7", { plan: "pro" });
+      hg.groups.set("$company_id", 0, { plan: "pro" }, { $company_id: "0" });
+
+      const [bound, modifier] = hg.send_request.mock.calls.map(
+        (c) => c[0].data,
+      );
+      expect(bound.$group_id).toBe("7");
+      expect(bound.$company_id).toBe(7);
+      expect(modifier.$group_id).toBe(0);
+      expect(modifier.$company_id).toBe("0");
+    });
+
+    it("sends a mismatched $company_id group on a legacy client, as before", () => {
+      legacy.for_company("acme").groups.set("$company_id", "globex", {
+        plan: "pro",
+      });
+
+      expect(sent(legacy).data).toEqual({
+        $token: token,
+        $group_key: "$company_id",
+        $group_id: "globex",
+        $set: { plan: "pro" },
+        $company_id: "acme",
+      });
+    });
+
     it("leaves every pre-existing method unchanged on a legacy client", () => {
       legacy.people.set("u", { a: 1 });
       legacy.people.set_once("u", "a", 1);
