@@ -1845,6 +1845,45 @@ describe("hierarchical groups", () => {
       expect(sent(client).data.properties.distinct_id).toBe(combined_id);
     });
 
+    it("treats an empty or whitespace-only exposure $company_id or $user_id as missing", () => {
+      const logger = {
+        trace: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        info: vi.fn(),
+        debug: vi.fn(),
+      };
+      const client = Mixpanel.init(token, {
+        hierarchical_groups: true,
+        remote_flags_config: {},
+        logger,
+      });
+      vi.spyOn(client, "send_request").mockImplementation(() => {});
+      const provider = client.remote_flags;
+      provider.logger = logger;
+      const variant = { variant_key: "on", variant_value: true };
+
+      for (const blank of ["", "   ", "\t\n"]) {
+        provider.trackExposureEvent("my-flag", variant, {
+          $company_id: blank,
+          $user_id: "user_123",
+        });
+        expect(logger.error).toHaveBeenLastCalledWith(
+          "Cannot track exposure event without a $company_id in the context",
+        );
+      }
+      expect(client.send_request).not.toHaveBeenCalled();
+
+      provider.trackExposureEvent("my-flag", variant, {
+        $company_id: "acme",
+        $user_id: "   ",
+      });
+      const { properties } = sent(client).data;
+      expect(properties.$company_id).toBe("acme");
+      expect(properties).not.toHaveProperty("$user_id");
+      expect(properties).not.toHaveProperty("distinct_id");
+    });
+
     it("sends exposure events through the client's track", () => {
       const client = Mixpanel.init(token, {
         hierarchical_groups: true,

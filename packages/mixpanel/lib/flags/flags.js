@@ -222,10 +222,10 @@ class FeatureFlagsProvider {
 
 /**
  * @param {*} value
- * @returns {boolean} true if value is set and not an empty string
+ * @returns {boolean} true if value is set and not empty or only whitespace
  */
 function isPresent(value) {
-  return value != null && String(value) !== "";
+  return value != null && String(value).trim() !== "";
 }
 
 module.exports = FeatureFlagsProvider;
