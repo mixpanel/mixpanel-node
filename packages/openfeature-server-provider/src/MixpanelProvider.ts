@@ -194,6 +194,9 @@ export class MixpanelProvider implements Provider {
         flagContext[key] = this._unwrapValue(value);
       }
     }
+    // SDK-448: set last so customer attributes can't override it; the SDK adds
+    // $openfeature_provider to exposure events. Older SDKs ignore the key.
+    flagContext.$openfeature_provider = true;
     return flagContext;
   }
 
