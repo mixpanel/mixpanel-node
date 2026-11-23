@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const nock = require("nock");
 const LocalFeatureFlagsProvider = require("../../lib/flags/local_flags");
 const {
@@ -1197,6 +1199,250 @@ describe("LocalFeatureFlagsProvider", () => {
 
       clearIntervalSpy.mockRestore();
       setIntervalSpy.mockRestore();
+    });
+  });
+
+  describe("multi-experiment flags", () => {
+    // The golden vectors are the cross-SDK contract for multi-experiment flags. The
+    // canonical copy lives in the analytics monorepo under
+    // go/src/mixpanel.com/flags/api/handlers/testdata/.
+    const MULTI_EXPERIMENT_CASES = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "test-data",
+          "multi_experiment_flag_test_cases.json",
+        ),
+        "utf-8",
+      ),
+    ).TestMultiExperimentFlagEvaluationScenarios;
+
+    const MULTI_EXPERIMENT_FLAG_KEY = "checkout";
+    // Allocation buckets for MULTI_EXPERIMENT_FLAG_KEY with hash_salt "salt1".
+    const DISTINCT_ID_IN_BUCKET_9 = "user23";
+    const DISTINCT_ID_IN_BUCKET_62 = "user848";
+
+    let provider;
+
+    beforeEach(() => {
+      provider = new LocalFeatureFlagsProvider(
+        TEST_TOKEN,
+        { api_host: "localhost", enable_polling: false },
+        mockTracker,
+        mockLogger,
+      );
+    });
+
+    afterEach(() => {
+      provider.stopPollingForDefinitions();
+    });
+
+    const experimentEntry = ({
+      experimentId,
+      allocation,
+      experimentStatus = "active",
+      ...fields
+    }) => ({
+      type: "experiment",
+      experiment_id: experimentId,
+      experiment_status: experimentStatus,
+      is_experiment_active: experimentStatus === "active",
+      allocation: allocation.map(([start, end]) => ({ start, end })),
+      rollout_percentage: 0,
+      variant_splits: { control: 0.5, treatment: 0.5 },
+      ...fields,
+    });
+
+    const multiExperimentFlag = (rollout, { hashSalt = "salt1" } = {}) => ({
+      id: "multi-experiment-1",
+      project_id: 31,
+      name: "Checkout",
+      key: MULTI_EXPERIMENT_FLAG_KEY,
+      status: "enabled",
+      context: "distinct_id",
+      hash_salt: hashSalt,
+      ruleset: {
+        variants: [
+          { key: "control", value: "control", is_control: true },
+          { key: "treatment", value: "treatment", is_control: false },
+        ],
+        rollout,
+      },
+    });
+
+    async function getMultiExperimentVariant(flag, context) {
+      mockFlagDefinitionsResponse([flag]);
+      await provider.startPollingForDefinitions();
+      return provider.getVariant(MULTI_EXPERIMENT_FLAG_KEY, FALLBACK, context);
+    }
+
+    // Shapes a variant like the golden vectors, which omit empty experiment fields.
+    function withoutEmptyAttribution(variant) {
+      const fields = {
+        variant_key: variant.variant_key,
+        variant_value: variant.variant_value,
+        experiment_id: variant.experiment_id,
+        is_experiment_active: variant.is_experiment_active,
+      };
+      return Object.fromEntries(
+        Object.entries(fields).filter(
+          ([, value]) =>
+            value !== null && value !== undefined && value !== false,
+        ),
+      );
+    }
+
+    it.each(
+      MULTI_EXPERIMENT_CASES.map((testCase) => [testCase.name, testCase]),
+    )("matches golden vector: %s", async (_name, testCase) => {
+      mockFlagDefinitionsResponse(testCase.flags);
+      await provider.startPollingForDefinitions();
+
+      const variants = provider.getAllVariants(testCase.context);
+
+      const actual = Object.fromEntries(
+        Object.entries(variants).map(([flagKey, variant]) => [
+          flagKey,
+          withoutEmptyAttribution(variant),
+        ]),
+      );
+      expect(actual).toEqual(testCase.expected);
+    });
+
+    it("should skip a draft experiment", async () => {
+      const flag = multiExperimentFlag([
+        experimentEntry({
+          experimentId: "e_cta",
+          allocation: [[0, 40]],
+          experimentStatus: "draft",
+        }),
+      ]);
+
+      const result = await getMultiExperimentVariant(flag, {
+        distinct_id: DISTINCT_ID_IN_BUCKET_9,
+      });
+
+      expect(result.variant_value).toBe(FALLBACK_NAME);
+      expect(result.variant_source).toBe(VariantSource.FALLBACK);
+    });
+
+    it("should return fallback when the flag has no hash_salt", async () => {
+      const flag = multiExperimentFlag(
+        [experimentEntry({ experimentId: "e_cta", allocation: [[0, 100]] })],
+        { hashSalt: null },
+      );
+
+      const result = await getMultiExperimentVariant(flag, {
+        distinct_id: DISTINCT_ID_IN_BUCKET_9,
+      });
+
+      expect(result.variant_value).toBe(FALLBACK_NAME);
+    });
+
+    it("should not fall through to a later experiment when the runtime rule fails", async () => {
+      const flag = multiExperimentFlag([
+        experimentEntry({
+          experimentId: "e_pro_only",
+          allocation: [[0, 50]],
+          runtime_evaluation_rule: { "==": [{ var: "plan" }, "pro"] },
+        }),
+        experimentEntry({
+          experimentId: "e_everyone",
+          allocation: [[50, 100]],
+        }),
+      ]);
+
+      const withMatchingPlan = await getMultiExperimentVariant(flag, {
+        distinct_id: DISTINCT_ID_IN_BUCKET_9,
+        custom_properties: { plan: "Pro" },
+      });
+      const withOtherPlan = provider.getVariant(
+        MULTI_EXPERIMENT_FLAG_KEY,
+        FALLBACK,
+        {
+          distinct_id: DISTINCT_ID_IN_BUCKET_9,
+          custom_properties: { plan: "free" },
+        },
+      );
+
+      expect(withMatchingPlan.experiment_id).toBe("e_pro_only");
+      expect(withOtherPlan.variant_value).toBe(FALLBACK_NAME);
+    });
+
+    it("should track exposure with the experiment entry attribution", async () => {
+      const flag = {
+        ...multiExperimentFlag([
+          experimentEntry({ experimentId: "e_cta", allocation: [[0, 40]] }),
+          experimentEntry({
+            experimentId: "e_search",
+            allocation: [[40, 65]],
+            experimentStatus: "concluded",
+          }),
+        ]),
+        experiment_id: "flag-level-experiment",
+        is_experiment_active: true,
+      };
+
+      await getMultiExperimentVariant(flag, {
+        distinct_id: DISTINCT_ID_IN_BUCKET_62,
+      });
+
+      expect(mockTracker).toHaveBeenCalledTimes(1);
+      const properties = mockTracker.mock.calls[0][1];
+      expect(properties["$experiment_id"]).toBe("e_search");
+      expect(properties["$is_experiment_active"]).toBe(false);
+    });
+
+    it("should report an experiment entry without is_experiment_active as inactive", async () => {
+      const entry = experimentEntry({
+        experimentId: "e_search",
+        allocation: [[0, 100]],
+        experimentStatus: "concluded",
+      });
+      delete entry.is_experiment_active;
+
+      const result = await getMultiExperimentVariant(
+        multiExperimentFlag([entry]),
+        { distinct_id: DISTINCT_ID_IN_BUCKET_9 },
+      );
+
+      expect(result.experiment_id).toBe("e_search");
+      expect(result.is_experiment_active).toBe(false);
+    });
+
+    it("should pick experiment entry variants with a hash of the experiment id", async () => {
+      // Variant hashes with flag key "checkout" and hash_salt "salt1":
+      // user123 is 0.34 for e_cta and 0.84 for e_next.
+      const variantFor = async (experimentId) => {
+        nock.cleanAll();
+        provider.stopPollingForDefinitions();
+        const flag = multiExperimentFlag([
+          experimentEntry({ experimentId, allocation: [[0, 100]] }),
+        ]);
+        return getMultiExperimentVariant(flag, { distinct_id: "user123" });
+      };
+
+      expect((await variantFor("e_cta")).variant_key).toBe("control");
+      expect((await variantFor("e_next")).variant_key).toBe("treatment");
+    });
+
+    it("should use the experiment entry attribution for a variant_override", async () => {
+      const flag = multiExperimentFlag([
+        experimentEntry({
+          experimentId: "e_shipped",
+          allocation: [[0, 100]],
+          experimentStatus: "concluded",
+          variant_override: { key: "treatment" },
+        }),
+      ]);
+
+      const result = await getMultiExperimentVariant(flag, {
+        distinct_id: DISTINCT_ID_IN_BUCKET_9,
+      });
+
+      expect(result.variant_key).toBe("treatment");
+      expect(result.experiment_id).toBe("e_shipped");
+      expect(result.is_experiment_active).toBe(false);
     });
   });
 });
