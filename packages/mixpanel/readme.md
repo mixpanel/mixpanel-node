@@ -1,6 +1,6 @@
 # Mixpanel-node
 
-##### _September 01, 2026_ - [v0.24.0](https://github.com/mixpanel/mixpanel-node/releases/tag/v0.24.0)
+##### _November 23, 2026_ - [v0.25.0](https://github.com/mixpanel/mixpanel-node/releases/tag/v0.25.0)
 
 ![Build Status](https://github.com/mixpanel/mixpanel-node/actions/workflows/tests.yml/badge.svg)
 
