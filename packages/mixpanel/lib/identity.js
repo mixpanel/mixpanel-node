@@ -49,8 +49,7 @@ const FLAG_CONTEXT_KEYS = {
 class MixpanelIdentity {
   /**
    * @param {object} ids
-   * Each id is a string or an integer. On a hierarchical groups client the
-   * user and company ids are sent as strings; other ids are sent as given.
+   * Each id is a string or an integer, and is sent as a string.
    *
    * @param {string|number} [ids.distinct_id] - a distinct id Mixpanel resolves directly
    * @param {string|number} [ids.user_id] - the user's id; on a hierarchical groups
@@ -134,13 +133,13 @@ class MixpanelIdentity {
    *   for, such as `{ department: "finance" }`
    * @param {object} [options.custom_properties] - properties used by runtime
    *   targeting rules
-   * @returns {object} the flag context
+   * @returns {object} the flag context; the identity's ids are strings
    */
   to_flag_context({ groups = {}, custom_properties = {} } = {}) {
     const context = { ...groups };
     for (const [key, flag_key] of Object.entries(FLAG_CONTEXT_KEYS)) {
       if (this[key] !== null) {
-        context[flag_key] = this[key];
+        context[flag_key] = String(this[key]);
       }
     }
     if (Object.keys(custom_properties).length > 0) {
@@ -167,30 +166,45 @@ function is_blank(value) {
 }
 
 /**
- * The identity's keys as event properties; unset values are omitted.
+ * The identity's keys as event properties, with every id as a string; unset
+ * values are omitted.
  * @param {MixpanelIdentity} identity
- * @param {boolean} [hierarchical_groups] - on a hierarchical groups client,
- *   `$user_id` and `$company_id` are sent as strings
  * @returns {object}
  */
-function identity_properties(identity, hierarchical_groups = false) {
+function identity_properties(identity) {
   const properties = {};
   for (const [key, property] of Object.entries(IDENTITY_KEYS)) {
     if (identity[key] !== null) {
-      properties[property] =
-        hierarchical_groups && (key === "user_id" || key === "company_id")
-          ? String(identity[key])
-          : identity[key];
+      properties[property] = String(identity[key]);
     }
   }
   return properties;
 }
 
 /**
+ * On a hierarchical groups project Mixpanel joins the company and user with
+ * `|` to build the user's distinct id, so a user or company id containing it
+ * cannot be told apart from another user.
+ *
+ * @param {*} value - a user or company id
+ * @param {string} label - how the message names the id
+ * @throws {MixpanelArgumentError} if value is a string containing `|`
+ */
+function require_no_separator(value, label) {
+  if (typeof value === "string" && value.includes("|")) {
+    throw new MixpanelArgumentError(
+      `${label} ${JSON.stringify(value)} must not contain "|" on a ` +
+        "hierarchical groups project. Nothing sent",
+    );
+  }
+}
+
+/**
  * Hierarchical groups is a project setting, so a hierarchical identity is
  * only valid on a client created for a hierarchical groups project.
  * Ingestion accepts the keys on any project but ignores them, so a mismatch
- * would be silently mis-attributed.
+ * would be silently mis-attributed. On a hierarchical groups client the
+ * user and company ids must not contain `|`.
  *
  * @param {MixpanelIdentity} identity
  * @param {boolean} hierarchical_groups - the client's mode
@@ -206,6 +220,10 @@ function require_identity_matches_project(identity, hierarchical_groups) {
         "Mixpanel.init(token, { hierarchical_groups: true })",
     );
   }
+  if (hierarchical_groups) {
+    require_no_separator(identity.user_id, "user_id");
+    require_no_separator(identity.company_id, "company_id");
+  }
 }
 
 const COMPANY_PREFIX = "$company:";
@@ -219,7 +237,8 @@ const USER_SEPARATOR = "|$user:";
  * @param {*} distinct_id
  * @returns {{company_id: string, user_id: string} | null} null unless the
  *   id has that shape
- * @throws {MixpanelArgumentError} if either part is empty or only whitespace
+ * @throws {MixpanelArgumentError} if either part is empty, only whitespace or
+ *   contains `|`
  */
 function parse_combined_distinct_id(distinct_id) {
   if (
@@ -242,6 +261,8 @@ function parse_combined_distinct_id(distinct_id) {
         `${blank_company ? "company" : "user"}. Nothing sent`,
     );
   }
+  require_no_separator(company_id, `The company in distinct_id ${distinct_id}`);
+  require_no_separator(user_id, `The user in distinct_id ${distinct_id}`);
   return { company_id, user_id };
 }
 
@@ -323,4 +344,5 @@ module.exports = {
   require_consistent_combined_distinct_id,
   require_identity_distinct_id_agrees,
   require_identity_matches_project,
+  require_no_separator,
 };

@@ -1409,15 +1409,25 @@ describe("LocalFeatureFlagsProvider hierarchical groups", () => {
       expect(assignmentKey(SPEC_CONTEXT)).toBe("dept-finance/company_123!");
     });
 
-    it("stringifies placeholder values", async () => {
-      await load([templatedFlag("department", "{department}:{count}")]);
-      expect(assignmentKey({ ...SPEC_CONTEXT, count: 42 })).toBe("finance:42");
-    });
+    it.each([
+      ["a number", 42],
+      ["an empty string", ""],
+      ["a boolean", true],
+      ["an object", { id: "x" }],
+    ])(
+      "uses the raw context value when a placeholder is %s",
+      async (_, count) => {
+        await load([templatedFlag("department", "{department}:{count}")]);
+        expect(assignmentKey({ ...SPEC_CONTEXT, count })).toBe("finance");
+      },
+    );
 
     it.each([
       ["absent", {}],
       ["null", { $user_id: null }],
       ["undefined", { $user_id: undefined }],
+      ["empty", { $user_id: "" }],
+      ["an integer", { $user_id: 123 }],
     ])(
       "uses the raw context value when a placeholder is %s",
       async (_, override) => {
@@ -1520,21 +1530,61 @@ describe("LocalFeatureFlagsProvider hierarchical groups", () => {
         expect(result.variant_value).toBe("control");
       });
 
-      it("matches other flags on the raw distinct_id", async () => {
+      it.each(["$user_id", "$company_id", "device_id", "department"])(
+        "matches a %s flag on the user and company's combined distinct id",
+        async (context) => {
+          await load([
+            overrideFlag(context, {
+              "$company:company_123|$user:user_123": "treatment",
+            }),
+          ]);
+          const result = provider.getVariant(
+            FLAG_KEY_HG,
+            FALLBACK,
+            SPEC_CONTEXT,
+          );
+          expect(result.variant_value).toBe("treatment");
+          expect(result.is_qa_tester).toBe(true);
+        },
+      );
+
+      it("does not match other flags on the raw distinct_id when the context names a user and company", async () => {
         await load([overrideFlag("$user_id", { user_123: "treatment" })]);
+        const result = provider.getVariant(FLAG_KEY_HG, FALLBACK, SPEC_CONTEXT);
+        expect(result.variant_value).toBe("control");
+      });
+
+      it("matches on the combined distinct id without a template or hierarchical_groups", async () => {
+        makeProvider(false);
+        await load([
+          createTestFlag({
+            context: "department",
+            variants: [
+              { key: "control", value: "control", is_control: true, split: 1 },
+              { key: "treatment", value: "treatment", split: 0 },
+            ],
+            testUsers: { "$company:company_123|$user:user_123": "treatment" },
+          }),
+        ]);
         const result = provider.getVariant(FLAG_KEY_HG, FALLBACK, SPEC_CONTEXT);
         expect(result.variant_value).toBe("treatment");
       });
 
-      it("does not match other flags on the resolved assignment key", async () => {
-        await load([
-          overrideFlag("$user_id", {
-            "$company:company_123|$user:user_123": "treatment",
-          }),
-        ]);
-        const result = provider.getVariant(FLAG_KEY_HG, FALLBACK, SPEC_CONTEXT);
-        expect(result.variant_value).toBe("control");
-      });
+      it.each([
+        ["no $company_id", { $company_id: undefined }],
+        ["an empty $user_id", { $user_id: "" }],
+        ["an integer $company_id", { $company_id: 42 }],
+      ])(
+        "matches other flags on the raw distinct_id with %s",
+        async (_, override) => {
+          await load([overrideFlag("$user_id", { user_123: "treatment" })]);
+          const result = provider.getVariant(FLAG_KEY_HG, FALLBACK, {
+            ...SPEC_CONTEXT,
+            ...override,
+          });
+          expect(result.variant_value).toBe("treatment");
+        },
+      );
     });
   });
 

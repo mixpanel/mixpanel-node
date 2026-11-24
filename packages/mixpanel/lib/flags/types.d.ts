@@ -116,8 +116,9 @@ export interface ExperimentationFlag {
   hash_salt?: string;
   /**
    * Template for the assignment key, filled from the evaluation context, e.g.
-   * `"$company:{$company_id}|$user:{$user_id}"`. When a placeholder is
-   * missing, the raw `context` value is used instead.
+   * `"$company:{$company_id}|$user:{$user_id}"`. When a placeholder's value
+   * is missing or not a non-empty string, the raw `context` value is used
+   * instead.
    */
   context_value_template?: string;
 }
@@ -189,20 +190,20 @@ export interface LocalFlagsResponse {
   flags: ExperimentationFlag[];
 }
 
+export interface FlagContext {
+  distinct_id: string;
+  [key: string]: any;
+}
+
 /**
- * A feature flag evaluation context: a `distinct_id`, or on a hierarchical
- * groups project a `$user_id` and `$company_id` instead.
+ * A feature flag evaluation context on a hierarchical groups project, which
+ * names a user by `$user_id` and `$company_id` in place of a `distinct_id`.
  */
-export type FlagContext =
-  | {
-      distinct_id: string;
-      [key: string]: any;
-    }
-  | {
-      /** The user's id; sent as a string */
-      $user_id: string | number;
-      /** The id of the user's company; sent as a string */
-      $company_id: string | number;
-      distinct_id?: string;
-      [key: string]: any;
-    };
+export interface HierarchicalFlagContext {
+  /** The user's id */
+  $user_id: string | number;
+  /** The id of the user's company */
+  $company_id: string | number;
+  distinct_id?: string;
+  [key: string]: any;
+}

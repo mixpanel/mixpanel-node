@@ -36,11 +36,13 @@ class MixpanelPeople extends ProfileHelpers() {
    * (see for_company); only a client without one honours a $company_id
    * modifier, and without either the update is refused. A combined distinct
    * id passed directly refuses a $company_id modifier naming another
-   * company. The user and company are sent as strings.
+   * company. The user and company are sent as strings. An `$ignore_alias`
+   * modifier, which /groups rejects, is refused.
    */
   _target(identifiers, modifiers) {
     const identity = identifiers.$distinct_id;
     const hierarchical_groups = this.mixpanel.hierarchical_groups;
+    this._require_groups_accepts_modifiers(modifiers, { user_profile: true });
     if (!(identity instanceof MixpanelIdentity)) {
       if (!hierarchical_groups) {
         return { endpoint: this.endpoint, identifiers };
@@ -62,7 +64,7 @@ class MixpanelPeople extends ProfileHelpers() {
       }
       return {
         endpoint: this.endpoint,
-        identifiers: { $distinct_id: identity.distinct_id },
+        identifiers: { $distinct_id: String(identity.distinct_id) },
       };
     }
     if (!hierarchical_groups) {

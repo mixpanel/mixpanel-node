@@ -30,6 +30,7 @@ const {
   require_consistent_combined_distinct_id,
   require_identity_distinct_id_agrees,
   require_identity_matches_project,
+  require_no_separator,
 } = require("./identity");
 const {
   MixpanelArgumentError,
@@ -276,11 +277,11 @@ const create_client = function (token, config) {
   /**
    * Validates an identity against this client's mode and merges its keys into
    * a copy of the caller's properties. Identity keys replace caller-supplied
-   * values for the same keys; unset identity values are omitted. On a
-   * hierarchical groups client `$user_id` and `$company_id` are sent as
-   * strings, and a combined distinct id with an empty or blank company or
-   * user, or naming another user or company than the identity's user_id or
-   * company_id, is refused.
+   * values for the same keys; unset identity values are omitted. Its ids
+   * are sent as strings. On a hierarchical groups client a user or company
+   * id containing `|`, and a combined distinct id with an empty or blank
+   * company or user, or naming another user or company than the identity's
+   * user_id or company_id, are refused.
    * @param {MixpanelIdentity} identity
    * @param {object} properties
    * @returns {object}
@@ -291,7 +292,7 @@ const create_client = function (token, config) {
     require_identity_distinct_id_agrees(identity, hierarchical_groups);
     return {
       ...properties,
-      ...identity_properties(identity, hierarchical_groups),
+      ...identity_properties(identity),
     };
   };
 
@@ -670,8 +671,7 @@ const create_client = function (token, config) {
         user from another company.
 
         company_id:string|number   the id of the top-level company; sent as
-                                   a string on a hierarchical groups client,
-                                   as given otherwise
+                                   a string
     */
   metrics.for_company = function (company_id) {
     if (
@@ -684,6 +684,9 @@ const create_client = function (token, config) {
     }
     if (is_blank(company_id)) {
       throw new MixpanelArgumentError("company_id must not be only whitespace");
+    }
+    if (hierarchical_groups) {
+      require_no_separator(company_id, "company_id");
     }
     const view = Object.create(metrics);
     Object.defineProperty(view, "company_id", {

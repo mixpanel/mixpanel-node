@@ -7,7 +7,7 @@ const {
   MixpanelArgumentError,
   MixpanelCompanyRequiredError,
 } = require("./errors");
-const { is_blank } = require("./identity");
+const { is_blank, require_no_separator } = require("./identity");
 
 // /groups has no $add, $append or $merge, so these are all a hierarchical
 // groups profile supports
@@ -79,7 +79,7 @@ exports.ProfileHelpers = (Base = Object) =>
      * be an integer (including 0); null, undefined and an empty string count
      * as missing.
      * @throws {MixpanelArgumentError} if it is neither a string nor an
-     *   integer, or is only whitespace
+     *   integer, is only whitespace, or contains `|`
      */
     _modifier_company(modifiers) {
       modifiers = modifiers_or_none(modifiers);
@@ -100,15 +100,44 @@ exports.ProfileHelpers = (Base = Object) =>
           "The $company_id modifier must not be only whitespace. Nothing sent",
         );
       }
+      require_no_separator(company, "The $company_id modifier");
       return company;
+    }
+
+    /**
+     * On a hierarchical groups client, refuses modifiers that make /groups
+     * reject the whole update: `$ignore_alias` on any profile update, and
+     * `$distinct_id` on a group (not user) profile update. A user profile's
+     * `$distinct_id` names its target and is never sent.
+     * @param {object} [modifiers]
+     * @param {object} options
+     * @param {boolean} options.user_profile
+     * @throws {MixpanelArgumentError}
+     */
+    _require_groups_accepts_modifiers(modifiers, { user_profile }) {
+      modifiers = modifiers_or_none(modifiers);
+      if (!this.mixpanel.hierarchical_groups || !modifiers) {
+        return;
+      }
+      const rejected = user_profile
+        ? ["$ignore_alias"]
+        : ["$distinct_id", "$ignore_alias"];
+      for (const key of rejected) {
+        if (Object.prototype.hasOwnProperty.call(modifiers, key)) {
+          throw new MixpanelArgumentError(
+            `The ${key} modifier is not supported on hierarchical groups ` +
+              `${user_profile ? "user" : "group"} profile updates, which ` +
+              "/groups rejects. Nothing sent",
+          );
+        }
+      }
     }
 
     /**
      * Target for a group profile. Hierarchical groups projects require a
      * top-level $company_id on every /groups write, so the company comes from
      * the given company_id, else a $company_id modifier. A $company_id group
-     * must name that same company. On a hierarchical groups client the
-     * company is sent as a string.
+     * must name that same company. The company is sent as a string.
      */
     _group_target(identifiers, company_id, modifiers) {
       // validated even when the given company wins, so a malformed modifier
@@ -140,9 +169,7 @@ exports.ProfileHelpers = (Base = Object) =>
       }
       const target = { endpoint: "/groups", identifiers };
       if (company !== undefined) {
-        target.company_id = this.mixpanel.hierarchical_groups
-          ? String(company)
-          : company;
+        target.company_id = String(company);
       }
       return target;
     }

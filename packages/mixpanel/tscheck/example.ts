@@ -73,3 +73,22 @@ hg_flags.local_flags?.getAllVariants(user.to_flag_context());
 hg_flags.local_flags?.getVariantValue("color", "blue", { plan: "pro" });
 // @ts-expect-error a $company_id alone does not identify a flag context
 hg_flags.local_flags?.isEnabled("color", { $company_id: "acme" });
+
+// FlagContext stays an interface, so code written against it before
+// hierarchical groups still compiles
+import type {
+  FlagContext,
+  HierarchicalFlagContext,
+} from "../lib/flags/types.js";
+interface AppFlagContext extends FlagContext {
+  plan: string;
+}
+class RequestFlagContext implements FlagContext {
+  [key: string]: any;
+  constructor(public distinct_id: string) {}
+}
+const app_context: AppFlagContext = { distinct_id: "user_1", plan: "pro" };
+mp.local_flags?.isEnabled("color", app_context);
+mp.local_flags?.isEnabled("color", new RequestFlagContext("user_1"));
+const hg_context: HierarchicalFlagContext = user.to_flag_context();
+hg_flags.local_flags?.isEnabled("color", hg_context);

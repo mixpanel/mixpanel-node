@@ -1,7 +1,7 @@
 import LocalFeatureFlagsProvider from "./flags/local_flags";
 import RemoteFeatureFlagsProvider from "./flags/remote_flags";
 import {
-  FlagContext,
+  HierarchicalFlagContext,
   LocalFlagsConfig,
   RemoteFlagsConfig,
 } from "./flags/types";
@@ -30,9 +30,8 @@ declare namespace mixpanel {
 
   /**
    * Identifies who an event or profile update belongs to. Ids are strings or
-   * integers. On a hierarchical groups client the user and company ids are
-   * sent as strings; other ids are sent as given. Unset values are null and
-   * omitted from messages. Instances are frozen.
+   * integers, and are sent as strings. Unset values are null and omitted from
+   * messages. Instances are frozen.
    */
   export class MixpanelIdentity {
     /**
@@ -47,14 +46,14 @@ declare namespace mixpanel {
     /** true if this identity names a company */
     readonly is_hierarchical: boolean;
     /**
-     * A feature flag evaluation context for this identity: its ids under the
-     * keys flags read, the groups at the top level and the custom properties
-     * nested under custom_properties.
+     * A feature flag evaluation context for this identity: its ids, as
+     * strings, under the keys flags read, the groups at the top level and the
+     * custom properties nested under custom_properties.
      */
     to_flag_context(options?: {
       groups?: Record<string, any>;
       custom_properties?: Record<string, any>;
-    }): FlagContext;
+    }): HierarchicalFlagContext;
     toString(): string;
   }
 

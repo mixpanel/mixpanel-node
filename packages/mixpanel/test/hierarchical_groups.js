@@ -154,6 +154,33 @@ describe("hierarchical groups", () => {
         distinct_id: "user_123",
       });
     });
+
+    it("builds a flag context with every id as a string, leaving groups and custom properties as given", () => {
+      const context = identity({
+        distinct_id: 1,
+        user_id: 2,
+        company_id: 0,
+        device_id: 4,
+      }).to_flag_context({
+        groups: { team_id: 5 },
+        custom_properties: { seats: 6 },
+      });
+
+      expect(context).toEqual({
+        distinct_id: "1",
+        $user_id: "2",
+        $company_id: "0",
+        device_id: "4",
+        team_id: 5,
+        custom_properties: { seats: 6 },
+      });
+    });
+
+    it("accepts | in ids, which only a hierarchical groups client refuses", () => {
+      const id = identity({ user_id: "a|b", company_id: "c|d" });
+      expect(id.user_id).toBe("a|b");
+      expect(id.company_id).toBe("c|d");
+    });
   });
 
   describe("mode", () => {
@@ -354,7 +381,7 @@ describe("hierarchical groups", () => {
       expect(imported.data.properties.$company_id).toBe("0");
     });
 
-    it("sends string ids and other identity keys unchanged", () => {
+    it("sends every identity id as a string and other properties unchanged", () => {
       hg.track(
         identity({ user_id: "u", company_id: "c", device_id: 7 }),
         "Signup",
@@ -364,16 +391,41 @@ describe("hierarchical groups", () => {
       const props = event_properties(hg);
       expect(props.$user_id).toBe("u");
       expect(props.$company_id).toBe("c");
-      expect(props.$device_id).toBe(7);
+      expect(props.$device_id).toBe("7");
       expect(props.other).toBe(2);
     });
 
-    it("sends an integer identity user id as given on a legacy client", () => {
+    it("sends integer identity ids as strings on a legacy client", () => {
       legacy.track(identity({ user_id: 123, device_id: 7 }), "Signup");
+      legacy.import(identity({ distinct_id: 0 }), "Signup", 1000);
 
-      const props = event_properties(legacy);
-      expect(props.$user_id).toBe(123);
-      expect(props.$device_id).toBe(7);
+      const [[track], [imported]] = legacy.send_request.mock.calls;
+      expect(track.data.properties.$user_id).toBe("123");
+      expect(track.data.properties.$device_id).toBe("7");
+      expect(imported.data.properties.distinct_id).toBe("0");
+    });
+
+    it("sends an integer identity distinct id as a string to /engage on a legacy client", () => {
+      legacy.people.set(identity({ distinct_id: 7 }), { plan: "pro" });
+      legacy.people.set(7, { plan: "pro" });
+
+      const [[from_identity], [raw]] = legacy.send_request.mock.calls;
+      expect(from_identity.data.$distinct_id).toBe("7");
+      expect(raw.data.$distinct_id).toBe(7);
+    });
+
+    it("never stringifies raw event properties", () => {
+      for (const client of [hg, legacy]) {
+        client.track("Signup", { distinct_id: 7, $device_id: 8, n: 9 });
+        client.track(identity({ device_id: "d" }), "Signup", { n: 9 });
+        const [[raw], [with_identity]] = client.send_request.mock.calls;
+        expect(raw.data.properties).toMatchObject({
+          distinct_id: 7,
+          $device_id: 8,
+          n: 9,
+        });
+        expect(with_identity.data.properties.n).toBe(9);
+      }
     });
 
     it("refuses an event whose combined distinct id names another company or user", () => {
@@ -898,11 +950,11 @@ describe("hierarchical groups", () => {
       expect(hg.send_request).not.toHaveBeenCalled();
     });
 
-    it("splits a combined distinct id at the first user separator", () => {
-      hg.people.set("$company:a:b|$user:c|$user:d", { plan: "pro" });
+    it("splits a combined distinct id at the user separator", () => {
+      hg.people.set("$company:a:b|$user:c:d", { plan: "pro" });
 
       expect(sent(hg).data).toMatchObject({
-        $group_id: "c|$user:d",
+        $group_id: "c:d",
         $company_id: "a:b",
       });
     });
@@ -1566,14 +1618,14 @@ describe("hierarchical groups", () => {
       expect(sent(hg).data.$company_id).toBe("0");
     });
 
-    it("sends an integer company as given on a legacy client", () => {
+    it("sends an integer company as a string on a legacy client", () => {
       legacy.for_company(42).groups.set("department", "finance", { a: 1 });
       legacy.for_company(0).company.set({ tier: "ent" });
 
       const [[group], [company]] = legacy.send_request.mock.calls;
-      expect(group.data.$company_id).toBe(42);
-      expect(company.data.$group_id).toBe(0);
-      expect(company.data.$company_id).toBe(0);
+      expect(group.data.$company_id).toBe("42");
+      expect(company.data.$group_id).toBe("0");
+      expect(company.data.$company_id).toBe("0");
     });
 
     it("rejects a whitespace-only company", () => {
@@ -1884,6 +1936,19 @@ describe("hierarchical groups", () => {
       expect(properties).not.toHaveProperty("distinct_id");
     });
 
+    it("does not stringify a raw flag context", () => {
+      const client = Mixpanel.init(token, { remote_flags_config: {} });
+      vi.spyOn(client, "send_request").mockImplementation(() => {});
+
+      client.remote_flags.trackExposureEvent(
+        "my-flag",
+        { variant_key: "on", variant_value: true },
+        { distinct_id: 7 },
+      );
+
+      expect(sent(client).data.properties.distinct_id).toBe(7);
+    });
+
     it("sends exposure events through the client's track", () => {
       const client = Mixpanel.init(token, {
         hierarchical_groups: true,
@@ -1902,6 +1967,133 @@ describe("hierarchical groups", () => {
       expect(data.properties.$user_id).toBe("user_123");
       expect(data.properties.$company_id).toBe("acme");
       expect(data.properties).not.toHaveProperty("distinct_id");
+    });
+  });
+
+  describe("| in user and company ids", () => {
+    it("refuses an identity with | in its user or company id", () => {
+      for (const ids of [
+        { user_id: "a|b", company_id: "acme" },
+        { user_id: "user_123", company_id: "a|b" },
+        { company_id: "a|b" },
+        { user_id: "a|b", device_id: "d" },
+      ]) {
+        expect(() => hg.track(identity(ids), "Signup")).toThrow(
+          MixpanelArgumentError,
+        );
+        expect(() => hg.import(identity(ids), "Signup", 1000)).toThrow(/"\|"/);
+      }
+      expect(() =>
+        hg.people.set(identity({ user_id: "a|b", company_id: "acme" }), {
+          plan: "pro",
+        }),
+      ).toThrow(MixpanelArgumentError);
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("refuses for_company with | on a hierarchical groups client", () => {
+      expect(() => hg.for_company("a|b")).toThrow(MixpanelArgumentError);
+      expect(() => hg.for_company("a|b")).toThrow(/"\|"/);
+    });
+
+    it("refuses a $company_id modifier with |", () => {
+      expect(() =>
+        hg.groups.set("team_id", "t", { a: 1 }, { $company_id: "a|b" }),
+      ).toThrow(MixpanelArgumentError);
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("refuses a combined distinct id with | in its company or user", () => {
+      for (const distinct_id of [
+        "$company:a|b|$user:user_123",
+        "$company:acme|$user:c|$user:d",
+        "$company:acme|$user:a|b",
+      ]) {
+        expect(() => hg.people.set(distinct_id, { plan: "pro" })).toThrow(
+          MixpanelArgumentError,
+        );
+        expect(() => hg.track("Signup", { distinct_id })).toThrow(
+          MixpanelArgumentError,
+        );
+      }
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("sends custom group ids and other distinct ids with | as given", () => {
+      hg.groups.set("team_id", "a|b", { a: 1 }, { $company_id: "acme" });
+      hg.track("Signup", { distinct_id: "a|b" });
+
+      const [[group], [event]] = hg.send_request.mock.calls;
+      expect(group.data.$group_id).toBe("a|b");
+      expect(event.data.properties.distinct_id).toBe("a|b");
+    });
+
+    it("leaves a legacy client unchanged", () => {
+      legacy.track(identity({ user_id: "a|b", device_id: "d" }), "Signup");
+      legacy.people.set(identity({ distinct_id: "a|b" }), { plan: "pro" });
+      legacy.for_company("a|b").groups.set("team_id", "t", { a: 1 });
+
+      const [[event], [profile], [group]] = legacy.send_request.mock.calls;
+      expect(event.data.properties.$user_id).toBe("a|b");
+      expect(profile.data.$distinct_id).toBe("a|b");
+      expect(group.data.$company_id).toBe("a|b");
+    });
+  });
+
+  describe("modifiers /groups rejects", () => {
+    it("refuses $ignore_alias on every hierarchical groups profile update", () => {
+      const modifiers = { $ignore_alias: true };
+      const acme = hg.for_company("acme");
+      for (const call of [
+        () => hg.people.set(hg_user(), { a: 1 }, modifiers),
+        () => hg.people.set(combined_id, "a", 1, modifiers),
+        () => hg.people.delete_user(hg_user(), modifiers),
+        () => hg.groups.set("team_id", "t", { a: 1 }, modifiers),
+        () => acme.groups.unset("team_id", "t", "a", modifiers),
+        () => acme.company.set({ a: 1 }, modifiers),
+        () => acme.company.delete(modifiers),
+      ]) {
+        expect(call).toThrow(MixpanelArgumentError);
+        expect(call).toThrow(/\$ignore_alias/);
+      }
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("refuses $distinct_id on group and company profile updates", () => {
+      const modifiers = { $distinct_id: "user_123", $company_id: "acme" };
+      const acme = hg.for_company("acme");
+      for (const call of [
+        () => hg.groups.set("team_id", "t", { a: 1 }, modifiers),
+        () => acme.groups.union("team_id", "t", { a: "x" }, modifiers),
+        () => acme.company.set({ a: 1 }, modifiers),
+      ]) {
+        expect(call).toThrow(MixpanelArgumentError);
+        expect(call).toThrow(/\$distinct_id/);
+      }
+      expect(hg.send_request).not.toHaveBeenCalled();
+    });
+
+    it("never sends a $distinct_id modifier on a user profile update", () => {
+      hg.people.set(hg_user(), { a: 1 }, { $distinct_id: "other" });
+
+      const { data } = sent(hg);
+      expect(data.$group_id).toBe("user_123");
+      expect(data).not.toHaveProperty("$distinct_id");
+    });
+
+    it("leaves a legacy client unchanged", () => {
+      legacy.people.set("bob", { a: 1 }, { $ignore_alias: true });
+      legacy.groups.set(
+        "team_id",
+        "t",
+        { a: 1 },
+        { $ignore_alias: true, $distinct_id: "x" },
+      );
+
+      const [[profile], [group]] = legacy.send_request.mock.calls;
+      expect(profile.data.$ignore_alias).toBe(true);
+      expect(group.data.$ignore_alias).toBe(true);
+      expect(group.data).not.toHaveProperty("$distinct_id");
     });
   });
 });
