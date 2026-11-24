@@ -90,5 +90,6 @@ class RequestFlagContext implements FlagContext {
 const app_context: AppFlagContext = { distinct_id: "user_1", plan: "pro" };
 mp.local_flags?.isEnabled("color", app_context);
 mp.local_flags?.isEnabled("color", new RequestFlagContext("user_1"));
-const hg_context: HierarchicalFlagContext = user.to_flag_context();
+const hg_context: FlagContext | HierarchicalFlagContext =
+  user.to_flag_context();
 hg_flags.local_flags?.isEnabled("color", hg_context);

@@ -1,6 +1,7 @@
 import LocalFeatureFlagsProvider from "./flags/local_flags";
 import RemoteFeatureFlagsProvider from "./flags/remote_flags";
 import {
+  FlagContext,
   HierarchicalFlagContext,
   LocalFlagsConfig,
   RemoteFlagsConfig,
@@ -48,12 +49,14 @@ declare namespace mixpanel {
     /**
      * A feature flag evaluation context for this identity: its ids, as
      * strings, under the keys flags read, the groups at the top level and the
-     * custom properties nested under custom_properties.
+     * custom properties nested under custom_properties. An identity with a
+     * user and a company gives a HierarchicalFlagContext; one with only a
+     * distinct id gives a FlagContext.
      */
     to_flag_context(options?: {
       groups?: Record<string, any>;
       custom_properties?: Record<string, any>;
-    }): HierarchicalFlagContext;
+    }): FlagContext | HierarchicalFlagContext;
     toString(): string;
   }
 
