@@ -164,6 +164,12 @@ declare namespace mixpanel {
      * config, connections and flag providers. Its group profile updates carry
      * a top-level `$company_id`. A user profile update for an identity with a
      * user id but no company uses this company.
+     *
+     * `for_company` is meant for writes that carry no identity: the company's
+     * own profile (`company`) and custom group profiles (`groups`). Send
+     * events and user profiles with a `MixpanelIdentity` that names the
+     * company. `track` and `import` on a bound client don't add the bound
+     * company.
      */
     for_company(companyId: string | number): Mixpanel;
 

@@ -661,6 +661,11 @@ const create_client = function (token, config) {
             acme.company.set({ tier: 'enterprise' });
             acme.groups.set('department', 'finance', { budget: 100 });
 
+        for_company is meant for writes that carry no identity: the company's
+        own profile and custom group profiles. Send events and user profiles
+        with a MixpanelIdentity that names the company. track and import on a
+        bound client don't add the bound company.
+
         `company` is the bound company's own profile: each method is the
         matching `groups` method with ('$company_id', company_id). On a client
         without a bound company, its methods throw
