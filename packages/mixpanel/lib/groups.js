@@ -4,6 +4,7 @@
 
 const { ProfileHelpers } = require("./profile_helpers");
 const { MixpanelCompanyRequiredError } = require("./errors");
+const { COMPANY_ID_KEY } = require("./identity");
 
 class MixpanelGroups extends ProfileHelpers() {
   constructor(mp_instance) {
@@ -142,7 +143,7 @@ class MixpanelCompany {
       );
     }
     // the company is sent as a string
-    this.mixpanel.groups[method]("$company_id", String(company_id), ...args);
+    this.mixpanel.groups[method](COMPANY_ID_KEY, String(company_id), ...args);
   }
 
   /**

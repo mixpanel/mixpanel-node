@@ -12,6 +12,7 @@ const {
   REQUEST_HEADERS,
 } = require("./utils");
 const { ServiceAccountCredentials } = require("../credentials");
+const { COMPANY_ID_KEY, USER_ID_KEY } = require("../identity");
 
 /**
  * @typedef {import('./types').SelectedVariant} SelectedVariant
@@ -169,7 +170,7 @@ class FeatureFlagsProvider {
       properties.distinct_id = context.distinct_id;
     }
     if (hierarchicalGroups) {
-      for (const key of ["$user_id", "$company_id"]) {
+      for (const key of [USER_ID_KEY, COMPANY_ID_KEY]) {
         if (isPresent(context[key])) {
           properties[key] = String(context[key]);
         }

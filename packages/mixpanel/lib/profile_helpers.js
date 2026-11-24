@@ -7,7 +7,11 @@ const {
   MixpanelArgumentError,
   MixpanelCompanyRequiredError,
 } = require("./errors");
-const { is_blank, require_no_separator } = require("./identity");
+const {
+  COMPANY_ID_KEY,
+  require_id,
+  require_no_separator,
+} = require("./identity");
 
 // /groups has no $add, $append or $merge, so these are all a hierarchical
 // groups profile supports
@@ -86,20 +90,18 @@ exports.ProfileHelpers = (Base = Object) =>
       if (!this.mixpanel.hierarchical_groups || !modifiers) {
         return undefined;
       }
-      const company = modifiers.$company_id;
+      const company = modifiers[COMPANY_ID_KEY];
       if (company === undefined || company === null || company === "") {
         return undefined;
       }
-      if (typeof company !== "string" && !Number.isInteger(company)) {
-        throw new MixpanelArgumentError(
-          `The $company_id modifier must be a string or an integer, not ${JSON.stringify(company)}. Nothing sent`,
-        );
-      }
-      if (is_blank(company)) {
-        throw new MixpanelArgumentError(
-          "The $company_id modifier must not be only whitespace. Nothing sent",
-        );
-      }
+      require_id(company, "The $company_id modifier", {
+        messages: {
+          type: (value) =>
+            `The $company_id modifier must be a string or an integer, not ${JSON.stringify(value)}. Nothing sent`,
+          blank:
+            "The $company_id modifier must not be only whitespace. Nothing sent",
+        },
+      });
       require_no_separator(company, "The $company_id modifier");
       return company;
     }
@@ -159,7 +161,7 @@ exports.ProfileHelpers = (Base = Object) =>
       // so a mismatch would update the other company's profile
       if (
         this.mixpanel.hierarchical_groups &&
-        identifiers.$group_key === "$company_id" &&
+        identifiers.$group_key === COMPANY_ID_KEY &&
         String(company) !== String(identifiers.$group_id)
       ) {
         throw new MixpanelArgumentError(

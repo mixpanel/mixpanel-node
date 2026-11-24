@@ -4,6 +4,7 @@ const {
   GROUP_OPERATIONS,
 } = require("./profile_helpers");
 const {
+  USER_ID_KEY,
   MixpanelIdentity,
   parse_combined_distinct_id,
   require_consistent_combined_distinct_id,
@@ -95,7 +96,7 @@ class MixpanelPeople extends ProfileHelpers() {
         ? identity.company_id
         : this._bound_company();
     return this._group_target(
-      { $group_key: "$user_id", $group_id: String(identity.user_id) },
+      { $group_key: USER_ID_KEY, $group_id: String(identity.user_id) },
       company_id,
       modifiers,
     );
@@ -120,7 +121,7 @@ class MixpanelPeople extends ProfileHelpers() {
     // client's bound company and a $company_id modifier.
     this._require_bound_company(parsed.company_id, JSON.stringify(distinct_id));
     return this._group_target(
-      { $group_key: "$user_id", $group_id: parsed.user_id },
+      { $group_key: USER_ID_KEY, $group_id: parsed.user_id },
       parsed.company_id,
       modifiers,
     );

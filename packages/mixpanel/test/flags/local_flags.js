@@ -1437,7 +1437,7 @@ describe("LocalFeatureFlagsProvider hierarchical groups", () => {
             "$company:{$company_id}|$user:{$user_id}",
           ),
         ]);
-        const { $user_id, ...rest } = SPEC_CONTEXT;
+        const { $user_id: _user_id, ...rest } = SPEC_CONTEXT;
         expect(assignmentKey({ ...rest, ...override })).toBe("user_123");
       },
     );

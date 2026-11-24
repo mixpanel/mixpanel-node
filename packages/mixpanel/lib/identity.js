@@ -1,20 +1,60 @@
 const { MixpanelArgumentError } = require("./errors");
 
+// the keys a hierarchical groups user and company are sent as
+const USER_ID_KEY = "$user_id";
+const COMPANY_ID_KEY = "$company_id";
+
 // identity field -> the key it is sent as
 const IDENTITY_KEYS = {
   distinct_id: "distinct_id",
-  user_id: "$user_id",
-  company_id: "$company_id",
+  user_id: USER_ID_KEY,
+  company_id: COMPANY_ID_KEY,
   device_id: "$device_id",
 };
 
 // identity field -> the key a flag evaluation context reads it from
 const FLAG_CONTEXT_KEYS = {
   distinct_id: "distinct_id",
-  user_id: "$user_id",
-  company_id: "$company_id",
+  user_id: USER_ID_KEY,
+  company_id: COMPANY_ID_KEY,
   device_id: "device_id",
 };
+
+/**
+ * Checks an id: a string or an integer, non-empty and, unless `allow_blank`,
+ * not only whitespace.
+ *
+ * @param {*} value
+ * @param {string} label - how the default messages name the id
+ * @param {object} [options]
+ * @param {boolean} [options.allow_blank] - accept a whitespace-only string
+ * @param {object} [options.messages] - replaces the default message for a
+ *   "type", "empty" or "blank" failure; a function is called with the value
+ * @returns {string|number} value
+ * @throws {MixpanelArgumentError}
+ */
+function require_id(value, label, { allow_blank = false, messages = {} } = {}) {
+  const fail = (kind, default_message) => {
+    const message = messages[kind];
+    throw new MixpanelArgumentError(
+      typeof message === "function"
+        ? message(value)
+        : message === undefined
+          ? default_message
+          : message,
+    );
+  };
+  if (typeof value !== "string" && !Number.isInteger(value)) {
+    fail("type", `${label} must be a string or an integer`);
+  }
+  if (value === "") {
+    fail("empty", `${label} must be non-empty`);
+  }
+  if (!allow_blank && is_blank(value)) {
+    fail("blank", `${label} must not be only whitespace`);
+  }
+  return value;
+}
 
 /**
  * Identifies who an event or profile update belongs to.
@@ -77,22 +117,12 @@ class MixpanelIdentity {
     for (const key of Object.keys(IDENTITY_KEYS)) {
       // null or undefined leaves the value unset; an empty string is a caller error
       const value = ids[key];
-      if (value === undefined || value === null) {
-        this[key] = null;
-      } else if (typeof value !== "string" && !Number.isInteger(value)) {
-        throw new MixpanelArgumentError(
-          `${key} must be a string or an integer`,
-        );
-      } else if (value === "") {
-        throw new MixpanelArgumentError(`${key} must be non-empty`);
-      } else if (
-        (key === "user_id" || key === "company_id") &&
-        is_blank(value)
-      ) {
-        throw new MixpanelArgumentError(`${key} must not be only whitespace`);
-      } else {
-        this[key] = value;
-      }
+      this[key] =
+        value === undefined || value === null
+          ? null
+          : require_id(value, key, {
+              allow_blank: key !== "user_id" && key !== "company_id",
+            });
     }
     if (
       this.distinct_id === null &&
@@ -287,7 +317,7 @@ function parse_combined_distinct_id(distinct_id) {
 function require_consistent_combined_distinct_id(
   distinct_id,
   { company_id, user_id } = {},
-  { company_label = "$company_id", user_label = "$user_id" } = {},
+  { company_label = COMPANY_ID_KEY, user_label = USER_ID_KEY } = {},
 ) {
   const parsed = parse_combined_distinct_id(distinct_id);
   if (parsed === null) {
@@ -337,11 +367,14 @@ function require_identity_distinct_id_agrees(identity, hierarchical_groups) {
 }
 
 module.exports = {
+  COMPANY_ID_KEY,
+  USER_ID_KEY,
   MixpanelIdentity,
   identity_properties,
   is_blank,
   parse_combined_distinct_id,
   require_consistent_combined_distinct_id,
+  require_id,
   require_identity_distinct_id_agrees,
   require_identity_matches_project,
   require_no_separator,

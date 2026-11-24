@@ -24,10 +24,12 @@ const {
 } = require("./flags");
 const { ServiceAccountCredentials } = require("./credentials");
 const {
+  COMPANY_ID_KEY,
+  USER_ID_KEY,
   MixpanelIdentity,
   identity_properties,
-  is_blank,
   require_consistent_combined_distinct_id,
+  require_id,
   require_identity_distinct_id_agrees,
   require_identity_matches_project,
   require_no_separator,
@@ -297,6 +299,18 @@ const create_client = function (token, config) {
   };
 
   /**
+   * Splits an optional leading MixpanelIdentity off a call's arguments, so
+   * track(identity, event, ...) reads like track(event, ...).
+   * @param {IArguments} call_args
+   * @returns {{identity: MixpanelIdentity|null, args: Array}}
+   */
+  const peel_identity = function (call_args) {
+    const args = Array.prototype.slice.call(call_args);
+    const identity = args[0] instanceof MixpanelIdentity ? args.shift() : null;
+    return { identity, args };
+  };
+
+  /**
    * On a hierarchical groups client, refuses an event whose combined distinct
    * id ($company:{company}|$user:{user}) names a different company or user
    * than its $company_id or $user_id property. Any other distinct id is sent
@@ -307,8 +321,8 @@ const create_client = function (token, config) {
   const require_consistent_event_ids = function (properties) {
     if (hierarchical_groups) {
       require_consistent_combined_distinct_id(properties.distinct_id, {
-        company_id: properties.$company_id,
-        user_id: properties.$user_id,
+        company_id: properties[COMPANY_ID_KEY],
+        user_id: properties[USER_ID_KEY],
       });
     }
   };
@@ -452,21 +466,15 @@ const create_client = function (token, config) {
          names a different company or user than $company_id or $user_id.
      */
   metrics.track = function (event, properties, callback) {
-    if (event instanceof MixpanelIdentity) {
-      const identity = event;
-      event = properties;
-      properties = callback;
-      callback = arguments[3];
-      if (!properties || typeof properties === "function") {
-        callback = properties;
-        properties = {};
-      }
+    const { identity, args } = peel_identity(arguments);
+    [event, properties, callback] = args;
+    if (!properties || typeof properties === "function") {
+      callback = properties;
+      properties = {};
+    }
+    if (identity) {
       properties = with_identity(identity, properties);
     } else {
-      if (!properties || typeof properties === "function") {
-        callback = properties;
-        properties = {};
-      }
       require_consistent_event_ids(properties);
     }
 
@@ -531,22 +539,15 @@ const create_client = function (token, config) {
         than $company_id or $user_id, as track does.
     */
   metrics.import = function (event, time, properties, callback) {
-    if (event instanceof MixpanelIdentity) {
-      const identity = event;
-      event = time;
-      time = properties;
-      properties = callback;
-      callback = arguments[4];
-      if (!properties || typeof properties === "function") {
-        callback = properties;
-        properties = {};
-      }
+    const { identity, args } = peel_identity(arguments);
+    [event, time, properties, callback] = args;
+    if (!properties || typeof properties === "function") {
+      callback = properties;
+      properties = {};
+    }
+    if (identity) {
       properties = with_identity(identity, properties);
     } else {
-      if (!properties || typeof properties === "function") {
-        callback = properties;
-        properties = {};
-      }
       require_consistent_event_ids(properties);
     }
 
@@ -674,17 +675,10 @@ const create_client = function (token, config) {
                                    a string
     */
   metrics.for_company = function (company_id) {
-    if (
-      !(typeof company_id === "string" && company_id !== "") &&
-      !Number.isInteger(company_id)
-    ) {
-      throw new MixpanelArgumentError(
-        "company_id must be a non-empty string or an integer",
-      );
-    }
-    if (is_blank(company_id)) {
-      throw new MixpanelArgumentError("company_id must not be only whitespace");
-    }
+    const invalid = "company_id must be a non-empty string or an integer";
+    require_id(company_id, "company_id", {
+      messages: { type: invalid, empty: invalid },
+    });
     if (hierarchical_groups) {
       require_no_separator(company_id, "company_id");
     }
