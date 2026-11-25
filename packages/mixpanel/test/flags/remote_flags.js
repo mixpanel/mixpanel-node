@@ -715,7 +715,7 @@ describe("RemoteFeatureFlagProvider", () => {
       );
     });
 
-    it("sends integer $user_id/$company_id on the exposure as strings", () => {
+    it("attaches only string $user_id/$company_id on the exposure", () => {
       hgProvider.trackExposureEvent(
         "test-flag",
         { variant_key: "a", variant_value: "value-a" },
@@ -723,10 +723,51 @@ describe("RemoteFeatureFlagProvider", () => {
       );
 
       const properties = mockTracker.mock.calls[0][1];
-      expect(properties.$user_id).toBe("3190316");
-      expect(properties.$company_id).toBe("0");
-      // other context keys are sent as given
+      expect("$user_id" in properties).toBe(false);
+      expect("$company_id" in properties).toBe(false);
+      // distinct_id is sent as given
       expect(properties.distinct_id).toBe(5);
+    });
+
+    it.each([
+      [
+        "a numeric $company_id",
+        { distinct_id: "d1", $user_id: "u1", $company_id: 42 },
+        { distinct_id: "d1" },
+      ],
+      [
+        "a numeric $user_id",
+        { distinct_id: "d1", $user_id: 7, $company_id: "acme" },
+        { distinct_id: "d1", $company_id: "acme" },
+      ],
+    ])("leaves %s off the exposure", async (_, context, expected) => {
+      mockSuccessResponse({
+        "test-flag": { variant_key: "a", variant_value: "value-a" },
+      });
+
+      await hgProvider.getVariantValue("test-flag", "fallback", context);
+
+      const properties = mockTracker.mock.calls[0][1];
+      expect(properties).toMatchObject(expected);
+      for (const key of ["$user_id", "$company_id"]) {
+        expect(key in properties).toBe(key in expected);
+      }
+    });
+
+    it("drops the exposure when the only $company_id is a number", async () => {
+      mockSuccessResponse({
+        "test-flag": { variant_key: "a", variant_value: "value-a" },
+      });
+
+      await hgProvider.getVariantValue("test-flag", "fallback", {
+        $user_id: "u1",
+        $company_id: 42,
+      });
+
+      expect(mockTracker).not.toHaveBeenCalled();
+      expect(hgLogger.error).toHaveBeenCalledWith(
+        "Cannot track exposure event without a $company_id in the context",
+      );
     });
 
     it("ignores $user_id/$company_id on exposures without hierarchical_groups", async () => {

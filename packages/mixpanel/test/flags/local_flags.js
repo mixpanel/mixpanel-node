@@ -1615,17 +1615,57 @@ describe("LocalFeatureFlagsProvider hierarchical groups", () => {
       expect(properties.$company_id).toBe("acme");
     });
 
-    it("sends integer $user_id and $company_id as strings", () => {
+    it("attaches only string $user_id and $company_id", () => {
       provider.trackExposureEvent(
         FLAG_KEY_HG,
         { variant_key: "a", variant_value: true },
-        { $user_id: 3190316, $company_id: 3190317, department: 1 },
+        { distinct_id: "d1", $user_id: "u1", $company_id: 42, department: 1 },
       );
 
       const properties = exposureProperties();
-      expect(properties.$user_id).toBe("3190316");
-      expect(properties.$company_id).toBe("3190317");
+      expect(properties.distinct_id).toBe("d1");
+      expect("$user_id" in properties).toBe(false);
+      expect("$company_id" in properties).toBe(false);
       expect("department" in properties).toBe(false);
+    });
+
+    it("does not attach a $user_id without a $company_id", () => {
+      provider.trackExposureEvent(
+        FLAG_KEY_HG,
+        { variant_key: "a", variant_value: true },
+        { distinct_id: "d1", $user_id: "u1" },
+      );
+
+      const properties = exposureProperties();
+      expect(properties.distinct_id).toBe("d1");
+      expect("$user_id" in properties).toBe(false);
+      expect("$company_id" in properties).toBe(false);
+    });
+
+    it("drops a non-string $user_id but keeps a string $company_id", () => {
+      provider.trackExposureEvent(
+        FLAG_KEY_HG,
+        { variant_key: "a", variant_value: true },
+        { distinct_id: "d1", $user_id: 7, $company_id: "acme" },
+      );
+
+      const properties = exposureProperties();
+      expect(properties.distinct_id).toBe("d1");
+      expect(properties.$company_id).toBe("acme");
+      expect("$user_id" in properties).toBe(false);
+    });
+
+    it("drops an exposure whose only $company_id is a number", () => {
+      provider.trackExposureEvent(
+        FLAG_KEY_HG,
+        { variant_key: "a", variant_value: true },
+        { $user_id: "u1", $company_id: 42 },
+      );
+
+      expect(mockTracker).not.toHaveBeenCalled();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        "Cannot track exposure event without a $company_id in the context",
+      );
     });
 
     it("attributes by $company_id alone", async () => {

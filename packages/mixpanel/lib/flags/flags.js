@@ -169,12 +169,12 @@ class FeatureFlagsProvider {
     if (context.distinct_id) {
       properties.distinct_id = context.distinct_id;
     }
-    if (hierarchicalGroups) {
-      for (const key of [USER_ID_KEY, COMPANY_ID_KEY]) {
-        if (isPresent(context[key])) {
-          properties[key] = String(context[key]);
-        }
+    // A user id is attached only alongside a company id; company alone is allowed.
+    if (hierarchicalGroups && isPresent(context[COMPANY_ID_KEY])) {
+      if (isPresent(context[USER_ID_KEY])) {
+        properties[USER_ID_KEY] = context[USER_ID_KEY];
       }
+      properties[COMPANY_ID_KEY] = context[COMPANY_ID_KEY];
     }
     Object.assign(properties, {
       "Experiment name": flagKey,
@@ -222,11 +222,14 @@ class FeatureFlagsProvider {
 }
 
 /**
+ * Flag evaluation and the flags service only read $user_id/$company_id as
+ * non-empty strings, so exposures attach no other type, to keep attribution
+ * on the subject the variant was assigned to.
  * @param {*} value
- * @returns {boolean} true if value is set and not empty or only whitespace
+ * @returns {boolean} true if value is a string that is not empty or only whitespace
  */
 function isPresent(value) {
-  return value != null && String(value).trim() !== "";
+  return typeof value === "string" && value.trim() !== "";
 }
 
 module.exports = FeatureFlagsProvider;
