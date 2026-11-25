@@ -2059,6 +2059,27 @@ describe("hierarchical groups", () => {
       expect(hg.send_request).not.toHaveBeenCalled();
     });
 
+    it("treats an unset $ignore_alias as absent", () => {
+      for (const value of [undefined, null]) {
+        hg.people.set(
+          hg_user(),
+          { a: 1 },
+          { $ip: "1.2.3.4", $ignore_alias: value },
+        );
+      }
+      expect(hg.send_request).toHaveBeenCalledTimes(2);
+      for (const [request] of hg.send_request.mock.calls) {
+        const message = Array.isArray(request.data)
+          ? request.data[0]
+          : request.data;
+        expect(message).not.toHaveProperty("$ignore_alias");
+      }
+      // false is a value /groups would reject, so it is still refused
+      expect(() =>
+        hg.people.set(hg_user(), { a: 1 }, { $ignore_alias: false }),
+      ).toThrow(MixpanelArgumentError);
+    });
+
     it("refuses $distinct_id on group and company profile updates", () => {
       const modifiers = { $distinct_id: "user_123", $company_id: "acme" };
       const acme = hg.for_company("acme");

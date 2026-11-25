@@ -125,7 +125,12 @@ exports.ProfileHelpers = (Base = Object) =>
         ? ["$ignore_alias"]
         : ["$distinct_id", "$ignore_alias"];
       for (const key of rejected) {
-        if (Object.prototype.hasOwnProperty.call(modifiers, key)) {
+        // An unset key (undefined, or a null $ignore_alias) is never sent, so
+        // shared modifier code like { $ignore_alias: opts.ignore_alias } works
+        const value = modifiers[key];
+        const unset =
+          value === undefined || (key === "$ignore_alias" && value === null);
+        if (Object.prototype.hasOwnProperty.call(modifiers, key) && !unset) {
           throw new MixpanelArgumentError(
             `The ${key} modifier is not supported on hierarchical groups ` +
               `${user_profile ? "user" : "group"} profile updates, which ` +
