@@ -3,7 +3,12 @@
  */
 
 import { CustomLogger, ServiceAccountCredentials } from "../mixpanel-node";
-import { RemoteFlagsConfig, FlagContext, SelectedVariant } from "./types";
+import {
+  RemoteFlagsConfig,
+  FlagContext,
+  HierarchicalFlagContext,
+  SelectedVariant,
+} from "./types";
 
 /**
  * Remote Feature Flags Provider
@@ -34,7 +39,7 @@ export default class RemoteFeatureFlagsProvider {
   getVariantValue<T>(
     flagKey: string,
     fallbackValue: T,
-    context: FlagContext,
+    context: FlagContext | HierarchicalFlagContext,
     reportExposure?: boolean,
   ): Promise<T>;
 
@@ -49,7 +54,7 @@ export default class RemoteFeatureFlagsProvider {
   getVariant(
     flagKey: string,
     fallbackVariant: SelectedVariant,
-    context: FlagContext,
+    context: FlagContext | HierarchicalFlagContext,
     reportExposure?: boolean,
   ): Promise<SelectedVariant>;
 
@@ -61,7 +66,10 @@ export default class RemoteFeatureFlagsProvider {
    * @param context - Evaluation context (must include distinct_id)
    * @returns Promise resolving to whether the flag is enabled
    */
-  isEnabled(flagKey: string, context: FlagContext): Promise<boolean>;
+  isEnabled(
+    flagKey: string,
+    context: FlagContext | HierarchicalFlagContext,
+  ): Promise<boolean>;
 
   /**
    * Get all feature flag variants for the current user context from remote server
@@ -70,7 +78,7 @@ export default class RemoteFeatureFlagsProvider {
    * @returns Promise resolving to dictionary mapping flag keys to variants, or null if the call fails
    */
   getAllVariants(
-    context: FlagContext,
+    context: FlagContext | HierarchicalFlagContext,
   ): Promise<{ [key: string]: SelectedVariant } | null>;
 
   /**

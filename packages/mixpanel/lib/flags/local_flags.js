@@ -26,6 +26,31 @@ const {
 const { apply } = require("json-logic-js");
 require("./custom_operators");
 
+// A {property} placeholder in a context value template.
+const CONTEXT_PLACEHOLDER = /\{([^{}]+)\}/g;
+
+/**
+ * @param {*} value
+ * @returns {boolean}
+ */
+function isNonEmptyString(value) {
+  return typeof value === "string" && value !== "";
+}
+
+/**
+ * The distinct id Mixpanel builds for a context naming a user and company,
+ * `$company:{$company_id}|$user:{$user_id}`.
+ * @param {FlagContext} context
+ * @returns {string|null} null unless both are non-empty strings
+ */
+function combinedDistinctId(context) {
+  const userId = context.$user_id;
+  const companyId = context.$company_id;
+  return isNonEmptyString(userId) && isNonEmptyString(companyId)
+    ? `$company:${companyId}|$user:${userId}`
+    : null;
+}
+
 class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
   /**
    * @param {string} token - Mixpanel project token
@@ -47,6 +72,7 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
       token,
       api_host: mergedConfig.api_host,
       request_timeout_in_seconds: mergedConfig.request_timeout_in_seconds,
+      hierarchical_groups: mergedConfig.hierarchical_groups === true,
     };
 
     super(
@@ -209,7 +235,15 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
       return asFallback(fallbackVariant, FallbackReason.flagNotFound());
     }
 
-    if (!Object.hasOwn(context, flag.context)) {
+    // The service may publish a template for the assignment key, e.g.
+    // "$company:{$company_id}|$user:{$user_id}". When any placeholder's value
+    // is missing or not a non-empty string, or there is no template, the raw
+    // context value is used.
+    const templatedValue = flag.context_value_template
+      ? this._applyContextValueTemplate(flag.context_value_template, context)
+      : null;
+
+    if (templatedValue === null && !Object.hasOwn(context, flag.context)) {
       this.logger?.warn(
         `The variant assignment key, '${flag.context}' for flag, '${flagKey}' is not present in the supplied user context dictionary`,
       );
@@ -219,11 +253,19 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
       );
     }
 
-    const contextValue = context[flag.context];
+    const contextValue = templatedValue ?? context[flag.context];
 
     let selectedVariant = null;
 
-    const testUserVariant = this._getVariantOverrideForTestUser(flag, context);
+    // Test users are keyed by distinct id. A context naming a user and
+    // company is looked up by the distinct id Mixpanel builds from them, for
+    // every flag; otherwise by the resolved assignment key when the flag
+    // assigns on distinct_id, else the raw distinct_id.
+    const testUserVariant = this._getVariantOverrideForTestUser(
+      flag,
+      combinedDistinctId(context) ??
+        (flag.context === "distinct_id" ? contextValue : context.distinct_id),
+    );
     if (testUserVariant) {
       selectedVariant = testUserVariant;
     } else {
@@ -286,6 +328,27 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
   }
 
   /**
+   * Fill a context value template with values from the evaluation context.
+   * Text outside the braces is literal.
+   * @param {string} template - Context value template
+   * @param {FlagContext} context - Evaluation context
+   * @returns {string|null} The resolved value, or null if any placeholder's
+   *   context value is missing or not a non-empty string
+   */
+  _applyContextValueTemplate(template, context) {
+    let missing = false;
+    const resolved = String(template).replace(CONTEXT_PLACEHOLDER, (_, key) => {
+      const value = Object.hasOwn(context, key) ? context[key] : undefined;
+      if (!isNonEmptyString(value)) {
+        missing = true;
+        return "";
+      }
+      return value;
+    });
+    return missing ? null : resolved;
+  }
+
+  /**
    * Find a variant by key (case-insensitive) and return complete SelectedVariant
    * @param {string} variantKey - Variant key to find
    * @param {ExperimentationFlag} flag - Flag definition
@@ -305,12 +368,11 @@ class LocalFeatureFlagsProvider extends FeatureFlagsProvider {
     return null;
   }
 
-  _getVariantOverrideForTestUser(flag, context) {
+  _getVariantOverrideForTestUser(flag, distinctId) {
     if (!flag.ruleset.test?.users) {
       return null;
     }
 
-    const distinctId = context.distinct_id;
     if (!distinctId) {
       return null;
     }

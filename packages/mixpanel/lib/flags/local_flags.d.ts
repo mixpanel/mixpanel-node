@@ -2,7 +2,12 @@
  * TypeScript definitions for Local Feature Flags Provider
  */
 
-import { LocalFlagsConfig, FlagContext, SelectedVariant } from "./types";
+import {
+  LocalFlagsConfig,
+  FlagContext,
+  HierarchicalFlagContext,
+  SelectedVariant,
+} from "./types";
 import { CustomLogger, ServiceAccountCredentials } from "../mixpanel-node";
 
 /**
@@ -44,7 +49,7 @@ export default class LocalFeatureFlagsProvider {
   getVariantValue<T>(
     flagKey: string,
     fallbackValue: T,
-    context: FlagContext,
+    context: FlagContext | HierarchicalFlagContext,
     reportExposure?: boolean,
   ): T;
 
@@ -58,7 +63,7 @@ export default class LocalFeatureFlagsProvider {
   getVariant(
     flagKey: string,
     fallbackVariant: SelectedVariant,
-    context: FlagContext,
+    context: FlagContext | HierarchicalFlagContext,
     reportExposure?: boolean,
   ): SelectedVariant;
 
@@ -70,14 +75,19 @@ export default class LocalFeatureFlagsProvider {
    * @param flagKey - Feature flag key
    * @param context - Evaluation context (must include distinct_id)
    */
-  isEnabled(flagKey: string, context: FlagContext): boolean;
+  isEnabled(
+    flagKey: string,
+    context: FlagContext | HierarchicalFlagContext,
+  ): boolean;
 
   /**
    * Get all feature flag variants for the current user context
    * Exposure events are not automatically tracked when this method is used
    * @param context - Evaluation context (must include distinct_id)
    */
-  getAllVariants(context: FlagContext): { [key: string]: SelectedVariant };
+  getAllVariants(context: FlagContext | HierarchicalFlagContext): {
+    [key: string]: SelectedVariant;
+  };
 
   /**
    * Stop polling and clean up resources

@@ -12,6 +12,7 @@ const {
   REQUEST_HEADERS,
 } = require("./utils");
 const { ServiceAccountCredentials } = require("../credentials");
+const { COMPANY_ID_KEY, USER_ID_KEY } = require("../identity");
 
 /**
  * @typedef {import('./types').SelectedVariant} SelectedVariant
@@ -151,20 +152,36 @@ class FeatureFlagsProvider {
    * @param {number|null} latencyMs - Optionally included latency in milliseconds that assignment took.
    */
   trackExposureEvent(flagKey, selectedVariant, context, latencyMs = null) {
-    if (!context.distinct_id) {
+    const hierarchicalGroups = this.providerConfig.hierarchical_groups === true;
+    // On a hierarchical groups project Mixpanel attributes the event from
+    // $company_id (plus $user_id when present), so a distinct_id is optional.
+    const canAttribute =
+      (hierarchicalGroups && isPresent(context.$company_id)) ||
+      context.distinct_id;
+    if (!canAttribute) {
       this.logger?.error(
-        "Cannot track exposure event without a distinct_id in the context",
+        `Cannot track exposure event without a ${hierarchicalGroups ? "$company_id" : "distinct_id"} in the context`,
       );
       return;
     }
 
-    const properties = {
-      distinct_id: context.distinct_id,
+    const properties = {};
+    if (context.distinct_id) {
+      properties.distinct_id = context.distinct_id;
+    }
+    // A user id is attached only alongside a company id; company alone is allowed.
+    if (hierarchicalGroups && isPresent(context[COMPANY_ID_KEY])) {
+      if (isPresent(context[USER_ID_KEY])) {
+        properties[USER_ID_KEY] = context[USER_ID_KEY];
+      }
+      properties[COMPANY_ID_KEY] = context[COMPANY_ID_KEY];
+    }
+    Object.assign(properties, {
       "Experiment name": flagKey,
       "Variant name": selectedVariant.variant_key,
       $experiment_type: "feature_flag",
       "Flag evaluation mode": this.evaluationMode,
-    };
+    });
 
     if (latencyMs != null) {
       properties["Variant fetch latency (ms)"] = latencyMs;
@@ -188,15 +205,36 @@ class FeatureFlagsProvider {
       properties["$openfeature_provider"] = true;
     }
 
-    // Use the tracker function provided (bound to the main mixpanel instance)
-    this.tracker(EXPOSURE_EVENT, properties, (err) => {
-      if (err) {
-        this.logger?.error(
-          `[flags]Failed to track exposure event for flag '${flagKey}': ${err.message}`,
-        );
-      }
-    });
+    const logFailure = (err) => {
+      this.logger?.error(
+        `[flags]Failed to track exposure event for flag '${flagKey}': ${err.message}`,
+      );
+    };
+    // Use the tracker function provided (bound to the main mixpanel instance).
+    // A hierarchical groups tracker can refuse the event, for example when the
+    // context's combined distinct_id conflicts with its $company_id; that is
+    // logged like a send failure so the variant is still returned.
+    try {
+      this.tracker(EXPOSURE_EVENT, properties, (err) => {
+        if (err) {
+          logFailure(err);
+        }
+      });
+    } catch (err) {
+      logFailure(err);
+    }
   }
+}
+
+/**
+ * Flag evaluation and the flags service only read $user_id/$company_id as
+ * non-empty strings, so exposures attach no other type, to keep attribution
+ * on the subject the variant was assigned to.
+ * @param {*} value
+ * @returns {boolean} true if value is a string that is not empty or only whitespace
+ */
+function isPresent(value) {
+  return typeof value === "string" && value.trim() !== "";
 }
 
 module.exports = FeatureFlagsProvider;

@@ -3,7 +3,7 @@
  */
 
 import { CustomLogger, ServiceAccountCredentials } from "../mixpanel-node";
-import { SelectedVariant, FlagContext } from "./types";
+import { SelectedVariant, FlagContext, HierarchicalFlagContext } from "./types";
 
 /**
  * Configuration for feature flags API requests
@@ -12,6 +12,7 @@ export interface FeatureFlagsConfig {
   token: string;
   api_host: string;
   request_timeout_in_seconds: number;
+  hierarchical_groups?: boolean;
 }
 
 /**
@@ -62,7 +63,7 @@ export class FeatureFlagsProvider {
   trackExposureEvent(
     flagKey: string,
     variant: SelectedVariant,
-    context: FlagContext,
+    context: FlagContext | HierarchicalFlagContext,
     latencyMs?: number | null,
   ): void;
 }
