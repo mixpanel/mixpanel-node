@@ -75,12 +75,6 @@ class MixpanelPeople extends ProfileHelpers() {
       );
     }
     if (identity.user_id === null) {
-      if (identity.company_id === null) {
-        throw new MixpanelArgumentError(
-          `${identity} names no user, so it cannot identify a profile. ` +
-            "Device ids identify anonymous events, not profiles.",
-        );
-      }
       throw new MixpanelArgumentError(
         `User profile updates require a user id, and ${identity} has none. ` +
           "Use mixpanel.for_company(company_id).company.set(properties) to update " +

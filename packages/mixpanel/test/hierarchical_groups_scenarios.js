@@ -87,7 +87,7 @@ describe("hierarchical groups scenarios", () => {
 
   describe("events", () => {
     it("Track Anonymous", () => {
-      hg.track(identity({ device_id: DEVICE_ID }), "Page View");
+      hg.track("Page View", { $device_id: DEVICE_ID });
 
       const properties = expect_event(hg, "/track", "Page View", {
         $device_id: DEVICE_ID,
@@ -97,14 +97,7 @@ describe("hierarchical groups scenarios", () => {
     });
 
     it("Track Identified", () => {
-      hg.track(
-        identity({
-          user_id: USER_ID,
-          company_id: COMPANY_ID,
-          device_id: DEVICE_ID,
-        }),
-        "Page View",
-      );
+      hg.track(user(), "Page View", { $device_id: DEVICE_ID });
 
       const properties = expect_event(hg, "/track", "Page View", {
         $user_id: USER_ID,
@@ -135,15 +128,7 @@ describe("hierarchical groups scenarios", () => {
     });
 
     it("Import Identified", () => {
-      hg.import(
-        identity({
-          user_id: USER_ID,
-          company_id: COMPANY_ID,
-          device_id: DEVICE_ID,
-        }),
-        "Page View",
-        1700000000000,
-      );
+      hg.import(user(), "Page View", 1700000000000, { $device_id: DEVICE_ID });
 
       const properties = expect_event(
         hg,

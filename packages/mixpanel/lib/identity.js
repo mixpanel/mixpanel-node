@@ -9,7 +9,6 @@ const IDENTITY_KEYS = {
   distinct_id: "distinct_id",
   user_id: USER_ID_KEY,
   company_id: COMPANY_ID_KEY,
-  device_id: "$device_id",
 };
 
 // identity field -> the key a flag evaluation context reads it from
@@ -17,7 +16,6 @@ const FLAG_CONTEXT_KEYS = {
   distinct_id: "distinct_id",
   user_id: USER_ID_KEY,
   company_id: COMPANY_ID_KEY,
-  device_id: "device_id",
 };
 
 /**
@@ -59,15 +57,13 @@ function require_id(value, label, { allow_blank = false, messages = {} } = {}) {
 /**
  * Identifies who an event or profile update belongs to.
  *
- * Mixpanel resolves an identity from whichever of `distinct_id`, `$user_id`,
- * `$company_id` and `$device_id` an event carries, so an identity sets any
- * combination of them and leaves the rest unset (null).
+ * Mixpanel resolves an identity from whichever of `distinct_id`, `$user_id`
+ * and `$company_id` an event carries, so an identity sets any combination of
+ * them and leaves the rest unset (null).
  *
  * @example
  * new MixpanelIdentity({ distinct_id: "user_123" });                        // a plain distinct id
- * new MixpanelIdentity({ user_id: "user_123", device_id: "device_abc" });   // simplified id merge
  * new MixpanelIdentity({ user_id: "user_123", company_id: "acme" });        // hierarchical groups
- * new MixpanelIdentity({ device_id: "device_abc" });                        // anonymous, no user yet
  * new MixpanelIdentity({ company_id: "acme" });                             // a company, no user
  *
  * Which combinations are valid depends on the project, so the client rather
@@ -96,7 +92,6 @@ class MixpanelIdentity {
    *   project it only needs to be unique within the company
    * @param {string|number} [ids.company_id] - the id of the top-level company, on a
    *   hierarchical groups project
-   * @param {string|number} [ids.device_id] - the client's device id
    * @throws {MixpanelArgumentError} if a value is empty or neither a string nor
    *   an integer, a user or company id is only whitespace, a key is unknown,
    *   or no value is set
@@ -127,11 +122,10 @@ class MixpanelIdentity {
     if (
       this.distinct_id === null &&
       this.user_id === null &&
-      this.company_id === null &&
-      this.device_id === null
+      this.company_id === null
     ) {
       throw new MixpanelArgumentError(
-        "An identity needs at least one of distinct_id, user_id, company_id or device_id",
+        "An identity needs at least one of distinct_id, user_id or company_id",
       );
     }
     Object.freeze(this);

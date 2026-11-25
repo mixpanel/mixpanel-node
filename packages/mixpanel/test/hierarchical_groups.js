@@ -31,13 +31,13 @@ describe("hierarchical groups", () => {
   describe("MixpanelIdentity", () => {
     it("rejects empty values", () => {
       // An empty string is a caller error; null simply leaves the value unset.
-      for (const key of ["distinct_id", "user_id", "company_id", "device_id"]) {
+      for (const key of ["distinct_id", "user_id", "company_id"]) {
         expect(() => identity({ [key]: "" })).toThrow(MixpanelArgumentError);
       }
     });
 
     it("rejects values that are neither strings nor integers, and unknown keys", () => {
-      for (const key of ["distinct_id", "user_id", "company_id", "device_id"]) {
+      for (const key of ["distinct_id", "user_id", "company_id"]) {
         for (const value of [1.5, NaN, Infinity, true, {}, [], ["a"]]) {
           expect(() => identity({ [key]: value })).toThrow(
             MixpanelArgumentError,
@@ -45,6 +45,9 @@ describe("hierarchical groups", () => {
         }
       }
       expect(() => identity({ userId: "user_123" })).toThrow(/Unknown/);
+      expect(() =>
+        identity({ user_id: "user_123", device_id: "device_abc" }),
+      ).toThrow(/Unknown MixpanelIdentity key "device_id"/);
       expect(() => new MixpanelIdentity()).toThrow(MixpanelArgumentError);
       expect(() => new MixpanelIdentity("user_123")).toThrow(
         MixpanelArgumentError,
@@ -62,18 +65,16 @@ describe("hierarchical groups", () => {
       }
     });
 
-    it("keeps non-blank ids with whitespace, and blank distinct and device ids, as given", () => {
+    it("keeps non-blank ids with whitespace, and blank distinct ids, as given", () => {
       const id = identity({
         user_id: " u ",
         company_id: " c",
         distinct_id: " ",
-        device_id: " ",
       });
 
       expect(id.user_id).toBe(" u ");
       expect(id.company_id).toBe(" c");
       expect(id.distinct_id).toBe(" ");
-      expect(id.device_id).toBe(" ");
     });
 
     it("accepts integer ids and keeps them as numbers", () => {
@@ -81,13 +82,11 @@ describe("hierarchical groups", () => {
         distinct_id: 1,
         user_id: 123,
         company_id: 0,
-        device_id: -7,
       });
 
       expect(id.distinct_id).toBe(1);
       expect(id.user_id).toBe(123);
       expect(id.company_id).toBe(0);
-      expect(id.device_id).toBe(-7);
       expect(id.is_hierarchical).toBe(true);
     });
 
@@ -99,10 +98,10 @@ describe("hierarchical groups", () => {
     });
 
     it("leaves a null value unset", () => {
-      const id = identity({ user_id: "user_123", device_id: null });
+      const id = identity({ user_id: "user_123", company_id: null });
 
       expect(id.user_id).toBe("user_123");
-      expect(id.device_id).toBeNull();
+      expect(id.company_id).toBeNull();
       expect(id.distinct_id).toBeNull();
     });
 
@@ -129,11 +128,7 @@ describe("hierarchical groups", () => {
     });
 
     it("builds a flag context", () => {
-      const id = identity({
-        user_id: "user_123",
-        company_id: "acme",
-        device_id: "device_abc",
-      });
+      const id = identity({ user_id: "user_123", company_id: "acme" });
 
       expect(
         id.to_flag_context({
@@ -143,10 +138,16 @@ describe("hierarchical groups", () => {
       ).toEqual({
         $user_id: "user_123",
         $company_id: "acme",
-        device_id: "device_abc",
         department: "finance",
         custom_properties: { plan: "enterprise" },
       });
+    });
+
+    it("never puts a device id in a flag context", () => {
+      expect(hg_user().to_flag_context()).not.toHaveProperty("device_id");
+      expect(
+        identity({ distinct_id: "user_123" }).to_flag_context(),
+      ).not.toHaveProperty("device_id");
     });
 
     it("builds a flag context from a plain distinct id", () => {
@@ -160,7 +161,6 @@ describe("hierarchical groups", () => {
         distinct_id: 1,
         user_id: 2,
         company_id: 0,
-        device_id: 4,
       }).to_flag_context({
         groups: { team_id: 5 },
         custom_properties: { seats: 6 },
@@ -170,7 +170,6 @@ describe("hierarchical groups", () => {
         distinct_id: "1",
         $user_id: "2",
         $company_id: "0",
-        device_id: "4",
         team_id: 5,
         custom_properties: { seats: 6 },
       });
@@ -228,7 +227,7 @@ describe("hierarchical groups", () => {
         client.track("Signup", { distinct_id: combined_id, plan: "pro" });
         client.import("Signup", 1000, { distinct_id: combined_id });
         client.for_company("acme").groups.unset("department", "finance", "x");
-        client.track(identity({ device_id: "device_abc" }), "Page View");
+        client.track(identity({ distinct_id: "anon_123" }), "Page View");
         return client.send_request.mock.calls;
       };
 
@@ -302,11 +301,8 @@ describe("hierarchical groups", () => {
       expect(props.token).toBe(token);
     });
 
-    it("sends a device id", () => {
-      hg.track(
-        identity({ user_id: "user_123", company_id: "acme", device_id: "d" }),
-        "Signup",
-      );
+    it("sends a $device_id property as given", () => {
+      hg.track(hg_user(), "Signup", { $device_id: "d" });
 
       expect(event_properties(hg).$device_id).toBe("d");
       expect(event_properties(hg)).not.toHaveProperty("distinct_id");
@@ -382,26 +378,23 @@ describe("hierarchical groups", () => {
     });
 
     it("sends every identity id as a string and other properties unchanged", () => {
-      hg.track(
-        identity({ user_id: "u", company_id: "c", device_id: 7 }),
-        "Signup",
-        { $user_id: 1, other: 2 },
-      );
+      hg.track(identity({ user_id: "u", company_id: "c" }), "Signup", {
+        $user_id: 1,
+        other: 2,
+      });
 
       const props = event_properties(hg);
       expect(props.$user_id).toBe("u");
       expect(props.$company_id).toBe("c");
-      expect(props.$device_id).toBe("7");
       expect(props.other).toBe(2);
     });
 
     it("sends integer identity ids as strings on a legacy client", () => {
-      legacy.track(identity({ user_id: 123, device_id: 7 }), "Signup");
+      legacy.track(identity({ user_id: 123 }), "Signup");
       legacy.import(identity({ distinct_id: 0 }), "Signup", 1000);
 
       const [[track], [imported]] = legacy.send_request.mock.calls;
       expect(track.data.properties.$user_id).toBe("123");
-      expect(track.data.properties.$device_id).toBe("7");
       expect(imported.data.properties.distinct_id).toBe("0");
     });
 
@@ -417,7 +410,7 @@ describe("hierarchical groups", () => {
     it("never stringifies raw event properties", () => {
       for (const client of [hg, legacy]) {
         client.track("Signup", { distinct_id: 7, $device_id: 8, n: 9 });
-        client.track(identity({ device_id: "d" }), "Signup", { n: 9 });
+        client.track(identity({ distinct_id: "d" }), "Signup", { n: 9 });
         const [[raw], [with_identity]] = client.send_request.mock.calls;
         expect(raw.data.properties).toMatchObject({
           distinct_id: 7,
@@ -587,13 +580,11 @@ describe("hierarchical groups", () => {
       expect(ids).toEqual(blank_part_ids.flatMap(([id]) => [id, id]));
     });
 
-    it("accepts user and device without a company for simplified id merge", () => {
-      // $user_id with $device_id is the standard non-hierarchical server-side identity.
-      legacy.track(identity({ user_id: "user_123", device_id: "d" }), "Signup");
+    it("accepts a user without a company on a legacy client", () => {
+      legacy.track(identity({ user_id: "user_123" }), "Signup");
 
       const props = event_properties(legacy);
       expect(props.$user_id).toBe("user_123");
-      expect(props.$device_id).toBe("d");
       expect(props).not.toHaveProperty("distinct_id");
       expect(props).not.toHaveProperty("$company_id");
     });
@@ -607,18 +598,9 @@ describe("hierarchical groups", () => {
       expect(properties).not.toHaveProperty("distinct_id");
     });
 
-    it("allows a user with a device but no company on a hierarchical groups client", () => {
-      // Mixpanel keeps the event under the device, which later links to the
-      // company-scoped user. Recoverable, so the library does not refuse it.
-      hg.track(identity({ user_id: "user_123", device_id: "d" }), "Signup");
-
-      expect(event_properties(hg).$device_id).toBe("d");
-      expect(event_properties(hg)).not.toHaveProperty("$company_id");
-    });
-
-    it("sends an anonymous device event in both modes", () => {
+    it("sends a $device_id property as given in both modes", () => {
       for (const client of [hg, legacy]) {
-        client.track(identity({ device_id: "d" }), "Page View");
+        client.track("Page View", { $device_id: "d" });
 
         const props = event_properties(client);
         expect(props.$device_id).toBe("d");
@@ -1143,17 +1125,6 @@ describe("hierarchical groups", () => {
       expect(hg.send_request).not.toHaveBeenCalled();
     });
 
-    it("cannot identify a profile from a device id", () => {
-      const device = identity({ device_id: "d" });
-
-      expect(() => hg.people.set(device, { plan: "pro" })).toThrow(
-        /names no user/,
-      );
-      expect(() => legacy.people.set(device, { plan: "pro" })).toThrow(
-        /cannot identify a profile on this project/,
-      );
-    });
-
     it("rejects a company-only identity and points at the company profile", () => {
       expect(() =>
         hg.people.set(identity({ company_id: "acme" }), { tier: "ent" }),
@@ -1195,7 +1166,7 @@ describe("hierarchical groups", () => {
       const acme = hg.for_company("acme");
 
       acme.people.set(
-        identity({ user_id: "user_123", device_id: "d" }),
+        identity({ user_id: "user_123" }),
         { plan: "pro" },
         { $company_id: "other" },
       );
@@ -1250,7 +1221,7 @@ describe("hierarchical groups", () => {
     });
 
     it("takes the company from a $company_id modifier when the identity has none", () => {
-      const id = identity({ user_id: "user_123", device_id: "d" });
+      const id = identity({ user_id: "user_123" });
 
       hg.people.set(id, { role: "admin" }, { $company_id: "acme" });
       expect(sent(hg).data.$company_id).toBe("acme");
@@ -1976,7 +1947,7 @@ describe("hierarchical groups", () => {
         { user_id: "a|b", company_id: "acme" },
         { user_id: "user_123", company_id: "a|b" },
         { company_id: "a|b" },
-        { user_id: "a|b", device_id: "d" },
+        { user_id: "a|b" },
       ]) {
         expect(() => hg.track(identity(ids), "Signup")).toThrow(
           MixpanelArgumentError,
@@ -2029,7 +2000,7 @@ describe("hierarchical groups", () => {
     });
 
     it("leaves a legacy client unchanged", () => {
-      legacy.track(identity({ user_id: "a|b", device_id: "d" }), "Signup");
+      legacy.track(identity({ user_id: "a|b" }), "Signup");
       legacy.people.set(identity({ distinct_id: "a|b" }), { plan: "pro" });
       legacy.for_company("a|b").groups.set("team_id", "t", { a: 1 });
 

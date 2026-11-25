@@ -26,7 +26,6 @@ declare namespace mixpanel {
     distinct_id?: string | number | null | undefined;
     user_id?: string | number | null | undefined;
     company_id?: string | number | null | undefined;
-    device_id?: string | number | null | undefined;
   }
 
   /**
@@ -43,7 +42,6 @@ declare namespace mixpanel {
     readonly distinct_id: string | number | null;
     readonly user_id: string | number | null;
     readonly company_id: string | number | null;
-    readonly device_id: string | number | null;
     /** true if this identity names a company */
     readonly is_hierarchical: boolean;
     /**
