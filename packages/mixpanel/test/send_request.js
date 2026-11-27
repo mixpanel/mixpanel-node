@@ -146,6 +146,74 @@ describe("send_request", () => {
     res.emit("end");
   });
 
+  describe("HTTP error status", () => {
+    it.each([400, 429, 500, 502, 503])(
+      "exposes status %i on a plain response error",
+      (statusCode) => {
+        res.statusCode = statusCode;
+        const callback = vi.fn();
+        mixpanel.send_request(
+          { endpoint: "/track", data: { event: "test" } },
+          callback,
+        );
+        res.emit("data", "0");
+        res.emit("end");
+        expect(callback).toHaveBeenCalledOnce();
+        const [error] = callback.mock.calls[0];
+        expect(error).toBeInstanceOf(Error);
+        expect(error.message).toBe("Mixpanel Server Error: 0");
+        expect(error.statusCode).toBe(statusCode);
+      },
+    );
+
+    it.each([
+      [
+        '{"status":0,"error":"rate limited"}',
+        "Mixpanel Server Error: rate limited",
+      ],
+      ["not json", "Could not parse response from Mixpanel"],
+    ])("exposes status on verbose error %s", (body, message) => {
+      mixpanel.set_config({ verbose: true });
+      res.statusCode = 429;
+      const callback = vi.fn();
+      mixpanel.send_request(
+        { endpoint: "/track", data: { event: "test" } },
+        callback,
+      );
+      res.emit("data", body);
+      res.emit("end");
+      expect(callback).toHaveBeenCalledOnce();
+      const [error] = callback.mock.calls[0];
+      expect(error).toBeInstanceOf(Error);
+      expect(error.message).toContain(message);
+      expect(error.statusCode).toBe(429);
+    });
+
+    it("does not turn a successful response into an error", () => {
+      res.statusCode = 200;
+      const callback = vi.fn();
+      mixpanel.send_request(
+        { endpoint: "/track", data: { event: "test" } },
+        callback,
+      );
+      res.emit("data", "1");
+      res.emit("end");
+      expect(callback).toHaveBeenCalledExactlyOnceWith(undefined);
+    });
+
+    it("preserves transport errors without inventing a status", () => {
+      const callback = vi.fn();
+      const error = new Error("connection reset");
+      mixpanel.send_request(
+        { endpoint: "/track", data: { event: "test" } },
+        callback,
+      );
+      http_emitter.emit("error", error);
+      expect(callback).toHaveBeenCalledExactlyOnceWith(error);
+      expect(error.statusCode).toBeUndefined();
+    });
+  });
+
   it("handles https.request errors", () => {
     mixpanel.send_request(
       { endpoint: "/track", data: { event: "test" } },

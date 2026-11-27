@@ -189,6 +189,9 @@ const create_client = function (token, config) {
               : undefined;
         }
 
+        if (e) {
+          e.statusCode = res.statusCode;
+        }
         callback(e);
       });
     });
