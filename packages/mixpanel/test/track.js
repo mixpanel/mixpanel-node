@@ -279,6 +279,23 @@ describe("track_batch_integration", () => {
     expect(callback.mock.calls[0][0].length).toBe(3);
   });
 
+  it("passes errors from every request batch to callback", () => {
+    const callback = vi.fn();
+    mixpanel.track_batch(event_list, { max_concurrent_requests: 1 }, callback);
+    res[0].emit("data", "0");
+    res[0].emit("end");
+    for (let ri = 1; ri < 3; ri++) {
+      res[ri].emit("data", "1");
+      res[ri].emit("end");
+    }
+    expect(https.request).toHaveBeenCalledTimes(3);
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback.mock.calls[0][0]).toHaveLength(1);
+    expect(callback.mock.calls[0][0][0].message).toBe(
+      "Mixpanel Server Error: 0",
+    );
+  });
+
   it("calls provided callback when options are passed", () => {
     const callback = vi.fn();
     mixpanel.track_batch(event_list, { max_batch_size: 100 }, callback);

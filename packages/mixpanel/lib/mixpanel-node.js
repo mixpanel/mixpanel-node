@@ -284,6 +284,8 @@ const create_client = function (token, config) {
         : [event_batches],
       total_event_batches = event_batches.length,
       total_request_batches = request_batches.length;
+    // collected across all request batches so earlier failures are not dropped
+    let all_errors = null;
 
     /**
      * sends a batch of events to mixpanel through http api
@@ -316,10 +318,13 @@ const create_client = function (token, config) {
     function send_next_request_batch(index) {
       const request_batch = request_batches[index],
         cb = function (errors, results) {
+          if (errors) {
+            all_errors = (all_errors || []).concat(errors);
+          }
           index += 1;
           if (index === total_request_batches) {
             if (callback) {
-              callback(errors, results);
+              callback(all_errors, results);
             }
           } else {
             send_next_request_batch(index);

@@ -262,6 +262,21 @@ describe("import_batch_integration", () => {
     }
   });
 
+  it("passes errors from every request batch to callback", () => {
+    const callback = vi.fn();
+    mixpanel.import_batch(event_list, { max_batch_size: 100 }, callback);
+    // max_batch_size > 50 splits the 3 requests into 2 request batches
+    res[0].emit("data", "0");
+    res[0].emit("end");
+    for (let ri = 1; ri < 3; ri++) {
+      res[ri].emit("data", "1");
+      res[ri].emit("end");
+    }
+    expect(https.request).toHaveBeenCalledTimes(3);
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback.mock.calls[0][0]).toHaveLength(1);
+  });
+
   it("calls provided callback when options are passed", () => {
     mixpanel.import_batch(
       event_list,
